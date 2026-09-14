@@ -1,0 +1,307 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { buildIndices, buildQuotes, buildSignals, stepQuotes } from "./mock";
+import type {
+  AuditEntry,
+  AuditSeverity,
+  IndexQuote,
+  Outcome,
+  Quote,
+  RiskState,
+  Settings,
+  Signal,
+  Trade,
+} from "./types";
+
+export const DEFAULT_SETTINGS: Settings = {
+  capital: 100000,
+  maxRiskPerTrade: 500,
+  maxDailyLoss: 1000,
+  maxTradesPerDay: 3,
+  lockAfterLosingTrades: 2,
+  minRiskReward: 1.5,
+  sessionStart: "09:20",
+  sessionEnd: "15:10",
+  allowFno: false,
+  intradayOnly: true,
+  liveExecutionEnabled: false,
+  tradingEnabled: true,
+};
+
+const STORAGE_KEY = "inr1l-trading-assistant-v1";
+
+interface Persisted {
+  settings: Settings;
+  signals: Signal[];
+  trades: Trade[];
+  audit: AuditEntry[];
+}
+
+interface Ctx extends Persisted {
+  quotes: Quote[];
+  indices: IndexQuote[];
+  risk: RiskState;
+  approveSignal: (id: string) => { ok: boolean; message: string };
+  rejectSignal: (id: string, reason: string) => void;
+  refreshSignals: () => void;
+  closeTrade: (id: string, exit: number, notes?: string) => void;
+  updateNotes: (id: string, notes: string) => void;
+  saveSettings: (patch: Partial<Settings>) => void;
+  setTradingEnabled: (enabled: boolean) => void;
+  resetDay: () => void;
+}
+
+const TradingContext = createContext<Ctx | null>(null);
+
+const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+
+function isToday(iso: string) {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.toDateString() === n.toDateString();
+}
+
+export function TradingProvider({ children }: { children: ReactNode }) {
+  const [seed] = useState(() => Math.floor(Math.random() * 1e9));
+  const [quotes, setQuotes] = useState<Quote[]>(() => buildQuotes(seed));
+  const [indices, setIndices] = useState<IndexQuote[]>(() => buildIndices(seed));
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  const log = useCallback((action: string, detail: string, severity: AuditSeverity = "INFO") => {
+    setAudit((prev) =>
+      [{ id: uid("AUD"), at: new Date().toISOString(), actor: "operator", action, detail, severity }, ...prev].slice(0, 300),
+    );
+  }, []);
+
+  // Restore persisted state on the client only.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Persisted>;
+        if (parsed.settings) setSettings({ ...DEFAULT_SETTINGS, ...parsed.settings, liveExecutionEnabled: false });
+        if (parsed.trades) setTrades(parsed.trades);
+        if (parsed.audit) setAudit(parsed.audit);
+        if (parsed.signals) setSignals(parsed.signals);
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings, signals, trades, audit }));
+    } catch {
+      /* storage full or unavailable */
+    }
+  }, [hydrated, settings, signals, trades, audit]);
+
+  // Seed the first simulated signal batch after hydration.
+  useEffect(() => {
+    if (!hydrated) return;
+    setSignals((prev) => {
+      if (prev.length) return prev;
+      return buildSignals({ seed, quotes, indices, maxRiskPerTrade: settings.maxRiskPerTrade });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  // Simulated tick loop (clearly labelled as mock data in the UI).
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setQuotes((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)));
+      setIndices((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)) as IndexQuote[]);
+    }, 3000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const risk = useMemo<RiskState>(() => {
+    const todays = trades.filter((t) => isToday(t.openedAt));
+    const closed = todays.filter((t) => t.status === "CLOSED");
+    const realisedPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
+    const open = todays.filter((t) => t.status === "OPEN");
+    const openRisk = open.reduce((s, t) => s + Math.abs(t.entry - t.stopLoss) * t.quantity, 0);
+    const losing = closed.filter((t) => (t.pnl ?? 0) < 0).length;
+    const winning = closed.filter((t) => (t.pnl ?? 0) > 0).length;
+    const riskUsed = todays.reduce((s, t) => s + Math.abs(t.entry - t.stopLoss) * t.quantity, 0);
+
+    const lockReasons: string[] = [];
+    if (!settings.tradingEnabled) lockReasons.push("Trading manually disabled (emergency switch)");
+    if (realisedPnl <= -settings.maxDailyLoss)
+      lockReasons.push(`Daily loss limit hit (₹${settings.maxDailyLoss})`);
+    if (losing >= settings.lockAfterLosingTrades)
+      lockReasons.push(`${losing} losing trades today (limit ${settings.lockAfterLosingTrades})`);
+    if (todays.length >= settings.maxTradesPerDay)
+      lockReasons.push(`Max ${settings.maxTradesPerDay} trades/day reached`);
+
+    return {
+      realisedPnl,
+      openRisk,
+      tradesToday: todays.length,
+      losingTradesToday: losing,
+      winningTradesToday: winning,
+      riskUsed,
+      riskBudgetLeft: Math.max(0, settings.maxDailyLoss - Math.max(0, -realisedPnl) - openRisk),
+      lossBudgetLeft: Math.max(0, settings.maxDailyLoss + Math.min(0, realisedPnl)),
+      tradesLeft: Math.max(0, settings.maxTradesPerDay - todays.length),
+      locked: lockReasons.length > 0,
+      lockReasons,
+      equity: settings.capital + trades.reduce((s, t) => s + (t.pnl ?? 0), 0),
+    };
+  }, [trades, settings]);
+
+  const approveSignal = useCallback(
+    (id: string) => {
+      const signal = signals.find((s) => s.id === id);
+      if (!signal) return { ok: false, message: "Signal not found" };
+      if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
+      if (risk.locked) {
+        log("APPROVE_BLOCKED", `${signal.symbol} blocked: ${risk.lockReasons.join("; ")}`, "WARN");
+        return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
+      }
+      if (signal.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
+      if (signal.riskRupees > settings.maxRiskPerTrade)
+        return { ok: false, message: `Risk ₹${signal.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap` };
+      if (signal.riskReward < settings.minRiskReward)
+        return { ok: false, message: `R:R ${signal.riskReward} below minimum ${settings.minRiskReward}` };
+
+      const now = new Date().toISOString();
+      setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)));
+      setTrades((prev) => [
+        {
+          id: uid("TRD"),
+          signalId: signal.id,
+          symbol: signal.symbol,
+          name: signal.name,
+          side: signal.side,
+          entry: signal.entry,
+          stopLoss: signal.stopLoss,
+          target1: signal.target1,
+          quantity: signal.quantity,
+          status: "OPEN",
+          openedAt: now,
+          notes: "",
+          simulated: true,
+        },
+        ...prev,
+      ]);
+      log(
+        "SIGNAL_APPROVED",
+        `${signal.side} ${signal.quantity} ${signal.symbol} @ ${signal.entry}, SL ${signal.stopLoss}, risk ₹${signal.riskRupees} — simulated only, no order sent`,
+      );
+      return { ok: true, message: "Approved — logged as a simulated trade. No live order was placed." };
+    },
+    [signals, risk, settings, log],
+  );
+
+  const rejectSignal = useCallback(
+    (id: string, reason: string) => {
+      setSignals((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status: "REJECTED", decidedAt: new Date().toISOString(), rejectReason: reason } : s,
+        ),
+      );
+      const s = signals.find((x) => x.id === id);
+      log("SIGNAL_REJECTED", `${s?.symbol ?? id} rejected: ${reason || "no reason given"}`);
+    },
+    [signals, log],
+  );
+
+  const refreshSignals = useCallback(() => {
+    const fresh = buildSignals({
+      seed: Math.floor(Math.random() * 1e9),
+      quotes,
+      indices,
+      maxRiskPerTrade: settings.maxRiskPerTrade,
+    });
+    setSignals((prev) => [
+      ...fresh,
+      ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
+    ].slice(0, 40));
+    log("SIGNALS_REFRESHED", `${fresh.length} simulated signals generated`);
+  }, [quotes, indices, settings.maxRiskPerTrade, log]);
+
+  const closeTrade = useCallback(
+    (id: string, exit: number, notes?: string) => {
+      setTrades((prev) =>
+        prev.map((t) => {
+          if (t.id !== id || t.status === "CLOSED") return t;
+          const dir = t.side === "LONG" ? 1 : -1;
+          const pnl = Number(((exit - t.entry) * dir * t.quantity).toFixed(2));
+          const perShareRisk = Math.abs(t.entry - t.stopLoss);
+          const outcome: Outcome = pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : "BREAKEVEN";
+          return {
+            ...t,
+            exit,
+            pnl,
+            rMultiple: perShareRisk ? Number((pnl / (perShareRisk * t.quantity)).toFixed(2)) : 0,
+            outcome,
+            status: "CLOSED",
+            closedAt: new Date().toISOString(),
+            notes: notes ?? t.notes,
+          };
+        }),
+      );
+      log("TRADE_CLOSED", `Trade ${id} closed at ${exit} (simulated)`);
+    },
+    [log],
+  );
+
+  const updateNotes = useCallback((id: string, notes: string) => {
+    setTrades((prev) => prev.map((t) => (t.id === id ? { ...t, notes } : t)));
+  }, []);
+
+  const saveSettings = useCallback(
+    (patch: Partial<Settings>) => {
+      setSettings((prev) => ({ ...prev, ...patch, liveExecutionEnabled: false }));
+      log("SETTINGS_UPDATED", Object.entries(patch).map(([k, v]) => `${k}=${String(v)}`).join(", "), "WARN");
+    },
+    [log],
+  );
+
+  const setTradingEnabled = useCallback(
+    (enabled: boolean) => {
+      setSettings((prev) => ({ ...prev, tradingEnabled: enabled }));
+      log(enabled ? "TRADING_ENABLED" : "TRADING_DISABLED", enabled ? "Approvals re-enabled" : "Emergency disable: all approvals blocked", "CRITICAL");
+    },
+    [log],
+  );
+
+  const resetDay = useCallback(() => {
+    setTrades([]);
+    setSignals([]);
+    log("DAY_RESET", "Simulated day reset: trades and signals cleared", "WARN");
+  }, [log]);
+
+  const value: Ctx = {
+    settings,
+    signals,
+    trades,
+    audit,
+    quotes,
+    indices,
+    risk,
+    approveSignal,
+    rejectSignal,
+    refreshSignals,
+    closeTrade,
+    updateNotes,
+    saveSettings,
+    setTradingEnabled,
+    resetDay,
+  };
+
+  return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
+}
+
+export function useTrading() {
+  const ctx = useContext(TradingContext);
+  if (!ctx) throw new Error("useTrading must be used inside TradingProvider");
+  return ctx;
+}
