@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDhanCallbackRoute = ApiPublicDhanCallbackRouteImport.update({
+  id: '/api/public/dhan/callback',
+  path: '/api/public/dhan/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/api/public/dhan/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/api/public/dhan/callback'
+  id: '__root__' | '/' | '/api/public/dhan/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/dhan/callback': {
+      id: '/api/public/dhan/callback'
+      path: '/api/public/dhan/callback'
+      fullPath: '/api/public/dhan/callback'
+      preLoaderRoute: typeof ApiPublicDhanCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
