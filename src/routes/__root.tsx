@@ -77,11 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "₹1L Trading Assistant" },
+      {
+        name: "description",
+        content: "Risk-controlled signal and manual-approval dashboard for a ₹1,00,000 intraday equity account.",
+      },
+      { property: "og:title", content: "₹1L Trading Assistant" },
+      {
+        property: "og:description",
+        content: "Simulated signals, explicit manual approval and hard risk limits. Live execution disabled.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },

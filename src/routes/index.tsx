@@ -26,7 +26,17 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-function Stat({ label, value, hint, className }: { label: string; value: string; hint?: string; className?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+  className,
+}: {
+  label: string;
+  value: string;
+  hint?: string | undefined;
+  className?: string | undefined;
+}) {
   return (
     <div className="panel p-4">
       <div className="label-caps">{label}</div>

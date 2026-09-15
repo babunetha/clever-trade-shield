@@ -55,11 +55,11 @@ function SettingsPage() {
       }
       patch[n.key] = value;
     }
-    if (patch.maxRiskPerTrade > patch.maxDailyLoss) {
+    if ((patch["maxRiskPerTrade"] ?? 0) > (patch["maxDailyLoss"] ?? 0)) {
       toast.error("Risk per trade cannot exceed the daily loss cap");
       return;
     }
-    if (patch.capital < patch.maxDailyLoss) {
+    if ((patch["capital"] ?? 0) < (patch["maxDailyLoss"] ?? 0)) {
       toast.error("Daily loss cap cannot exceed capital");
       return;
     }
