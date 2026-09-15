@@ -87,6 +87,17 @@ export function stepQuotes(quotes: Quote[], seed: number): Quote[] {
   });
 }
 
+/** Steps index quotes and recomputes bias from the new change (bias must never be stale). */
+export function stepIndices(indices: IndexQuote[], seed: number): IndexQuote[] {
+  return stepQuotes(indices, seed).map((q) => {
+    const threshold = q.prevClose * 0.0012;
+    return {
+      ...q,
+      bias: q.change > threshold ? "BULLISH" : q.change < -threshold ? "BEARISH" : "NEUTRAL",
+    } satisfies IndexQuote;
+  });
+}
+
 export function buildIndices(seed: number): IndexQuote[] {
   const rng = makeRng(seed + 7717);
   return [

@@ -10,11 +10,47 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApprovalsRouteImport } from './routes/approvals'
+import { Route as JournalRouteImport } from './routes/journal'
+import { Route as MarketRouteImport } from './routes/market'
+import { Route as RiskRouteImport } from './routes/risk'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SignalsRouteImport } from './routes/signals'
 import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApprovalsRoute = ApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketRoute = MarketRouteImport.update({
+  id: '/market',
+  path: '/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskRoute = RiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignalsRoute = SignalsRouteImport.update({
+  id: '/signals',
+  path: '/signals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDhanCallbackRoute = ApiPublicDhanCallbackRouteImport.update({
@@ -25,27 +61,76 @@ const ApiPublicDhanCallbackRoute = ApiPublicDhanCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/journal': typeof JournalRoute
+  '/market': typeof MarketRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/journal': typeof JournalRoute
+  '/market': typeof MarketRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/approvals': typeof ApprovalsRoute
+  '/journal': typeof JournalRoute
+  '/market': typeof MarketRoute
+  '/risk': typeof RiskRoute
+  '/settings': typeof SettingsRoute
+  '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/public/dhan/callback'
+  fullPaths:
+    | '/'
+    | '/approvals'
+    | '/journal'
+    | '/market'
+    | '/risk'
+    | '/settings'
+    | '/signals'
+    | '/api/public/dhan/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/public/dhan/callback'
-  id: '__root__' | '/' | '/api/public/dhan/callback'
+  to:
+    | '/'
+    | '/approvals'
+    | '/journal'
+    | '/market'
+    | '/risk'
+    | '/settings'
+    | '/signals'
+    | '/api/public/dhan/callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/approvals'
+    | '/journal'
+    | '/market'
+    | '/risk'
+    | '/settings'
+    | '/signals'
+    | '/api/public/dhan/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApprovalsRoute: typeof ApprovalsRoute
+  JournalRoute: typeof JournalRoute
+  MarketRoute: typeof MarketRoute
+  RiskRoute: typeof RiskRoute
+  SettingsRoute: typeof SettingsRoute
+  SignalsRoute: typeof SignalsRoute
   ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
 }
 
@@ -56,6 +141,48 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approvals': {
+      id: '/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof ApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market': {
+      id: '/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof MarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk': {
+      id: '/risk'
+      path: '/risk'
+      fullPath: '/risk'
+      preLoaderRoute: typeof RiskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signals': {
+      id: '/signals'
+      path: '/signals'
+      fullPath: '/signals'
+      preLoaderRoute: typeof SignalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/dhan/callback': {
@@ -70,6 +197,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApprovalsRoute: ApprovalsRoute,
+  JournalRoute: JournalRoute,
+  MarketRoute: MarketRoute,
+  RiskRoute: RiskRoute,
+  SettingsRoute: SettingsRoute,
+  SignalsRoute: SignalsRoute,
   ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
 }
 export const routeTree = rootRouteImport
