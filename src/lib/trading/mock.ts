@@ -93,7 +93,7 @@ export function stepIndices(indices: IndexQuote[], seed: number): IndexQuote[] {
     const threshold = q.prevClose * 0.0012;
     return {
       ...q,
-      bias: q.change > threshold ? "BULLISH" : q.change < -threshold ? "BEARISH" : (indices[i]?.bias === undefined ? "NEUTRAL" : "NEUTRAL"),
+      bias: q.change > threshold ? "BULLISH" : q.change < -threshold ? "BEARISH" : "NEUTRAL",
     } satisfies IndexQuote;
   });
 }
