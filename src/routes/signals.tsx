@@ -25,7 +25,7 @@ export const Route = createFileRoute("/signals")({
       },
     ],
   }),
-  component: Signals;
+  component: Signals,
 });
 
 function Signals() {
