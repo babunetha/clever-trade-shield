@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { buildIndices, buildQuotes, buildSignals, stepQuotes } from "./mock";
+import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import type {
   AuditEntry,
   AuditSeverity,
@@ -116,7 +116,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const t = window.setInterval(() => {
       setQuotes((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)));
-      setIndices((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)) as IndexQuote[]);
+      setIndices((prev) => stepIndices(prev, Math.floor(Math.random() * 1e9)));
     }, 3000);
     return () => window.clearInterval(t);
   }, []);
