@@ -61,7 +61,9 @@ function isToday(iso: string) {
 }
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  const [seed] = useState(() => Math.floor(Math.random() * 1e9));
+  // Fixed seed: the first render must be identical on the server and in the
+  // browser or hydration mismatches. Randomness only enters on later ticks.
+  const seed = 20240101;
   const [quotes, setQuotes] = useState<Quote[]>(() => buildQuotes(seed));
   const [indices, setIndices] = useState<IndexQuote[]>(() => buildIndices(seed));
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
