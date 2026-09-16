@@ -107,7 +107,7 @@ async function dhanRequest<T>(
         "access-token": creds.accessToken,
         "client-id": creds.clientId,
       },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body: init.body === undefined ? null : JSON.stringify(init.body),
       signal: controller.signal,
     });
 
