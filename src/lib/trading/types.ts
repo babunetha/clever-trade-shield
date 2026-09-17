@@ -104,6 +104,10 @@ export interface Settings {
   maxRiskPerTrade: number;
   maxDailyLoss: number;
   maxTradesPerDay: number;
+  /** Rolling 7-day realised-loss cap. */
+  weeklyLossLimit: number;
+  /** Simultaneous open positions allowed. */
+  maxOpenPositions: number;
   lockAfterLosingTrades: number;
   minRiskReward: number;
   sessionStart: string;
