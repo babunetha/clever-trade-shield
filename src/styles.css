@@ -49,6 +49,12 @@
   --color-bear-foreground: var(--bear-foreground);
   --color-bear-muted: var(--bear-muted);
   --color-warn: var(--warn);
+  --color-success: var(--bull);
+  --color-success-foreground: var(--bull-foreground);
+  --color-success-muted: var(--bull-muted);
+  --color-danger: var(--bear);
+  --color-danger-foreground: var(--bear-foreground);
+  --color-danger-muted: var(--bear-muted);
   --color-warn-foreground: var(--warn-foreground);
   --color-warn-muted: var(--warn-muted);
   --color-neutral: var(--neutral);
@@ -104,6 +110,12 @@
   --bear-foreground: oklch(0.98 0.01 20);
   --bear-muted: oklch(0.63 0.2 22 / 14%);
   --warn: oklch(0.81 0.15 82);
+  --success: oklch(0.72 0.16 155);
+  --success-foreground: oklch(0.17 0.03 155);
+  --success-muted: oklch(0.72 0.16 155 / 14%);
+  --danger: oklch(0.63 0.2 22);
+  --danger-foreground: oklch(0.98 0.01 20);
+  --danger-muted: oklch(0.63 0.2 22 / 14%);
   --warn-foreground: oklch(0.2 0.04 80);
   --warn-muted: oklch(0.81 0.15 82 / 14%);
   --neutral: oklch(0.6 0.02 250);
