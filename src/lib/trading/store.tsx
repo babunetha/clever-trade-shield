@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS: Settings = {
   maxRiskPerTrade: 500,
   maxDailyLoss: 1000,
   maxTradesPerDay: 3,
+  weeklyLossLimit: 2500,
+  maxOpenPositions: 2,
   lockAfterLosingTrades: 2,
   minRiskReward: 1.5,
   sessionStart: "09:20",
