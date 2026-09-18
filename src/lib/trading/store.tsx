@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
+import { calculateRiskState, validateSignalRisk } from "./risk-engine";
 import type {
   AuditEntry,
   AuditSeverity,
@@ -136,55 +137,18 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(t);
   }, []);
 
-  const risk = useMemo<RiskState>(() => {
-    const todays = trades.filter((t) => isToday(t.openedAt));
-    const closed = todays.filter((t) => t.status === "CLOSED");
-    const realisedPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const open = todays.filter((t) => t.status === "OPEN");
-    const openRisk = open.reduce((s, t) => s + Math.abs(t.entry - t.stopLoss) * t.quantity, 0);
-    const losing = closed.filter((t) => (t.pnl ?? 0) < 0).length;
-    const winning = closed.filter((t) => (t.pnl ?? 0) > 0).length;
-    const riskUsed = todays.reduce((s, t) => s + Math.abs(t.entry - t.stopLoss) * t.quantity, 0);
-
-    const lockReasons: string[] = [];
-    if (!settings.tradingEnabled) lockReasons.push("Trading manually disabled (emergency switch)");
-    if (realisedPnl <= -settings.maxDailyLoss)
-      lockReasons.push(`Daily loss limit hit (₹${settings.maxDailyLoss})`);
-    if (losing >= settings.lockAfterLosingTrades)
-      lockReasons.push(`${losing} losing trades today (limit ${settings.lockAfterLosingTrades})`);
-    if (todays.length >= settings.maxTradesPerDay)
-      lockReasons.push(`Max ${settings.maxTradesPerDay} trades/day reached`);
-
-    return {
-      realisedPnl,
-      openRisk,
-      tradesToday: todays.length,
-      losingTradesToday: losing,
-      winningTradesToday: winning,
-      riskUsed,
-      riskBudgetLeft: Math.max(0, settings.maxDailyLoss - Math.max(0, -realisedPnl) - openRisk),
-      lossBudgetLeft: Math.max(0, settings.maxDailyLoss + Math.min(0, realisedPnl)),
-      tradesLeft: Math.max(0, settings.maxTradesPerDay - todays.length),
-      locked: lockReasons.length > 0,
-      lockReasons,
-      equity: settings.capital + trades.reduce((s, t) => s + (t.pnl ?? 0), 0),
-    };
-  }, [trades, settings]);
+  const risk = useMemo<RiskState>(() => calculateRiskState(trades, settings), [trades, settings]);
 
   const approveSignal = useCallback(
     (id: string) => {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
-      if (risk.locked) {
-        log("APPROVE_BLOCKED", `${signal.symbol} blocked: ${risk.lockReasons.join("; ")}`, "WARN");
-        return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
+      const riskDecision = validateSignalRisk(signal, settings, risk);
+      if (!riskDecision.allowed) {
+        log("APPROVE_BLOCKED", signal.symbol + " blocked: " + riskDecision.reasons.join("; "), "WARN");
+        return { ok: false, message: riskDecision.reasons[0] ?? "Risk validation failed" };
       }
-      if (signal.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
-      if (signal.riskRupees > settings.maxRiskPerTrade)
-        return { ok: false, message: `Risk ₹${signal.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap` };
-      if (signal.riskReward < settings.minRiskReward)
-        return { ok: false, message: `R:R ${signal.riskReward} below minimum ${settings.minRiskReward}` };
 
       const now = new Date().toISOString();
       setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)));
