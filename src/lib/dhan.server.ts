@@ -312,6 +312,52 @@ export async function getDhanHistoricalCandles(
   };
 }
 
+export interface DhanQuote {
+  securityId: string;
+  lastPrice: number;
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+  volume: number;
+  averagePrice: number;
+  netChange: number;
+}
+
+export async function getDhanQuote(request: DhanLtpRequest): Promise<DhanResult<Record<string, DhanQuote>>> {
+  const ids = request.securityIds.filter(Boolean).slice(0, 1000);
+  if (!ids.length) return { ok: true, data: {} };
+  const segmentName = request.exchangeSegment ?? "NSE_EQ";
+  const result = await dhanRequest<Record<string, unknown>>("/marketfeed/quote", {
+    method: "POST",
+    body: { [segmentName]: ids.map(Number) },
+  });
+  if (!result.ok) return result;
+  const segment = (result.data["data"] as Record<string, unknown> | undefined)?.[segmentName];
+  const map: Record<string, DhanQuote> = {};
+  if (segment && typeof segment === "object") {
+    for (const [id, value] of Object.entries(segment as Record<string, unknown>)) {
+      if (!value || typeof value !== "object") continue;
+      const v = value as Record<string, unknown>;
+      const o = (v["ohlc"] ?? {}) as Record<string, unknown>;
+      const lastPrice = Number(v["last_price"]);
+      if (!Number.isFinite(lastPrice)) continue;
+      map[id] = {
+        securityId: id,
+        lastPrice,
+        open: Number(o["open"] ?? 0),
+        close: Number(o["close"] ?? 0),
+        high: Number(o["high"] ?? 0),
+        low: Number(o["low"] ?? 0),
+        volume: Number(v["volume"] ?? 0),
+        averagePrice: Number(v["average_price"] ?? 0),
+        netChange: Number(v["net_change"] ?? 0),
+      };
+    }
+  }
+  return { ok: true, data: map };
+}
+
 export interface DhanLtpRequest {
   securityIds: string[];
   exchangeSegment?: "NSE_EQ" | "BSE_EQ";
