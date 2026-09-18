@@ -29,7 +29,7 @@ export const getDhanQuotes = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     const { getDhanLtp } = await import("./dhan.server");
-    return getDhanLtp(data.securityIds);
+    return getDhanLtp({ securityIds: data.securityIds, exchangeSegment: "NSE_EQ" });
   });
 
 /** Always refuses in v1; kept so the UI can prove the kill-switch works. */
@@ -68,4 +68,16 @@ export const getDhanHistoricalCandles = createServerFn({ method: "POST" })
       toDate: data.toDate,
       interval: data.interval ?? "5",
     });
+  });
+
+
+/** Read-only LTP snapshot from Dhan. */
+export const getDhanLtp = createServerFn({ method: "POST" })
+  .inputValidator((input: { securityIds: string[]; exchangeSegment?: "NSE_EQ" | "BSE_EQ" }) => ({
+    securityIds: input.securityIds.slice(0, 1000),
+    exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
+  }))
+  .handler(async ({ data }) => {
+    const { getDhanLtp: run } = await import("./dhan.server");
+    return run(data);
   });
