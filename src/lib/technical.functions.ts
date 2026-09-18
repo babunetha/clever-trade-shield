@@ -6,7 +6,7 @@ import { calculateIndicators } from "./trading/indicators";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function dateTime(daysAgo: number) {
-  const d = new Date(Date.now() - daysAgo * 86_400_000);
+  const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000 - daysAgo * 86_400_000);
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(d.getUTCDate()).padStart(2, "0");
@@ -32,7 +32,7 @@ export const getDhanTechnicalSnapshots = createServerFn({ method: "POST" })
         exchangeSegment: instrument.exchangeSegment,
         instrument: "EQUITY",
         fromDate: dateTime(20),
-        toDate: dateTime(-1),
+        toDate: dateTime(0),
         interval: data.interval,
       });
       if (!five.ok) return five;
