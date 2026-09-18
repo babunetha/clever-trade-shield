@@ -24,3 +24,19 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+
+## Phase 4 — Real market engine
+
+The application now has a server-side Dhan market-data path:
+- instrument master resolution and caching
+- real Market Quote snapshots
+- real intraday historical candles
+- deterministic EMA/RSI/MACD/VWAP/ADX/ATR/relative-volume calculations
+- Dhan-derived technical signals
+- manual approval + paper execution pipeline remains intact
+- live order execution remains disabled
+
+Dhan's current API documentation states that Market Quote can request up to 1,000 instruments per request, while Historical Data provides minute OHLCV candles including 1/5/15/25/60-minute intervals. Historical Data requests are intentionally paced in this application rather than fired as an uncontrolled burst. citeturn1search0turn5search0
+
+The current Dhan API requires a valid access token for each request; manually generated individual access tokens are currently valid for 24 hours. citeturn4search7turn4search0
