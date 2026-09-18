@@ -29,7 +29,7 @@ export const getDhanQuotes = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     const { getDhanLtp } = await import("./dhan.server");
-    return getDhanLtp(data.securityIds);
+    return getDhanLtp({ securityIds: data.securityIds, exchangeSegment: "NSE_EQ" });
   });
 
 /** Always refuses in v1; kept so the UI can prove the kill-switch works. */
