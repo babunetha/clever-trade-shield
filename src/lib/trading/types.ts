@@ -15,6 +15,7 @@ export interface Indicators {
   macdHist: number;
   vwap: number;
   adx: number;
+  atr14: number;
   volume: number;
   avgVolume: number;
   relVolume: number;

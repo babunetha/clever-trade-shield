@@ -142,6 +142,7 @@ function buildIndicators(ltp: number, side: Side, rng: () => number): Indicators
     macdSignal,
     macdHist: round(macdLine - macdSignal, 3),
     vwap: round(ltp * (1 - k * 0.0022)),
+    atr14: round(ltp * (0.004 + rng() * 0.003)),
     adx: round(21 + rng() * 17, 1),
     volume: Math.round(avgVolume * relVolume),
     avgVolume,
