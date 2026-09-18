@@ -25,7 +25,7 @@ export const getDhanQuotes = createServerFn({ method: "POST" })
     securityIds: (Array.isArray(input?.securityIds) ? input.securityIds : [])
       .map((id) => String(id).trim())
       .filter((id) => /^\d{1,8}$/.test(id))
-      .slice(0, 25),
+      .slice(0, 1000),
   }))
   .handler(async ({ data }) => {
     const { getDhanLtp } = await import("./dhan.server");
@@ -46,4 +46,26 @@ export const submitApprovedTrade = createServerFn({ method: "POST" })
       productType: "INTRADAY",
     });
     return result;
+  });
+
+
+/** Historical intraday candles. Server-only; credentials never cross the browser boundary. */
+export const getDhanHistoricalCandles = createServerFn({ method: "POST" })
+  .inputValidator((input: {
+    securityId: string;
+    exchangeSegment: "NSE_EQ" | "BSE_EQ";
+    fromDate: string;
+    toDate: string;
+    interval?: "1" | "5" | "15" | "25" | "60";
+  }) => input)
+  .handler(async ({ data }) => {
+    const { getDhanHistoricalCandles: run } = await import("./dhan.server");
+    return run({
+      securityId: data.securityId,
+      exchangeSegment: data.exchangeSegment,
+      instrument: "EQUITY",
+      fromDate: data.fromDate,
+      toDate: data.toDate,
+      interval: data.interval ?? "5",
+    });
   });
