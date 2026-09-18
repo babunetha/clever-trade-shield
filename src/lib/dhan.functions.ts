@@ -69,3 +69,15 @@ export const getDhanHistoricalCandles = createServerFn({ method: "POST" })
       interval: data.interval ?? "5",
     });
   });
+
+
+/** Read-only LTP snapshot from Dhan. */
+export const getDhanLtp = createServerFn({ method: "POST" })
+  .inputValidator((input: { securityIds: string[]; exchangeSegment?: "NSE_EQ" | "BSE_EQ" }) => ({
+    securityIds: input.securityIds.slice(0, 1000),
+    exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
+  }))
+  .handler(async ({ data }) => {
+    const { getDhanLtp: run } = await import("./dhan.server");
+    return run(data);
+  });
