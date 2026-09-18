@@ -341,6 +341,32 @@ export async function getDhanHistoricalCandles(
   };
 }
 
+export interface DhanLtpRequest {
+  securityIds: string[];
+  exchangeSegment?: "NSE_EQ" | "BSE_EQ";
+}
+
+export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Record<string, number>>> {
+  const ids = request.securityIds.filter(Boolean).slice(0, 1000);
+  const segmentName = request.exchangeSegment ?? "NSE_EQ";
+  const result = await dhanRequest<Record<string, unknown>>("/marketfeed/ltp", {
+    method: "POST",
+    body: { [segmentName]: ids.map(Number) },
+  });
+  if (!result.ok) return result;
+  const segment = (result.data["data"] as Record<string, unknown> | undefined)?.[segmentName];
+  const map: Record<string, number> = {};
+  if (segment && typeof segment === "object") {
+    for (const [id, value] of Object.entries(segment as Record<string, unknown>)) {
+      if (value && typeof value === "object" && "last_price" in value) {
+        const price = Number((value as { last_price?: unknown }).last_price);
+        if (Number.isFinite(price)) map[id] = price;
+      }
+    }
+  }
+  return { ok: true, data: map };
+}
+
 /* ---------------------------- EXECUTION: BLOCKED --------------------------- */
 
 /**
