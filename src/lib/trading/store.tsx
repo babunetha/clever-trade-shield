@@ -43,6 +43,17 @@ interface Ctx extends Persisted {
   indices: IndexQuote[];
   risk: RiskState;
   approveSignal: (id: string) => { ok: boolean; message: string };
+  /** Logs an explicitly approved, verified scanner candidate as a simulated trade. */
+  openPaperTrade: (input: {
+    symbol: string;
+    name: string;
+    entry: number;
+    stopLoss: number;
+    target1: number;
+    quantity: number;
+    riskRupees: number;
+    source: string;
+  }) => { ok: boolean; message: string };
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
   closeTrade: (id: string, exit: number, notes?: string) => void;
@@ -204,6 +215,47 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     [signals, risk, settings, log],
   );
 
+  const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
+    (input) => {
+      if (risk.locked) {
+        log("PAPER_TRADE_BLOCKED", `${input.symbol} blocked: ${risk.lockReasons.join("; ")}`, "WARN");
+        return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
+      }
+      if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
+      if (input.riskRupees > settings.maxRiskPerTrade)
+        return { ok: false, message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap` };
+      const openToday = trades.filter((t) => isToday(t.openedAt) && t.status === "OPEN").length;
+      if (openToday >= settings.maxOpenPositions)
+        return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
+
+      const now = new Date().toISOString();
+      setTrades((prev) => [
+        {
+          id: uid("TRD"),
+          signalId: `SCAN-${input.source}`,
+          symbol: input.symbol,
+          name: input.name,
+          side: "LONG",
+          entry: input.entry,
+          stopLoss: input.stopLoss,
+          target1: input.target1,
+          quantity: input.quantity,
+          status: "OPEN",
+          openedAt: now,
+          notes: `Scanner candidate (${input.source}) — verified, simulated only`,
+          simulated: true,
+        },
+        ...prev,
+      ]);
+      log(
+        "PAPER_TRADE_OPENED",
+        `LONG ${input.quantity} ${input.symbol} @ ${input.entry}, SL ${input.stopLoss}, risk ₹${input.riskRupees} from ${input.source} — simulated only, no order sent`,
+      );
+      return { ok: true, message: "Logged as a simulated paper trade. No live order was placed." };
+    },
+    [risk, settings, trades, log],
+  );
+
   const rejectSignal = useCallback(
     (id: string, reason: string) => {
       setSignals((prev) =>
@@ -292,6 +344,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     indices,
     risk,
     approveSignal,
+    openPaperTrade,
     rejectSignal,
     refreshSignals,
     closeTrade,
