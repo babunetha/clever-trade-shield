@@ -360,7 +360,7 @@ export async function getDhanQuote(request: DhanLtpRequest): Promise<DhanResult<
 
 export interface DhanLtpRequest {
   securityIds: string[];
-  exchangeSegment?: "NSE_EQ" | "BSE_EQ";
+  exchangeSegment?: "NSE_EQ" | "BSE_EQ" | "IDX_I";
 }
 
 export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Record<string, number>>> {
