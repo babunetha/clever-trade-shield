@@ -14,6 +14,7 @@ import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as MarketRouteImport } from './routes/market'
 import { Route as RiskRouteImport } from './routes/risk'
+import { Route as ScannerRouteImport } from './routes/scanner'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignalsRouteImport } from './routes/signals'
 import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
@@ -43,6 +44,11 @@ const RiskRoute = RiskRouteImport.update({
   path: '/risk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScannerRoute = ScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/journal': typeof JournalRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
+  '/scanner': typeof ScannerRoute
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/journal': typeof JournalRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
+  '/scanner': typeof ScannerRoute
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/journal': typeof JournalRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
+  '/scanner': typeof ScannerRoute
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/market'
     | '/risk'
+    | '/scanner'
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/market'
     | '/risk'
+    | '/scanner'
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/journal'
     | '/market'
     | '/risk'
+    | '/scanner'
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   JournalRoute: typeof JournalRoute
   MarketRoute: typeof MarketRoute
   RiskRoute: typeof RiskRoute
+  ScannerRoute: typeof ScannerRoute
   SettingsRoute: typeof SettingsRoute
   SignalsRoute: typeof SignalsRoute
   ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RiskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/scanner': {
+      id: '/scanner'
+      path: '/scanner'
+      fullPath: '/scanner'
+      preLoaderRoute: typeof ScannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   JournalRoute: JournalRoute,
   MarketRoute: MarketRoute,
   RiskRoute: RiskRoute,
+  ScannerRoute: ScannerRoute,
   SettingsRoute: SettingsRoute,
   SignalsRoute: SignalsRoute,
   ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
