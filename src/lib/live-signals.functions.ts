@@ -8,7 +8,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const round = (v: number, dp = 2) => Number(v.toFixed(dp));
 
 function dateTime(daysAgo: number) {
-  const d = new Date(Date.now() - daysAgo * 86_400_000);
+  const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000 - daysAgo * 86_400_000);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")} 09:15:00`;
 }
 
@@ -57,7 +57,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
         exchangeSegment: "NSE_EQ",
         instrument: "EQUITY",
         fromDate: dateTime(20),
-        toDate: dateTime(-1),
+        toDate: dateTime(0),
         interval: "5",
       });
       if (!candles.ok) return candles;
