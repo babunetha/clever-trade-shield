@@ -250,35 +250,6 @@ export async function getDhanPositions(): Promise<DhanResult<DhanPosition[]>> {
   };
 }
 
-export interface DhanLtp {
-  securityId: string;
-  lastPrice: number;
-}
-
-/**
- * POST /v2/marketfeed/ltp — live last-traded prices for NSE cash securities.
- * Requires the Data API subscription on the Dhan account; without it Dhan
- * answers 401/403 and we surface that as UNAUTHORIZED.
- */
-export async function getDhanLtp(securityIds: string[]): Promise<DhanResult<DhanLtp[]>> {
-  if (!securityIds.length) return { ok: true, data: [] };
-  const result = await dhanRequest<Record<string, unknown>>("/marketfeed/ltp", {
-    method: "POST",
-    body: { NSE_EQ: securityIds.map((id) => Number(id)).filter(Number.isFinite) },
-  });
-  if (!result.ok) return result;
-
-  const data = (result.data["data"] ?? {}) as Record<string, Record<string, { last_price?: number }>>;
-  const nse = data["NSE_EQ"] ?? {};
-  return {
-    ok: true,
-    data: Object.entries(nse).map(([securityId, value]) => ({
-      securityId,
-      lastPrice: Number(value?.last_price ?? 0),
-    })),
-  };
-}
-
 export interface DhanCandle {
   timestamp: number;
   open: number;
