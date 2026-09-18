@@ -127,7 +127,7 @@ export function calculateIndicators(candles: DhanCandle[]): Indicators | null {
   return {
     ema9: round(e9!), ema20: round(e20!), ema50: round(e50!), ema200: round(e200!),
     rsi14: round(r!, 1), macdLine: round(m.line!, 3), macdSignal: round(m.signal!, 3), macdHist: round(m.hist!, 3),
-    vwap: round(v!), adx: round(d!, 1), volume: last.volume, avgVolume: round(avgVolume),
+    vwap: round(v!), adx: round(d!, 1), atr14: round(a!), volume: last.volume, avgVolume: round(avgVolume),
     relVolume: avgVolume > 0 ? round(last.volume / avgVolume, 2) : 0,
     support: round(support), resistance: round(resistance),
     context5m: bias(e9, e20), context15m: bias(e20, e50),
