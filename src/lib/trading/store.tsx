@@ -57,6 +57,7 @@ interface Ctx extends Persisted {
   }) => { ok: boolean; message: string };
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
+  publishLiveSignals: (signals: Signal[]) => void;
   closeTrade: (id: string, exit: number, notes?: string) => void;
   updateNotes: (id: string, notes: string) => void;
   saveSettings: (patch: Partial<Settings>) => void;
@@ -233,6 +234,14 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     [signals, log],
   );
 
+  const publishLiveSignals = useCallback(
+    (liveSignals: Signal[]) => {
+      setSignals(liveSignals.slice(0, 40));
+      log("LIVE_SIGNALS_PUBLISHED", `${liveSignals.length} Dhan-derived signals published for manual approval`);
+    },
+    [log],
+  );
+
   const refreshSignals = useCallback(() => {
     const fresh = buildSignals({
       seed: Math.floor(Math.random() * 1e9),
@@ -311,6 +320,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     openPaperTrade,
     rejectSignal,
     refreshSignals,
+    publishLiveSignals,
     closeTrade,
     updateNotes,
     saveSettings,
