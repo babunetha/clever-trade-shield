@@ -5,6 +5,7 @@ import {
   CheckSquare,
   LayoutDashboard,
   LineChart,
+  Radar,
   Radio,
   Settings as SettingsIcon,
   ShieldAlert,
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/market", label: "Market Overview", icon: LineChart },
+  { to: "/scanner", label: "Scanner", icon: Radar },
   { to: "/signals", label: "Signals", icon: Radio },
   { to: "/approvals", label: "Trade Approval", icon: CheckSquare },
   { to: "/journal", label: "Trade Journal", icon: BookOpen },
