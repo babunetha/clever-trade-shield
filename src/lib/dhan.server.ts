@@ -279,6 +279,68 @@ export async function getDhanLtp(securityIds: string[]): Promise<DhanResult<Dhan
   };
 }
 
+export interface DhanCandle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface DhanHistoricalRequest {
+  securityId: string;
+  exchangeSegment: "NSE_EQ" | "BSE_EQ";
+  instrument: "EQUITY";
+  fromDate: string;
+  toDate: string;
+  interval?: "1" | "5" | "15" | "25" | "60";
+}
+
+/**
+ * Fetches Dhan v2 intraday historical candles. Dhan documents 1/5/15/25/60
+ * minute intervals and recommends storing the returned data locally.
+ */
+export async function getDhanHistoricalCandles(
+  request: DhanHistoricalRequest,
+): Promise<DhanResult<DhanCandle[]>> {
+  const interval = request.interval ?? "5";
+  const result = await dhanRequest<Record<string, unknown>>("/charts/intraday", {
+    method: "POST",
+    body: {
+      securityId: request.securityId,
+      exchangeSegment: request.exchangeSegment,
+      instrument: request.instrument,
+      interval,
+      oi: false,
+      fromDate: request.fromDate,
+      toDate: request.toDate,
+    },
+  });
+  if (!result.ok) return result;
+
+  const raw = result.data;
+  const open = Array.isArray(raw["open"]) ? raw["open"] as unknown[] : [];
+  const high = Array.isArray(raw["high"]) ? raw["high"] as unknown[] : [];
+  const low = Array.isArray(raw["low"]) ? raw["low"] as unknown[] : [];
+  const close = Array.isArray(raw["close"]) ? raw["close"] as unknown[] : [];
+  const volume = Array.isArray(raw["volume"]) ? raw["volume"] as unknown[] : [];
+  const timestamps = Array.isArray(raw["timestamp"]) ? raw["timestamp"] as unknown[] : [];
+  const length = Math.min(open.length, high.length, low.length, close.length, volume.length, timestamps.length);
+
+  return {
+    ok: true,
+    data: Array.from({ length }, (_, i) => ({
+      timestamp: Number(timestamps[i]),
+      open: Number(open[i]),
+      high: Number(high[i]),
+      low: Number(low[i]),
+      close: Number(close[i]),
+      volume: Number(volume[i]),
+    })).filter((c) => Number.isFinite(c.timestamp) && Number.isFinite(c.close)),
+  };
+}
+
 /* ---------------------------- EXECUTION: BLOCKED --------------------------- */
 
 /**
