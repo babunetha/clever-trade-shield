@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
   ingestDhanPostback,
+  getOrderIntentByCorrelationId,
   updateOrderIntentByCorrelationId,
   upsertBrokerOrder,
   upsertBrokerTrade,
@@ -34,6 +35,7 @@ export async function processDhanPostback(url: string, body: string) {
   if (!configuredClient || dhanClientId !== configuredClient) throw new Error("Dhan postback client mismatch.");
 
   const eventKey = createHash("sha256").update(body).digest("hex");
+  const intent = await getOrderIntentByCorrelationId(correlationId);
   await ingestDhanPostback(payload, eventKey);
 
   const filledQty = Number(payload.filled_qty ?? 0);
@@ -46,6 +48,7 @@ export async function processDhanPostback(url: string, body: string) {
     status === "EXPIRED" ? "EXPIRED" : "SUBMITTED";
 
   await upsertBrokerOrder({
+    order_intent_id: intent?.id ?? null,
     broker_order_id: orderId,
     correlation_id: correlationId,
     status: mappedStatus,
