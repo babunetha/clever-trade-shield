@@ -96,3 +96,15 @@ export async function updateOrderIntentByCorrelationId(correlationId: string, pa
     body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
   });
 }
+
+
+export async function updateOrderIntentByIdempotencyKey(idempotencyKey: string, patch: Record<string, unknown>) {
+  const safe = encodeURIComponent(idempotencyKey);
+  return request(`order_intents?idempotency_key=eq.${safe}`, { method: "PATCH", body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }) });
+}
+
+export async function getOrderIntentStateByCorrelationId(correlationId: string) {
+  const safe = encodeURIComponent(correlationId);
+  const rows = await request(`order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status,broker_order_id,quantity,symbol,transaction_type`);
+  return Array.isArray(rows) ? rows[0] ?? null : null;
+}
