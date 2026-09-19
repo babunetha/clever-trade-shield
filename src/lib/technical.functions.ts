@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "./auth-middleware";
 import { getDhanHistoricalCandles } from "./dhan.server";
 import { resolveDhanInstruments } from "./market/instruments";
 import { calculateIndicators } from "./trading/indicators";
@@ -24,7 +25,7 @@ function dateTime(daysAgo: number) {
   return `${yyyy}-${mm}-${dd} 09:15:00`;
 }
 
-export const getDhanTechnicalSnapshots = createServerFn({ method: "POST" })
+export const getDhanTechnicalSnapshots = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { symbols?: string[]; interval?: "5" | "15" }) => ({
     symbols: (input?.symbols ?? []).map((s) => String(s).trim().toUpperCase()).filter(Boolean).slice(0, 6),
     interval: input?.interval ?? "5",

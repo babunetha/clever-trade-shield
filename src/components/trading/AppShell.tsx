@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import {
   Activity,
   BookOpen,
@@ -11,11 +11,13 @@ import {
   ShieldAlert,
   ShieldCheck,
   Workflow,
+  LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTrading } from "@/lib/trading/store";
 import { formatPct, formatSignedINR, formatPrice, tone } from "@/lib/trading/format";
 import { Button } from "@/components/ui/button";
+import { logoutApp } from "@/lib/auth.functions";
 import { Badge } from "@/components/ui/badge";
 
 const NAV = [
@@ -40,6 +42,13 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { indices, quotes, risk, settings, setTradingEnabled } = useTrading();
+  const router = useRouter();
+
+  const logout = async () => {
+    await logoutApp();
+    await router.invalidate();
+    await router.navigate({ to: "/login" });
+  };
 
   return (
     <div className="min-h-screen">
@@ -54,7 +63,7 @@ export function AppShell({
             <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Activity className="size-4" />
             </span>
-            <span className="text-sm font-semibold">₹1L Trading Assistant</span>
+            <span className="text-sm font-semibold">Clever Trade Shield</span>
           </Link>
 
           <div className="flex flex-wrap items-center gap-3 num text-xs">
@@ -72,6 +81,7 @@ export function AppShell({
               {risk.locked ? "RISK LOCK" : "ARMED"}
             </Badge>
             <span className={`num text-xs ${tone(risk.realisedPnl)}`}>{formatSignedINR(risk.realisedPnl)}</span>
+            <Badge variant="outline" className="hidden sm:inline-flex">SECURE SESSION</Badge>
             <Button
               size="sm"
               variant={settings.tradingEnabled ? "outline" : "destructive"}
@@ -79,6 +89,10 @@ export function AppShell({
             >
               <ShieldAlert className="mr-1 size-3.5" />
               {settings.tradingEnabled ? "Disable trading" : "Trading disabled"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={logout} aria-label="Sign out">
+              <LogOut className="size-3.5" />
+              <span className="hidden lg:inline">Sign out</span>
             </Button>
           </div>
         </div>
