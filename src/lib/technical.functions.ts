@@ -2,6 +2,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { getDhanHistoricalCandles } from "./dhan.server";
 import { resolveDhanInstruments } from "./market/instruments";
 import { calculateIndicators } from "./trading/indicators";
+import type { Indicators } from "./trading/types";
+
+interface TechnicalSnapshot {
+  symbol: string;
+  name: string;
+  securityId: string;
+  exchangeSegment: string;
+  candles: number;
+  asOf: string | number | null;
+  indicators: Indicators | null;
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -21,7 +32,7 @@ export const getDhanTechnicalSnapshots = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const symbols = data.symbols;
     const instruments = await resolveDhanInstruments(symbols);
-    const output: Record<string, unknown> = {};
+    const output: Record<string, TechnicalSnapshot> = {};
 
     // Historical Data is a Data API. Keep requests paced rather than firing
     // a large burst from a scanner click.

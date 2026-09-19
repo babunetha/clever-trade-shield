@@ -43,7 +43,7 @@ export async function loadDhanInstruments(): Promise<DhanInstrument[]> {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) throw new Error("Dhan instrument master was empty");
 
-  const header = parseCsvLine(lines[0]);
+  const header = parseCsvLine(lines[0]!);
   const index = (name: string) => header.indexOf(name);
   const id = index("SEM_SMST_SECURITY_ID");
   const exchange = index("SEM_EXM_EXCH_ID");
@@ -58,7 +58,7 @@ export async function loadDhanInstruments(): Promise<DhanInstrument[]> {
 
   const rows: DhanInstrument[] = [];
   for (let i = 1; i < lines.length; i += 1) {
-    const values = parseCsvLine(lines[i]);
+    const values = parseCsvLine(lines[i]!);
     const exchangeValue = values[exchange];
     const segmentValue = values[segment];
     const instrumentValue = values[instrument];
@@ -80,7 +80,7 @@ export async function loadDhanInstruments(): Promise<DhanInstrument[]> {
       tradingSymbol,
       customSymbol: custom >= 0 ? values[custom]?.trim() || tradingSymbol : tradingSymbol,
       exchangeSegment,
-      instrument: instrumentValue,
+      instrument: instrumentValue ?? "",
     });
   }
 

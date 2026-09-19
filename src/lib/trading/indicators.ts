@@ -13,7 +13,7 @@ function ema(values: number[], period: number): number | null {
   const seed = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
   const k = 2 / (period + 1);
   let value = seed;
-  for (let i = period; i < values.length; i += 1) value = values[i] * k + value * (1 - k);
+  for (let i = period; i < values.length; i += 1) value = values[i]! * k + value * (1 - k);
   return value;
 }
 
@@ -22,14 +22,14 @@ function rsi(values: number[], period = 14): number | null {
   let gain = 0;
   let loss = 0;
   for (let i = 1; i <= period; i += 1) {
-    const change = values[i] - values[i - 1];
+    const change = values[i]! - values[i - 1]!;
     if (change >= 0) gain += change;
     else loss -= change;
   }
   let avgGain = gain / period;
   let avgLoss = loss / period;
   for (let i = period + 1; i < values.length; i += 1) {
-    const change = values[i] - values[i - 1];
+    const change = values[i]! - values[i - 1]!;
     avgGain = (avgGain * (period - 1) + Math.max(change, 0)) / period;
     avgLoss = (avgLoss * (period - 1) + Math.max(-change, 0)) / period;
   }
@@ -41,8 +41,8 @@ function atr(candles: DhanCandle[], period = 14): number | null {
   if (candles.length <= period) return null;
   const tr: number[] = [];
   for (let i = 1; i < candles.length; i += 1) {
-    const c = candles[i];
-    const prev = candles[i - 1].close;
+    const c = candles[i]!;
+    const prev = candles[i - 1]!.close;
     tr.push(Math.max(c.high - c.low, Math.abs(c.high - prev), Math.abs(c.low - prev)));
   }
   return sma(tr, period);
@@ -81,8 +81,8 @@ function adx(candles: DhanCandle[], period = 14): number | null {
   const plus: number[] = [];
   const minus: number[] = [];
   for (let i = 1; i < candles.length; i += 1) {
-    const cur = candles[i];
-    const prev = candles[i - 1];
+    const cur = candles[i]!;
+    const prev = candles[i - 1]!;
     tr.push(Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close)));
     const up = cur.high - prev.high;
     const down = prev.low - cur.low;
