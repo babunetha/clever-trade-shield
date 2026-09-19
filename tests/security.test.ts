@@ -140,6 +140,7 @@ describe("risk guardrails", () => {
       riskReward: 2,
       exchangeSegment: "NSE_EQ",
       productType: "INTRADAY",
+      securityId: "11536",
     }, undefined, new Date("2026-09-19T04:00:00Z"));
     expect(decision.allowed).toBe(false);
     expect(decision.reasons).toContain("Server live-execution readiness gate is OFF.");
