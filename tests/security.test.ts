@@ -146,3 +146,25 @@ describe("risk guardrails", () => {
     expect(decision.reasons).toContain("Declared trade risk does not match entry, stop-loss and quantity.");
   });
 });
+
+
+describe("production execution gate", () => {
+  test("live gate is closed unless every production condition is explicitly configured", async () => {
+    const { liveExecutionGate } = await import("../src/lib/dhan-live-execution.server");
+    const gate = liveExecutionGate();
+    expect(gate.enabled).toBe(false);
+    expect(gate.reasons.length).toBeGreaterThan(0);
+  });
+
+  test("order state machine rejects terminal-state resurrection", async () => {
+    const { transitionOrderStatus } = await import("../src/lib/trading/order-state-machine");
+    expect(transitionOrderStatus("FILLED", "FILLED")).toBe("FILLED");
+    expect(transitionOrderStatus("FILLED", "CANCELLED")).toBe("FILLED");
+  });
+
+  test("partial fill status is supported", async () => {
+    const { transitionOrderStatus } = await import("../src/lib/trading/order-state-machine");
+    expect(transitionOrderStatus("SUBMITTED", "PARTIALLY_FILLED")).toBe("PARTIALLY_FILLED");
+    expect(transitionOrderStatus("PARTIALLY_FILLED", "FILLED")).toBe("FILLED");
+  });
+});
