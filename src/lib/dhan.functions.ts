@@ -1,26 +1,27 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "./auth-middleware";
 
 /** Returns broker wiring status as booleans only — no secrets cross the wire. */
-export const getDhanStatus = createServerFn({ method: "GET" }).handler(async () => {
+export const getDhanStatus = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(async () => {
   const { readDhanCredentialStatus } = await import("./dhan.server");
   return readDhanCredentialStatus();
 });
 
 /** Authenticated connection test against GET /v2/profile. Client id is masked. */
-export const testDhanConnection = createServerFn({ method: "POST" }).handler(async () => {
+export const testDhanConnection = createServerFn({ method: "POST" }).middleware([authMiddleware]).handler(async () => {
   const { testDhanConnection: run } = await import("./dhan.server");
   return run();
 });
 
 /** Read-only account snapshot: funds + holdings + positions in one round trip. */
-export const getDhanAccount = createServerFn({ method: "POST" }).handler(async () => {
+export const getDhanAccount = createServerFn({ method: "POST" }).middleware([authMiddleware]).handler(async () => {
   const { getDhanFunds, getDhanHoldings, getDhanPositions } = await import("./dhan.server");
   const [funds, holdings, positions] = await Promise.all([getDhanFunds(), getDhanHoldings(), getDhanPositions()]);
   return { funds, holdings, positions };
 });
 
 /** Live LTP for a small list of NSE cash security ids (Data API subscription required). */
-export const getDhanQuotes = createServerFn({ method: "POST" })
+export const getDhanQuotes = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { securityIds: string[] }) => ({
     securityIds: (Array.isArray(input?.securityIds) ? input.securityIds : [])
       .map((id) => String(id).trim())
@@ -33,7 +34,7 @@ export const getDhanQuotes = createServerFn({ method: "POST" })
   });
 
 /** Always refuses in v1; kept so the UI can prove the kill-switch works. */
-export const submitApprovedTrade = createServerFn({ method: "POST" })
+export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { signalId: string }) => input)
   .handler(async ({ data }) => {
     const { placeDhanOrder } = await import("./dhan.server");
@@ -50,7 +51,7 @@ export const submitApprovedTrade = createServerFn({ method: "POST" })
 
 
 /** Historical intraday candles. Server-only; credentials never cross the browser boundary. */
-export const getDhanHistoricalCandles = createServerFn({ method: "POST" })
+export const getDhanHistoricalCandles = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: {
     securityId: string;
     exchangeSegment: "NSE_EQ" | "BSE_EQ";
@@ -72,7 +73,7 @@ export const getDhanHistoricalCandles = createServerFn({ method: "POST" })
 
 
 /** Read-only LTP snapshot from Dhan. */
-export const getDhanLtp = createServerFn({ method: "POST" })
+export const getDhanLtp = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { securityIds: string[]; exchangeSegment?: "NSE_EQ" | "BSE_EQ" }) => ({
     securityIds: input.securityIds.slice(0, 1000),
     exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
