@@ -7,12 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { TradingProvider } from "@/lib/trading/store";
+import { getAuthStatus } from "@/lib/auth.functions";
 
 function NotFoundComponent() {
   return (
@@ -39,9 +39,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -75,23 +72,31 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  headers: () => ({ "Cache-Control": "private, no-store" }),
+  beforeLoad: async ({ location }) => {
+    if (location.pathname === "/login") return;
+    const auth = await getAuthStatus();
+    if (!auth.authenticated) {
+      throw new Error("AUTH_REDIRECT:/login");
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "₹1L Trading Assistant" },
+      { title: "Clever Trade Shield" },
       {
         name: "description",
-        content: "Risk-controlled signal and manual-approval dashboard for a ₹1,00,000 intraday equity account.",
+        content: "Professional, risk-controlled trading terminal with server-side Dhan integration.",
       },
       { property: "og:title", content: "₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Simulated signals, explicit manual approval and hard risk limits. Live execution disabled.",
+        content: "Server-authenticated market data, explicit manual approval and hard risk limits. Live execution disabled.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@CleverTradeShield" },
     ],
     links: [
       {
