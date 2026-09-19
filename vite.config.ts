@@ -12,11 +12,9 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
     strictPort: true,
-    hmr: {
-      host: "localhost",
-      protocol: "ws",
-      clientPort: 5173,
-    },
+    // CodeSandbox's port proxy handles page requests, but its public
+    // WebSocket endpoint is environment-dependent. Disable HMR here so a
+    // failed WebSocket upgrade can never take down the HTTP preview. `vite dev` remains fully usable with manual refresh.
   },
   plugins: [
     tanstackStart({
