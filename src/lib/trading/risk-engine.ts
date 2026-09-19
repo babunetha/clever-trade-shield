@@ -10,15 +10,37 @@ function minutesOfDay(value: string) {
   return hours * 60 + minutes;
 }
 
+function indiaMinutes(now: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? NaN);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? NaN);
+  return hour * 60 + minute;
+}
+
+function indiaDateKey(now: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 function inSession(now: Date, settings: Settings) {
-  const current = now.getHours() * 60 + now.getMinutes();
+  const current = indiaMinutes(now);
   const start = minutesOfDay(settings.sessionStart);
   const end = minutesOfDay(settings.sessionEnd);
   return current >= start && current <= end;
 }
 
 export function calculateRiskState(trades: Trade[], settings: Settings, now = new Date()): RiskState {
-  const isToday = (iso: string) => new Date(iso).toDateString() === now.toDateString();
+  const todayKey = indiaDateKey(now);
+  const isToday = (iso: string) => indiaDateKey(new Date(iso)) === todayKey;
   const weekStart = now.getTime() - 7 * 86_400_000;
   const recent = trades.filter((t) => new Date(t.openedAt).getTime() >= weekStart);
   const todays = trades.filter((t) => isToday(t.openedAt));
@@ -72,5 +94,13 @@ export function validateSignalRisk(signal: Signal, settings: Settings, risk: Ris
   if (signal.riskRupees > settings.maxRiskPerTrade) reasons.push("Risk ₹" + signal.riskRupees + " exceeds the ₹" + settings.maxRiskPerTrade + " per-trade cap.");
   if (!Number.isFinite(signal.riskReward) || signal.riskReward < settings.minRiskReward) reasons.push("R:R " + signal.riskReward + " is below the minimum " + settings.minRiskReward + ".");
   if (!Number.isFinite(signal.entry) || !Number.isFinite(signal.stopLoss) || signal.entry <= 0 || signal.stopLoss <= 0) reasons.push("Invalid entry or stop.");
+  if (signal.side === "LONG" && signal.stopLoss >= signal.entry) reasons.push("LONG stop-loss must be below entry.");
+  if (signal.side === "SHORT" && signal.stopLoss <= signal.entry) reasons.push("SHORT stop-loss must be above entry.");
+  const calculatedRisk = Number.isFinite(signal.entry) && Number.isFinite(signal.stopLoss) && Number.isInteger(signal.quantity)
+    ? Math.abs(signal.entry - signal.stopLoss) * signal.quantity
+    : Number.NaN;
+  if (!Number.isFinite(calculatedRisk) || Math.abs(signal.riskRupees - calculatedRisk) > 0.01) {
+    reasons.push("Declared trade risk does not match entry, stop-loss and quantity.");
+  }
   return { allowed: reasons.length === 0, reasons: [...new Set(reasons)] };
 }
