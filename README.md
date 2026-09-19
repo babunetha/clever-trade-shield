@@ -6,7 +6,7 @@ Professional Indian market research and risk-controlled trading terminal for Dha
 
 **LIVE ORDER EXECUTION: DISABLED**
 
-The application is designed so market data and research can be connected to Dhan while live order placement remains blocked. Authentication, CSRF, server-side broker boundaries, risk controls, security headers and automated security checks are part of the application.
+The application is designed so market data and research can be connected to Dhan while live order placement remains blocked. Authentication, CSRF, server-side broker boundaries, durable Supabase order state, idempotency, Dhan postback ingestion, reconciliation, risk controls, security headers and automated security checks are part of the application.
 
 ## Architecture
 
@@ -42,5 +42,11 @@ Security checks:
 bun run security:check
 bun run build
 ```
+
+### Durable broker state
+
+Supabase stores order intents, broker orders, broker trades, Dhan postbacks and risk events. All exposed tables use RLS with deny-by-default policies; server access uses the Supabase service-role key only on the backend.
+
+Configure Dhan Postback URL as `https://<your-app-host>/api/public/dhan/postback?token=<DHAN_POSTBACK_SECRET>`. Dhan sends order-status changes and partial-fill updates to this URL; the application verifies the shared secret and Dhan client ID before persisting them. citeturn0search0
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the real-money readiness gate.
