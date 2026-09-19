@@ -18,6 +18,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.example
 
 # Wrangler / Cloudflare
 .wrangler/
@@ -36,3 +37,4 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.example
