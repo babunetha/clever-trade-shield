@@ -1,10 +1,10 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+# Clever Trade Shield — Engineering Rules
+
+- Use Codex/GitHub for development. Do not add or restore Lovable-specific runtime tooling.
+- Never expose Dhan credentials or application secrets to browser code.
+- Never enable live order execution without a separate security review.
+- Keep server-side authorization on every private server function.
+- Validate every network-bound input.
+- Treat client-side state as untrusted for any future real-money mutation.
+- Prefer durable server-side state for order intent, idempotency and reconciliation.
+- Run `bun run security:check`, `bun run lint` and `bun run build` before merging.
