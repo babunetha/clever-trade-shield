@@ -82,3 +82,12 @@ export const getDhanLtp = createServerFn({ method: "POST" }).middleware([authMid
     const { getDhanLtp: run } = await import("./dhan.server");
     return run(data);
   });
+
+
+/** Read-only broker reconciliation snapshot. No order mutation is performed. */
+export const getDhanReconciliation = createServerFn({ method: "POST" }).middleware([authMiddleware])
+  .handler(async () => {
+    const { getDhanOrders, getDhanTrades, getDhanPositions } = await import("./dhan.server");
+    const [orders, trades, positions] = await Promise.all([getDhanOrders(), getDhanTrades(), getDhanPositions()]);
+    return { orders, trades, positions, asOf: new Date().toISOString() };
+  });
