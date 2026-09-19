@@ -21,6 +21,8 @@ export function liveExecutionGate(): LiveExecutionGate {
   if(process.env["CTS_LIVE_EXECUTION_ENABLED"]!=="true") reasons.push("CTS_LIVE_EXECUTION_ENABLED is not true.");
   if(process.env["CTS_LIVE_EXECUTION_CONFIRMATION"]!=="ENABLE_LIVE_TRADING") reasons.push("Live execution confirmation phrase is missing.");
   if(process.env["RISK_TRADING_ENABLED"]!=="true") reasons.push("RISK_TRADING_ENABLED is not true.");
+  if(!process.env["DHAN_POSTBACK_SECRET"]) reasons.push("DHAN_POSTBACK_SECRET is not configured.");
+  if(!process.env["DHAN_STATIC_IP"]) reasons.push("DHAN_STATIC_IP is not configured for the production egress IP.");
   if(!credentials()) reasons.push("Dhan server credentials are not configured.");
   return {enabled:reasons.length===0,reasons};
 }
