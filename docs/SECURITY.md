@@ -28,7 +28,8 @@ Before any real-money order path is enabled, the project still needs:
 
 1. Production live-execution module with explicit multi-factor server gate, idempotency, correlation-ID reconciliation, cancellation and state-machine handling.
 2. Durable order/trade reconciliation and Dhan order-update/postback ingestion.
-3. Production deployment with HTTPS, fixed outbound IP, secret storage, monitoring and backups.\n4. Independent penetration/security review.
+3. Production deployment with HTTPS, fixed outbound IP, secret storage, monitoring and backups.
+4. Independent penetration/security review.
 5. Dhan static-IP whitelist configured for order placement, modification and cancellation.
 6. Controlled Dhan shadow/paper tests for timeouts, duplicate approvals, partial fills, cancellations and rejects.
 7. A separately reviewed live-execution module with a physical kill switch, followed by a small first live trade.
