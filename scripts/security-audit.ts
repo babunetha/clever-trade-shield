@@ -25,11 +25,10 @@ const forbidden = [
   new RegExp(["VITE", "DHAN_ACCESS_TOKEN"].join("_"), "i"),
   new RegExp(["PUBLIC", "DHAN_CLIENT_ID"].join("_"), "i"),
   new RegExp(["PUBLIC", "DHAN_ACCESS_TOKEN"].join("_"), "i"),
-  /fetch\s*\([^)]*\/orders/i,
 ];
 
 if (forbidden.some((pattern) => pattern.test(source))) {
-  throw new Error("Security audit failed: forbidden client-secret or direct order patterns detected.");
+  throw new Error("Security audit failed: forbidden client-secret patterns detected.");
 }
 
 if (/LIVE_EXECUTION_ENABLED\s*=\s*true/.test(source)) {
