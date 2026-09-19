@@ -53,7 +53,7 @@ export async function recordRiskEvent(input: Record<string, unknown>) {
 }
 
 export async function ingestDhanPostback(payload: Record<string, unknown>, eventKey: string) {
-  const rows = await request("broker_postbacks", {
+  const rows = await request("broker_postbacks?on_conflict=event_key", {
     method: "POST",
     body: JSON.stringify({
       event_key: eventKey,
@@ -62,8 +62,15 @@ export async function ingestDhanPostback(payload: Record<string, unknown>, event
       event_type: typeof payload.orderStatus === "string" ? payload.orderStatus : "UNKNOWN",
       payload,
     }),
+    headers: { Prefer: "resolution=ignore-duplicates,return=representation" },
   });
   return Array.isArray(rows) ? rows[0] ?? null : rows;
+}
+
+export async function getOrderIntentByCorrelationId(correlationId: string) {
+  const safe = encodeURIComponent(correlationId);
+  const rows = await request(`order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status`);
+  return Array.isArray(rows) ? rows[0] ?? null : null;
 }
 
 export async function upsertBrokerOrder(input: Record<string, unknown>) {
