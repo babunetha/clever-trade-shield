@@ -15,6 +15,8 @@ export function authConfiguration() {
 export function getAppSession() {
   const secret = process.env["APP_SESSION_SECRET"];
   if (!secret || secret.length < 32) throw new Error("APP_SESSION_SECRET must be configured with at least 32 characters.");
+  // TanStack Start exposes useSession as a server session primitive, not a React hook.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   return useSession<SessionData>({
     name: SESSION_NAME,
     password: secret,
