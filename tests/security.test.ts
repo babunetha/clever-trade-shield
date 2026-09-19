@@ -3,6 +3,7 @@ import { LIVE_EXECUTION_ENABLED, placeDhanOrder } from "../src/lib/dhan.server";
 import { DisabledLiveExecutionAdapter, executionAdapterFor } from "../src/lib/trading/execution";
 import { calculateRiskState, validateSignalRisk } from "../src/lib/trading/risk-engine";
 import { DEFAULT_SETTINGS } from "../src/lib/trading/store";
+import { SERVER_LIVE_EXECUTION_READY, validateServerOrderIntent } from "../src/lib/trading/server-risk";
 
 const signal = (overrides: Record<string, unknown> = {}) => ({
   id: "SECURITY-TEST",
@@ -33,6 +34,7 @@ const signal = (overrides: Record<string, unknown> = {}) => ({
 describe("live execution safety", () => {
   test("Dhan live execution is hard-disabled", async () => {
     expect(LIVE_EXECUTION_ENABLED).toBe(false);
+    expect(SERVER_LIVE_EXECUTION_READY).toBe(false);
     const result = await placeDhanOrder({
       symbol: "TEST",
       side: "BUY",
@@ -53,14 +55,15 @@ describe("live execution safety", () => {
 describe("risk guardrails", () => {
   test("blocks a trade above the per-trade risk cap", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00"));
-    expect(validateSignalRisk(signal({ riskRupees: 1000 }), settings, risk, new Date("2026-09-19T10:00:00")).allowed).toBe(false);
+    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
+    expect(validateSignalRisk(signal({ riskRupees: 1000 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
   });
 
-  test("blocks outside the configured trading session", () => {
+  test("blocks outside the configured trading session using India time", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const risk = calculateRiskState([], settings, new Date("2026-09-19T08:00:00"));
-    expect(validateSignalRisk(signal(), settings, risk, new Date("2026-09-19T08:00:00")).allowed).toBe(false);
+    const atOpen = new Date("2026-09-19T03:45:00Z"); // 09:15 IST
+    const risk = calculateRiskState([], settings, atOpen);
+    expect(validateSignalRisk(signal(), settings, risk, atOpen).allowed).toBe(false);
   });
 
   test("blocks when the open-position cap is reached", () => {
@@ -82,5 +85,35 @@ describe("risk guardrails", () => {
     };
     const risk = calculateRiskState([trade], settings, new Date("2026-09-19T10:00:00+05:30"));
     expect(validateSignalRisk(signal(), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+  });
+
+  test("blocks a long signal whose declared risk does not match the position", () => {
+    const settings = { ...DEFAULT_SETTINGS };
+    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
+    expect(validateSignalRisk(signal({ riskRupees: 0.5 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+  });
+
+  test("blocks a long signal with an invalid stop direction", () => {
+    const settings = { ...DEFAULT_SETTINGS };
+    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
+    expect(validateSignalRisk(signal({ stopLoss: 101, riskRupees: 1 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+  });
+
+  test("server gate rejects mismatched declared risk", () => {
+    const decision = validateServerOrderIntent({
+      signalId: "SECURITY-TEST",
+      symbol: "TEST",
+      side: "BUY",
+      quantity: 10,
+      entry: 100,
+      stopLoss: 99,
+      riskRupees: 1,
+      riskReward: 2,
+      exchangeSegment: "NSE_EQ",
+      productType: "INTRADAY",
+    }, undefined, new Date("2026-09-19T04:00:00Z"));
+    expect(decision.allowed).toBe(false);
+    expect(decision.reasons).toContain("Server live-execution readiness gate is OFF.");
+    expect(decision.reasons).toContain("Declared trade risk does not match entry, stop-loss and quantity.");
   });
 });
