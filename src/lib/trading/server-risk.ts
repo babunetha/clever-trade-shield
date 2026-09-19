@@ -11,6 +11,7 @@ export interface ServerOrderIntent {
   riskReward: number;
   exchangeSegment: "NSE_EQ" | "BSE_EQ";
   productType: "INTRADAY";
+  securityId: string;
 }
 
 export interface ServerRiskPolicy {
@@ -25,7 +26,7 @@ export interface ServerRiskPolicy {
   tradingEnabled: boolean;
 }
 
-export const SERVER_LIVE_EXECUTION_READY = false as const;
+export const SERVER_LIVE_EXECUTION_READY = process.env["CTS_LIVE_EXECUTION_ENABLED"] === "true" && process.env["CTS_LIVE_EXECUTION_CONFIRMATION"] === "ENABLE_LIVE_TRADING" as const;
 
 function numberEnv(name: string, fallback: number) {
   const value = Number(process.env[name]);
@@ -66,13 +67,13 @@ export function getServerRiskPolicy(): ServerRiskPolicy {
   };
 }
 
-export function validateServerOrderIntent(intent: ServerOrderIntent, policy = getServerRiskPolicy(), now = new Date()) {
+export function validateServerOrderIntent(intent: ServerOrderIntent, policy = getServerRiskPolicy(), now = new Date(), options: { requireLiveReady?: boolean } = {}) {
   const reasons: string[] = [];
   const current = indiaMinutes(now);
   const start = timeMinutes(policy.sessionStart);
   const end = timeMinutes(policy.sessionEnd);
 
-  if (!SERVER_LIVE_EXECUTION_READY) reasons.push("Server live-execution readiness gate is OFF.");
+  if (options.requireLiveReady !== false && !SERVER_LIVE_EXECUTION_READY) reasons.push("Server live-execution readiness gate is OFF.");
   if (!policy.tradingEnabled) reasons.push("Server trading switch is OFF.");
   if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) {
     reasons.push("Server trading session configuration is invalid.");
@@ -99,6 +100,7 @@ export function validateServerOrderIntent(intent: ServerOrderIntent, policy = ge
   }
   if (!Number.isFinite(intent.riskReward) || intent.riskReward < policy.minRiskReward) reasons.push("Risk/reward is below server minimum.");
   if (!intent.symbol.trim() || !intent.signalId.trim()) reasons.push("Missing signal identity.");
+  if (!/^\d{1,8}$/.test(intent.securityId)) reasons.push("Missing or invalid Dhan security ID.");
   if (intent.productType !== "INTRADAY") reasons.push("Only INTRADAY is allowed by the server policy.");
   return { allowed: reasons.length === 0, reasons: [...new Set(reasons)] };
 }

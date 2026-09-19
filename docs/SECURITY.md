@@ -26,11 +26,17 @@ Passing these checks does **not** mean the app has zero vulnerabilities and does
 
 Before any real-money order path is enabled, the project still needs:
 
-1. Durable server-side order-intent/idempotency storage (database or Redis).
+1. Production live-execution module with explicit multi-factor server gate, idempotency, correlation-ID reconciliation, cancellation and state-machine handling.
 2. Durable order/trade reconciliation and Dhan order-update/postback ingestion.
-3. Independent penetration/security review.
-4. Dhan static-IP whitelist configured for order placement, modification and cancellation.
-5. Controlled Dhan sandbox/paper tests for timeouts, duplicate approvals, partial fills and rejects.
-6. A separately reviewed live-execution module with a physical kill switch.
+3. Production deployment with HTTPS, fixed outbound IP, secret storage, monitoring and backups.
+4. Independent penetration/security review.
+5. Dhan static-IP whitelist configured for order placement, modification and cancellation.
+6. Controlled Dhan shadow/paper tests for timeouts, duplicate approvals, partial fills, cancellations and rejects.
+7. A separately reviewed live-execution module with a physical kill switch, followed by a small first live trade.
 
 Dhan's current v2 documentation requires access-token authentication and static IP whitelisting for order placement/modification/cancellation. Dhan also exposes order lookup by correlation ID and order/trade book APIs, which will be used by the future idempotency/reconciliation layer.
+
+
+## Current live gate
+
+The repository now contains the live execution adapter, but it remains closed by default. A live submission requires all of: `CTS_LIVE_EXECUTION_ENABLED=true`, `CTS_LIVE_EXECUTION_CONFIRMATION=ENABLE_LIVE_TRADING`, `RISK_TRADING_ENABLED=true`, Dhan credentials, `DHAN_POSTBACK_SECRET`, and `DHAN_STATIC_IP`. The application does not retry an order POST after a timeout; it marks the intent UNKNOWN and requires correlation-ID reconciliation first.

@@ -1,13 +1,15 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { transitionOrderStatus, type OrderStatus } from "./trading/order-state-machine";
 import {
   ingestDhanPostback,
   getOrderIntentByCorrelationId,
   updateOrderIntentByCorrelationId,
   upsertBrokerOrder,
   upsertBrokerTrade,
+  getOrderIntentStateByCorrelationId,
 } from "./supabase.server";
 
-const allowedStatuses = new Set(["TRANSIT", "PENDING", "REJECTED", "CANCELLED", "TRADED", "EXPIRED"]);
+const allowedStatuses = new Set(["TRANSIT", "PENDING", "REJECTED", "CANCELLED", "PART_TRADED", "TRADED", "EXPIRED"]);
 
 function equalSecret(a: string, b: string) {
   const left = Buffer.from(a);
@@ -36,12 +38,13 @@ export async function processDhanPostback(url: string, body: string) {
 
   const eventKey = createHash("sha256").update(body).digest("hex");
   const intent = await getOrderIntentByCorrelationId(correlationId);
+  const durableState = await getOrderIntentStateByCorrelationId(correlationId);
   await ingestDhanPostback(payload, eventKey);
 
   const filledQty = Number(payload.filled_qty ?? 0);
   const quantity = Number(payload.quantity ?? 0);
   const mappedStatus =
-    status === "TRADED" && filledQty > 0 && filledQty < quantity ? "PARTIALLY_FILLED" :
+    (status === "PART_TRADED" || (status === "TRADED" && filledQty > 0 && filledQty < quantity)) ? "PARTIALLY_FILLED" :
     status === "TRADED" ? "FILLED" :
     status === "REJECTED" ? "REJECTED" :
     status === "CANCELLED" ? "CANCELLED" :
@@ -60,8 +63,9 @@ export async function processDhanPostback(url: string, body: string) {
     raw_payload: payload,
     last_seen_at: new Date().toISOString(),
   });
+  const safeNext = transitionOrderStatus(durableState?.status ?? "SUBMITTED", mappedStatus as OrderStatus);
   await updateOrderIntentByCorrelationId(correlationId, {
-    status: mappedStatus,
+    status: safeNext,
     broker_order_id: orderId,
   });
 
