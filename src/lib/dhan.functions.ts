@@ -55,7 +55,7 @@ export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware
   }))
   .handler(async ({ data }) => {
     const { validateServerOrderIntent } = await import("./trading/server-risk");
-    const { placeLiveDhanOrder, liveExecutionGate } = await import("./dhan-live-execution.server");
+    const { placeLiveDhanOrder, liveExecutionGate, getLiveDhanOrderByCorrelationId, cancelLiveDhanOrder } = await import("./dhan-live-execution.server");
     const { createOrderIntent, getOrderIntentByIdempotencyKey, recordRiskEvent, updateOrderIntentByIdempotencyKey } = await import("./supabase.server");
 
     if (!data.idempotencyKey) return { placed: false as const, reason: "Missing idempotency key." };
@@ -176,6 +176,58 @@ export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware
       intentId: intent.id,
       reason: broker.reason,
     };
+  });
+
+
+export const reconcileDhanOrder = createServerFn({ method: "POST" }).middleware([authMiddleware])
+  .inputValidator((input: { correlationId: string }) => ({ correlationId: String(input?.correlationId ?? "").trim() }))
+  .handler(async ({ data }) => {
+    const { getLiveDhanOrderByCorrelationId } = await import("./dhan-live-execution.server");
+    const { getOrderIntentStateByCorrelationId, upsertBrokerOrder, updateOrderIntentByCorrelationId } = await import("./supabase.server");
+    const { transitionOrderStatus } = await import("./trading/order-state-machine");
+    if (!data.correlationId) return { ok: false as const, reason: "Missing correlation ID." };
+    const broker = await getLiveDhanOrderByCorrelationId(data.correlationId);
+    if (!broker.ok) return { ok: false as const, reason: broker.error, code: broker.code };
+    if (!broker.data.orderId) return { ok: true as const, found: false as const, correlationId: data.correlationId };
+    const durable = await getOrderIntentStateByCorrelationId(data.correlationId);
+    const mapped = broker.data.orderStatus === "PART_TRADED" || (broker.data.filledQty > 0 && broker.data.filledQty < broker.data.quantity)
+      ? "PARTIALLY_FILLED"
+      : broker.data.orderStatus === "TRADED" ? "FILLED"
+      : broker.data.orderStatus === "REJECTED" ? "REJECTED"
+      : broker.data.orderStatus === "CANCELLED" ? "CANCELLED"
+      : broker.data.orderStatus === "EXPIRED" ? "EXPIRED"
+      : "SUBMITTED";
+    const next = transitionOrderStatus(durable?.status ?? "UNKNOWN", mapped);
+    await upsertBrokerOrder({
+      order_intent_id: durable?.id ?? null,
+      broker_order_id: broker.data.orderId,
+      correlation_id: data.correlationId,
+      status: next,
+      symbol: broker.data.tradingSymbol || null,
+      quantity: broker.data.quantity,
+      filled_quantity: broker.data.filledQty,
+      average_price: broker.data.averageTradedPrice || null,
+      raw_payload: broker.data.raw,
+      last_seen_at: new Date().toISOString(),
+    });
+    await updateOrderIntentByCorrelationId(data.correlationId, { status: next, broker_order_id: broker.data.orderId });
+    return { ok: true as const, found: true as const, state: next, orderId: broker.data.orderId, filledQty: broker.data.filledQty, quantity: broker.data.quantity };
+  });
+
+export const cancelDhanOrder = createServerFn({ method: "POST" }).middleware([authMiddleware])
+  .inputValidator((input: { correlationId: string }) => ({ correlationId: String(input?.correlationId ?? "").trim() }))
+  .handler(async ({ data }) => {
+    const { getOrderIntentStateByCorrelationId, updateOrderIntentByCorrelationId } = await import("./supabase.server");
+    const { cancelLiveDhanOrder } = await import("./dhan-live-execution.server");
+    const { transitionOrderStatus } = await import("./trading/order-state-machine");
+    if (!data.correlationId) return { ok: false as const, reason: "Missing correlation ID." };
+    const durable = await getOrderIntentStateByCorrelationId(data.correlationId);
+    if (!durable?.broker_order_id) return { ok: false as const, reason: "No broker order is attached to this intent." };
+    const result = await cancelLiveDhanOrder(String(durable.broker_order_id));
+    if (!result.ok) return { ok: false as const, reason: result.error };
+    const next = transitionOrderStatus(durable.status, "CANCELLED");
+    await updateOrderIntentByCorrelationId(data.correlationId, { status: next });
+    return { ok: true as const, state: next, orderId: durable.broker_order_id };
   });
 
 export const getDhanHistoricalCandles = createServerFn({ method: "POST" }).middleware([authMiddleware])
