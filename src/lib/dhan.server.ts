@@ -325,7 +325,10 @@ export interface DhanQuote {
 }
 
 export async function getDhanQuote(request: DhanLtpRequest): Promise<DhanResult<Record<string, DhanQuote>>> {
-  const ids = request.securityIds.filter(Boolean).slice(0, 1000);
+  const ids = request.securityIds
+    .map((id) => String(id).trim())
+    .filter((id) => /^\\d{1,8}$/.test(id))
+    .slice(0, 1000);
   if (!ids.length) return { ok: true, data: {} };
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
   const result = await dhanRequest<Record<string, unknown>>("/marketfeed/quote", {
