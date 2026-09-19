@@ -325,7 +325,10 @@ export interface DhanQuote {
 }
 
 export async function getDhanQuote(request: DhanLtpRequest): Promise<DhanResult<Record<string, DhanQuote>>> {
-  const ids = request.securityIds.filter(Boolean).slice(0, 1000);
+  const ids = request.securityIds
+    .map((id) => String(id).trim())
+    .filter((id) => /^\\d{1,8}$/.test(id))
+    .slice(0, 1000);
   if (!ids.length) return { ok: true, data: {} };
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
   const result = await dhanRequest<Record<string, unknown>>("/marketfeed/quote", {
@@ -364,7 +367,10 @@ export interface DhanLtpRequest {
 }
 
 export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Record<string, number>>> {
-  const ids = request.securityIds.filter(Boolean).slice(0, 1000);
+  const ids = request.securityIds
+    .map((id) => String(id).trim())
+    .filter((id) => /^\\d{1,8}$/.test(id))
+    .slice(0, 1000);
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
   const result = await dhanRequest<Record<string, unknown>>("/marketfeed/ltp", {
     method: "POST",
@@ -382,6 +388,102 @@ export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Re
     }
   }
   return { ok: true, data: map };
+}
+
+
+export interface DhanOrderSummary {
+  orderId: string;
+  correlationId: string;
+  orderStatus: string;
+  transactionType: string;
+  exchangeSegment: string;
+  productType: string;
+  tradingSymbol: string;
+  securityId: string;
+  quantity: number;
+  filledQuantity: number;
+  averageTradedPrice: number;
+  updateTime: string;
+}
+
+export async function getDhanOrders(): Promise<DhanResult<DhanOrderSummary[]>> {
+  const result = await dhanRequest<unknown>("/orders");
+  if (!result.ok) return result;
+  const rows = Array.isArray(result.data) ? (result.data as Record<string, unknown>[]) : [];
+  return {
+    ok: true,
+    data: rows.map((row) => ({
+      orderId: String(row["orderId"] ?? ""),
+      correlationId: String(row["correlationId"] ?? ""),
+      orderStatus: String(row["orderStatus"] ?? ""),
+      transactionType: String(row["transactionType"] ?? ""),
+      exchangeSegment: String(row["exchangeSegment"] ?? ""),
+      productType: String(row["productType"] ?? ""),
+      tradingSymbol: String(row["tradingSymbol"] ?? ""),
+      securityId: String(row["securityId"] ?? ""),
+      quantity: Number(row["quantity"] ?? 0),
+      filledQuantity: Number(row["filledQty"] ?? 0),
+      averageTradedPrice: Number(row["averageTradedPrice"] ?? 0),
+      updateTime: String(row["updateTime"] ?? ""),
+    })),
+  };
+}
+
+export async function getDhanOrderByCorrelationId(correlationId: string): Promise<DhanResult<DhanOrderSummary | null>> {
+  if (!/^[A-Za-z0-9 _-]{1,30}$/.test(correlationId)) {
+    return { ok: false, code: "BAD_RESPONSE", error: "Invalid correlation ID." };
+  }
+  const result = await dhanRequest<Record<string, unknown>>("/orders/external/" + encodeURIComponent(correlationId));
+  if (!result.ok) return result;
+  if (!result.data || !Object.keys(result.data).length) return { ok: true, data: null };
+  const row = result.data;
+  return {
+    ok: true,
+    data: {
+      orderId: String(row["orderId"] ?? ""),
+      correlationId: String(row["correlationId"] ?? correlationId),
+      orderStatus: String(row["orderStatus"] ?? ""),
+      transactionType: String(row["transactionType"] ?? ""),
+      exchangeSegment: String(row["exchangeSegment"] ?? ""),
+      productType: String(row["productType"] ?? ""),
+      tradingSymbol: String(row["tradingSymbol"] ?? ""),
+      securityId: String(row["securityId"] ?? ""),
+      quantity: Number(row["quantity"] ?? 0),
+      filledQuantity: Number(row["filledQty"] ?? 0),
+      averageTradedPrice: Number(row["averageTradedPrice"] ?? 0),
+      updateTime: String(row["updateTime"] ?? ""),
+    },
+  };
+}
+
+export interface DhanTradeSummary {
+  orderId: string;
+  exchangeTradeId: string;
+  transactionType: string;
+  tradingSymbol: string;
+  securityId: string;
+  tradedQuantity: number;
+  tradedPrice: number;
+  updateTime: string;
+}
+
+export async function getDhanTrades(): Promise<DhanResult<DhanTradeSummary[]>> {
+  const result = await dhanRequest<unknown>("/trades");
+  if (!result.ok) return result;
+  const rows = Array.isArray(result.data) ? (result.data as Record<string, unknown>[]) : [];
+  return {
+    ok: true,
+    data: rows.map((row) => ({
+      orderId: String(row["orderId"] ?? ""),
+      exchangeTradeId: String(row["exchangeTradeId"] ?? ""),
+      transactionType: String(row["transactionType"] ?? ""),
+      tradingSymbol: String(row["tradingSymbol"] ?? ""),
+      securityId: String(row["securityId"] ?? ""),
+      tradedQuantity: Number(row["tradedQuantity"] ?? 0),
+      tradedPrice: Number(row["tradedPrice"] ?? 0),
+      updateTime: String(row["updateTime"] ?? ""),
+    })),
+  };
 }
 
 /* ---------------------------- EXECUTION: BLOCKED --------------------------- */

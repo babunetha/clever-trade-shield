@@ -122,7 +122,9 @@ export interface Settings {
 
 export interface RiskState {
   realisedPnl: number;
+  weeklyRealisedPnl: number;
   openRisk: number;
+  openPositions: number;
   tradesToday: number;
   losingTradesToday: number;
   winningTradesToday: number;

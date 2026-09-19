@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:security": "bun test tests/security.test.ts",
+    "security:audit": "bun scripts/security-audit.ts",
+    "security:check": "bun run test:security && bun run security:audit"
   },
   "overrides": {
     "rolldown": "1.2.1"
@@ -70,7 +73,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "^2.23.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

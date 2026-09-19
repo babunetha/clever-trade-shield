@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "./auth-middleware";
 import { getDhanHistoricalCandles, getDhanQuote } from "./dhan.server";
 import { resolveDhanInstruments } from "./market/instruments";
 import { calculateIndicators } from "./trading/indicators";
@@ -16,7 +17,7 @@ function makeBias(changePct: number): Bias {
   return changePct > 0.25 ? "BULLISH" : changePct < -0.25 ? "BEARISH" : "NEUTRAL";
 }
 
-export const getDhanLiveSignals = createServerFn({ method: "POST" })
+export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { symbols?: string[]; maxRiskPerTrade?: number }) => ({
     symbols: (input?.symbols ?? []).map((s) => String(s).trim().toUpperCase()).filter(Boolean).slice(0, 6),
     maxRiskPerTrade: Math.max(1, Number(input?.maxRiskPerTrade ?? 500)),

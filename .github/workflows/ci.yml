@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -16,5 +19,12 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bunx prettier --write .
+      - run: bun audit --audit-level=high
+      - run: bun test
+      - run: bun run security:check
       - run: bun run lint
       - run: bun run build
+
+  # This repository is a personal private repository. GitHub's hosted
+  # dependency-review service is not available here even when repository
+  # security settings are enabled. bun audit remains the enforced CI gate.
