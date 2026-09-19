@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { CheckCircle2, CircleAlert, Clock3, Lock, RefreshCw, Server } from "lucide-react";
+import { Lock } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
+import { DhanConnection } from "@/components/trading/DhanConnection";
 import { DEFAULT_SETTINGS, useTrading } from "@/lib/trading/store";
-import { testDhanConnection, getDhanStatus } from "@/lib/dhan.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,78 +32,12 @@ const NUMERIC = [
   { key: "minRiskReward", label: "Minimum reward-to-risk", step: 0.1 },
 ] as const;
 
-type DhanUiState =
-  | { kind: "loading" }
-  | {
-      kind: "ready";
-      clientIdConfigured: boolean;
-      accessTokenConfigured: boolean;
-      mode: "SIMULATION" | "LIVE_READ_ONLY";
-      liveExecutionEnabled: false;
-      checkedAt?: string;
-      profile?: { dhanClientIdMasked: string; tokenValidity: string | null; activeSegments: string | null };
-      error?: string;
-    };
-
 function SettingsPage() {
   const { settings, saveSettings, setTradingEnabled } = useTrading();
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(NUMERIC.map((n) => [n.key, String(settings[n.key])])),
   );
   const [session, setSession] = useState({ start: settings.sessionStart, end: settings.sessionEnd });
-  const [dhan, setDhan] = useState<DhanUiState>({ kind: "loading" });
-  const [testing, setTesting] = useState(false);
-
-  const refreshDhanStatus = async () => {
-    try {
-      const status = await getDhanStatus();
-      setDhan({ kind: "ready", ...status });
-    } catch {
-      setDhan({
-        kind: "ready",
-        clientIdConfigured: false,
-        accessTokenConfigured: false,
-        mode: "SIMULATION",
-        liveExecutionEnabled: false,
-        error: "Could not read server configuration status.",
-      });
-    }
-  };
-
-  useEffect(() => {
-    void refreshDhanStatus();
-  }, []);
-
-  const testConnection = async () => {
-    setTesting(true);
-    try {
-      const result = await testDhanConnection();
-      if (result.ok) {
-        setDhan((prev) => ({
-          ...prev,
-          kind: "ready",
-          checkedAt: new Date().toISOString(),
-          profile: result.data,
-          error: undefined,
-        }));
-        toast.success("Dhan connection verified — read-only mode");
-      } else {
-        setDhan((prev) => ({
-          ...prev,
-          kind: "ready",
-          checkedAt: new Date().toISOString(),
-          profile: undefined,
-          error: result.error,
-        }));
-        toast.error(result.error);
-      }
-    } catch {
-      toast.error("Connection test failed unexpectedly");
-      await refreshDhanStatus();
-    } finally {
-      setTesting(false);
-    }
-  };
 
   const save = () => {
     const patch: Record<string, number> = {};
@@ -127,9 +61,6 @@ function SettingsPage() {
     toast.success("Risk settings saved");
   };
 
-  const connectionReady = dhan.kind === "ready" && dhan.clientIdConfigured && dhan.accessTokenConfigured;
-  const verified = Boolean(dhan.kind === "ready" && dhan.profile);
-  const tokenValidity = dhan.kind === "ready" ? dhan.profile?.tokenValidity : null;
 
   return (
     <AppShell title="Settings" subtitle="Risk controls, broker connectivity and execution safeguards.">
