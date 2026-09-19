@@ -25,13 +25,6 @@ jobs:
       - run: bun run lint
       - run: bun run build
 
-  dependency-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/dependency-review-action@v5
-        with:
-          fail-on-severity: high
+  # This repository is a personal private repository. GitHub's hosted
+  # dependency-review service is not available here even when repository
+  # security settings are enabled. bun audit remains the enforced CI gate.
