@@ -37,6 +37,7 @@ export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware
     idempotencyKey: string;
     signalId: string;
     symbol: string;
+    securityId: string;
     side: "BUY" | "SELL";
     quantity: number;
     entry: number;
@@ -49,74 +50,131 @@ export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware
     idempotencyKey: String(input.idempotencyKey ?? "").trim().slice(0, 100),
     signalId: String(input.signalId ?? "").trim().slice(0, 64),
     symbol: String(input.symbol ?? "").trim().toUpperCase().slice(0, 30),
+    securityId: String(input.securityId ?? "").trim(),
     exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
   }))
   .handler(async ({ data }) => {
     const { validateServerOrderIntent } = await import("./trading/server-risk");
-    const { createOrderIntent, getOrderIntentByIdempotencyKey, recordRiskEvent } = await import("./supabase.server");
+    const { placeLiveDhanOrder, liveExecutionGate } = await import("./dhan-live-execution.server");
+    const { createOrderIntent, getOrderIntentByIdempotencyKey, recordRiskEvent, updateOrderIntentByIdempotencyKey } = await import("./supabase.server");
 
-    if (!data.idempotencyKey) {
-      return { placed: false as const, reason: "Missing idempotency key." };
-    }
+    if (!data.idempotencyKey) return { placed: false as const, reason: "Missing idempotency key." };
 
     const existing = await getOrderIntentByIdempotencyKey(data.idempotencyKey);
     if (existing) {
       return { placed: false as const, reason: `Duplicate approval blocked. Existing intent status: ${existing.status}.`, intentId: existing.id };
     }
 
-    const decision = validateServerOrderIntent({
+    const intentInput = {
       ...data,
-      productType: "INTRADAY",
+      productType: "INTRADAY" as const,
       exchangeSegment: data.exchangeSegment,
-    });
+    };
 
-    const status = decision.allowed ? "APPROVED" : "REJECTED";
+    const approvalDecision = validateServerOrderIntent(intentInput, undefined, new Date(), { requireLiveReady: false });
     const correlationId = `CTS_${data.idempotencyKey.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 25)}`;
+    const status = approvalDecision.allowed ? "APPROVED" : "REJECTED";
 
-    const intent = await createOrderIntent({
-      idempotency_key: data.idempotencyKey,
-      signal_id: data.signalId,
-      symbol: data.symbol,
-      exchange_segment: data.exchangeSegment,
-      transaction_type: data.side,
-      quantity: data.quantity,
-      order_type: "MARKET",
-      product_type: "INTRADAY",
-      entry_price: data.entry,
-      stop_loss: data.stopLoss,
-      declared_risk: data.riskRupees,
-      status,
-      broker_correlation_id: correlationId,
-    });
+    let intent;
+    try {
+      intent = await createOrderIntent({
+        idempotency_key: data.idempotencyKey,
+        signal_id: data.signalId,
+        symbol: data.symbol,
+        exchange_segment: data.exchangeSegment,
+        transaction_type: data.side,
+        quantity: data.quantity,
+        order_type: "MARKET",
+        product_type: "INTRADAY",
+        entry_price: data.entry,
+        stop_loss: data.stopLoss,
+        declared_risk: data.riskRupees,
+        status,
+        broker_correlation_id: correlationId,
+      });
+    } catch {
+      const duplicate = await getOrderIntentByIdempotencyKey(data.idempotencyKey);
+      return { placed: false as const, reason: duplicate ? `Duplicate approval blocked. Existing intent status: ${duplicate.status}.` : "Could not create durable order intent." };
+    }
 
-    if (!decision.allowed) {
+    if (!approvalDecision.allowed) {
       await recordRiskEvent({
         event_type: "ORDER_BLOCKED",
         severity: "BLOCK",
         signal_id: data.signalId,
         symbol: data.symbol,
         idempotency_key: data.idempotencyKey,
-        reason: decision.reasons.join("; "),
+        reason: approvalDecision.reasons.join("; "),
         details: { intentId: intent.id },
       });
-      return { placed: false as const, reason: "Server risk gate blocked the request: " + decision.reasons.join("; "), intentId: intent.id };
+      return { placed: false as const, reason: "Server risk gate blocked the request: " + approvalDecision.reasons.join("; "), intentId: intent.id };
     }
 
+    const gate = liveExecutionGate();
+    if (!gate.enabled) {
+      await updateOrderIntentByIdempotencyKey(data.idempotencyKey, { status: "APPROVED_SHADOW" });
+      await recordRiskEvent({
+        event_type: "ORDER_APPROVED_SHADOW",
+        severity: "INFO",
+        signal_id: data.signalId,
+        symbol: data.symbol,
+        idempotency_key: data.idempotencyKey,
+        reason: "Risk approved; live execution gate remains closed.",
+        details: { intentId: intent.id, gateReasons: gate.reasons },
+      });
+      return { placed: false as const, reason: "Shadow approval recorded. Live execution gate is closed; no order was transmitted.", intentId: intent.id, correlationId };
+    }
+
+    const liveDecision = validateServerOrderIntent(intentInput, undefined, new Date(), { requireLiveReady: true });
+    if (!liveDecision.allowed) {
+      await updateOrderIntentByIdempotencyKey(data.idempotencyKey, { status: "REJECTED" });
+      await recordRiskEvent({
+        event_type: "ORDER_BLOCKED_LIVE",
+        severity: "BLOCK",
+        signal_id: data.signalId,
+        symbol: data.symbol,
+        idempotency_key: data.idempotencyKey,
+        reason: liveDecision.reasons.join("; "),
+        details: { intentId: intent.id },
+      });
+      return { placed: false as const, reason: "Live server gate blocked the order: " + liveDecision.reasons.join("; "), intentId: intent.id, correlationId };
+    }
+
+    await updateOrderIntentByIdempotencyKey(data.idempotencyKey, { status: "SUBMITTING" });
+    const broker = await placeLiveDhanOrder({
+      dhanClientId: process.env["DHAN_CLIENT_ID"] ?? "",
+      correlationId,
+      transactionType: data.side,
+      exchangeSegment: data.exchangeSegment,
+      productType: "INTRADAY",
+      orderType: "MARKET",
+      securityId: data.securityId,
+      quantity: data.quantity,
+      validity: "DAY",
+    });
+
+    const nextStatus = broker.state === "UNKNOWN" ? "UNKNOWN" : broker.state === "REJECTED" ? "REJECTED" : "SUBMITTED";
+    await updateOrderIntentByIdempotencyKey(data.idempotencyKey, {
+      status: nextStatus,
+      broker_order_id: broker.orderId ?? null,
+    });
     await recordRiskEvent({
-      event_type: "ORDER_APPROVED",
-      severity: "INFO",
+      event_type: broker.placed ? "ORDER_SUBMITTED" : "ORDER_SUBMISSION_RESULT",
+      severity: broker.state === "REJECTED" ? "BLOCK" : "INFO",
       signal_id: data.signalId,
       symbol: data.symbol,
       idempotency_key: data.idempotencyKey,
-      reason: "Order intent passed server risk validation.",
-      details: { intentId: intent.id, liveExecutionEnabled: false },
+      reason: broker.reason ?? "Order submitted to Dhan.",
+      details: { intentId: intent.id, correlationId, orderId: broker.orderId ?? null, state: broker.state, code: broker.code ?? null },
     });
 
     return {
-      placed: false as const,
-      reason: "Approval recorded durably. Live execution remains disabled; no order was transmitted to Dhan.",
-      intentId: intent.id,
+      placed: broker.placed,
+      state: broker.state,
+      orderId: broker.orderId,
       correlationId,
+      intentId: intent.id,
+      reason: broker.reason,
     };
   });
 
