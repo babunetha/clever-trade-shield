@@ -11,6 +11,7 @@ export interface ServerOrderIntent {
   riskReward: number;
   exchangeSegment: "NSE_EQ" | "BSE_EQ";
   productType: "INTRADAY";
+  securityId: string;
 }
 
 export interface ServerRiskPolicy {
@@ -99,6 +100,7 @@ export function validateServerOrderIntent(intent: ServerOrderIntent, policy = ge
   }
   if (!Number.isFinite(intent.riskReward) || intent.riskReward < policy.minRiskReward) reasons.push("Risk/reward is below server minimum.");
   if (!intent.symbol.trim() || !intent.signalId.trim()) reasons.push("Missing signal identity.");
+  if (!/^\\d{1,8}$/.test(intent.securityId)) reasons.push("Missing or invalid Dhan security ID.");
   if (intent.productType !== "INTRADAY") reasons.push("Only INTRADAY is allowed by the server policy.");
   return { allowed: reasons.length === 0, reasons: [...new Set(reasons)] };
 }
