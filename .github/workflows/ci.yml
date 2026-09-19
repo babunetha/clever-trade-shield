@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -19,18 +19,6 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bunx prettier --write .
-      - name: Patch audited dependencies
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/')
-        run: |
-          bun audit fix
-          if git diff --quiet -- bun.lock package.json; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bun.lock package.json
-          git commit -m "security: patch audited dependencies"
-          git push origin HEAD:${GITHUB_REF_NAME}
       - run: bun audit --audit-level=high
       - run: bun run security:check
       - run: bun run lint
