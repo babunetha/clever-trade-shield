@@ -38,7 +38,7 @@ function MarketOverview() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const result = await getDhanMarketSnapshot({ symbols: WATCHLIST });
+      const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
       if (!result.ok) {
         setMode("SIMULATED");
         setError(result.error);
@@ -48,7 +48,7 @@ function MarketOverview() {
       const realQuotes = WATCHLIST
         .filter((symbol) => symbol !== "NIFTY" && symbol !== "BANKNIFTY")
         .map((symbol) => data[symbol])
-        .filter(Boolean)
+        .filter((q): q is NonNullable<typeof q> => Boolean(q))
         .map((q) => ({
           symbol: q.symbol,
           name: q.name,
@@ -63,12 +63,16 @@ function MarketOverview() {
       const realIndices = [
         ["NIFTY", "Nifty 50"],
         ["BANKNIFTY", "Nifty Bank"],
-      ].map(([symbol, name]) => data[symbol] ? {
-        ...data[symbol],
-        symbol,
-        name,
-        bias: data[symbol].changePct > 0.25 ? "BULLISH" : data[symbol].changePct < -0.25 ? "BEARISH" : "NEUTRAL",
-      } : null).filter(Boolean) as IndexQuote[];
+      ].map(([symbol, name]) => {
+        const row = symbol ? data[symbol] : undefined;
+        if (!row) return null;
+        return {
+          ...row,
+          symbol: symbol as string,
+          name: name as string,
+          bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
+        };
+      }).filter(Boolean) as IndexQuote[];
 
       if (realQuotes.length) {
         setQuotes(realQuotes);
