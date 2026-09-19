@@ -49,7 +49,19 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const secured = await normalizeCatastrophicSsrResponse(response);
+      const headers = new Headers(secured.headers);
+      headers.set("X-Content-Type-Options", "nosniff");
+      headers.set("X-Frame-Options", "DENY");
+      headers.set("Referrer-Policy", "no-referrer");
+      headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+      headers.set("Cross-Origin-Opener-Policy", "same-origin");
+      headers.set("Cross-Origin-Resource-Policy", "same-origin");
+      headers.set("Content-Security-Policy", "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'");
+      if (process.env.NODE_ENV === "production") {
+        headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      }
+      return new Response(secured.body, { status: secured.status, statusText: secured.statusText, headers });
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
