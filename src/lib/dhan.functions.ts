@@ -35,18 +35,33 @@ export const getDhanQuotes = createServerFn({ method: "POST" }).middleware([auth
 
 /** Always refuses in v1; kept so the UI can prove the kill-switch works. */
 export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware([authMiddleware])
-  .inputValidator((input: { signalId: string }) => input)
+  .inputValidator((input: {
+    signalId: string;
+    symbol: string;
+    side: "BUY" | "SELL";
+    quantity: number;
+    entry: number;
+    stopLoss: number;
+    riskRupees: number;
+    riskReward: number;
+    exchangeSegment?: "NSE_EQ" | "BSE_EQ";
+  }) => ({
+    ...input,
+    signalId: String(input.signalId ?? "").trim().slice(0, 64),
+    symbol: String(input.symbol ?? "").trim().toUpperCase().slice(0, 30),
+    exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
+  }))
   .handler(async ({ data }) => {
-    const { placeDhanOrder } = await import("./dhan.server");
-    const result = await placeDhanOrder({
-      symbol: data.signalId,
-      side: "BUY",
-      quantity: 0,
-      price: 0,
-      stopLoss: 0,
+    const { validateServerOrderIntent } = await import("./trading/server-risk");
+    const decision = validateServerOrderIntent({
+      ...data,
       productType: "INTRADAY",
+      exchangeSegment: data.exchangeSegment,
     });
-    return result;
+    if (!decision.allowed) {
+      return { placed: false as const, reason: "Server risk gate blocked the request: " + decision.reasons.join("; ") };
+    }
+    return { placed: false as const, reason: "Live execution remains disabled. No order was transmitted to Dhan." };
   });
 
 
