@@ -93,3 +93,14 @@ alter table public.broker_postbacks enable row level security;
 alter table public.risk_events enable row level security;
 
 revoke all on public.order_intents, public.broker_orders, public.broker_trades, public.broker_postbacks, public.risk_events from anon, authenticated;
+
+create policy "deny_anon" on public.order_intents as restrictive for all to anon using (false) with check (false);
+create policy "deny_authenticated" on public.order_intents as restrictive for all to authenticated using (false) with check (false);
+create policy "deny_anon" on public.broker_orders as restrictive for all to anon using (false) with check (false);
+create policy "deny_authenticated" on public.broker_orders as restrictive for all to authenticated using (false) with check (false);
+create policy "deny_anon" on public.broker_trades as restrictive for all to anon using (false) with check (false);
+create policy "deny_authenticated" on public.broker_trades as restrictive for all to authenticated using (false) with check (false);
+create policy "deny_anon" on public.broker_postbacks as restrictive for all to anon using (false) with check (false);
+create policy "deny_authenticated" on public.broker_postbacks as restrictive for all to authenticated using (false) with check (false);
+create policy "deny_anon" on public.risk_events as restrictive for all to anon using (false) with check (false);
+create policy "deny_authenticated" on public.risk_events as restrictive for all to authenticated using (false) with check (false);
