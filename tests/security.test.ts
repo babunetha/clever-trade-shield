@@ -50,6 +50,35 @@ describe("live execution safety", () => {
     expect(executionAdapterFor("SEMI_AUTO")).toBeInstanceOf(DisabledLiveExecutionAdapter);
     expect(executionAdapterFor("LIVE_AUTO")).toBeInstanceOf(DisabledLiveExecutionAdapter);
   });
+
+  test("paper execution rejects invalid quantity without side effects", async () => {
+    const adapter = executionAdapterFor("PAPER");
+    const result = await adapter.place({
+      symbol: "TEST",
+      side: "BUY",
+      quantity: 0,
+      entryPrice: 100,
+      stopLoss: 99,
+      target1: 102,
+      productType: "INTRADAY",
+    });
+    expect(result.accepted).toBe(false);
+    expect(result.orderId).toBeUndefined();
+  });
+
+  test("paper cancellation is deterministic", async () => {
+    const adapter = executionAdapterFor("PAPER");
+    const result = await adapter.cancel("PAPER-TEST");
+    expect(result.accepted).toBe(true);
+    expect(result.orderId).toBe("PAPER-TEST");
+  });
+
+  test("disabled live cancellation cannot reach a broker", async () => {
+    const adapter = executionAdapterFor("LIVE_AUTO");
+    const result = await adapter.cancel("LIVE-TEST");
+    expect(result.accepted).toBe(false);
+    expect(result.reason).toContain("Live execution is disabled");
+  });
 });
 
 describe("risk guardrails", () => {
