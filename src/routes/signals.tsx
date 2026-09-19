@@ -34,8 +34,10 @@ function Signals() {
     setError(null);
     try {
       const result = await getDhanLiveSignals({
-        symbols: ["RELIANCE", "HDFCBANK", "INFY", "SBIN", "ICICIBANK", "TATAMOTORS"],
-        maxRiskPerTrade: settings.maxRiskPerTrade,
+        data: {
+          symbols: ["RELIANCE", "HDFCBANK", "INFY", "SBIN", "ICICIBANK", "TATAMOTORS"],
+          maxRiskPerTrade: settings.maxRiskPerTrade,
+        },
       });
       if (!result.ok) {
         setError(result.error);
