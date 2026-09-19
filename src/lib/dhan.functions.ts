@@ -73,7 +73,23 @@ export const getDhanHistoricalCandles = createServerFn({ method: "POST" }).middl
     fromDate: string;
     toDate: string;
     interval?: "1" | "5" | "15" | "25" | "60";
-  }) => input)
+  }) => {
+    const securityId = String(input?.securityId ?? "").trim();
+    const fromDate = String(input?.fromDate ?? "").trim();
+    const toDate = String(input?.toDate ?? "").trim();
+    if (!/^\\d{1,8}$/.test(securityId)) throw new Error("Invalid Dhan security ID.");
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fromDate) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(toDate)) {
+      throw new Error("Dates must use YYYY-MM-DD format.");
+    }
+    if (fromDate > toDate) throw new Error("fromDate cannot be after toDate.");
+    return {
+      securityId,
+      exchangeSegment: input.exchangeSegment,
+      fromDate,
+      toDate,
+      interval: input.interval ?? "5",
+    };
+  })
   .handler(async ({ data }) => {
     const { getDhanHistoricalCandles: run } = await import("./dhan.server");
     return run({
@@ -90,7 +106,10 @@ export const getDhanHistoricalCandles = createServerFn({ method: "POST" }).middl
 /** Read-only LTP snapshot from Dhan. */
 export const getDhanLtp = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { securityIds: string[]; exchangeSegment?: "NSE_EQ" | "BSE_EQ" }) => ({
-    securityIds: input.securityIds.slice(0, 1000),
+    securityIds: (Array.isArray(input?.securityIds) ? input.securityIds : [])
+      .map((id) => String(id).trim())
+      .filter((id) => /^\\d{1,8}$/.test(id))
+      .slice(0, 1000),
     exchangeSegment: input.exchangeSegment ?? "NSE_EQ",
   }))
   .handler(async ({ data }) => {
