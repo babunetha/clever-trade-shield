@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "./auth-middleware";
 import { resolveDhanInstruments } from "./market/instruments";
 
 const DEFAULT_WATCHLIST = [
@@ -6,7 +7,7 @@ const DEFAULT_WATCHLIST = [
   "ITC", "AXISBANK", "TATASTEEL", "LT", "MARUTI", "BHARTIARTL",
 ];
 
-export const getDhanMarketSnapshot = createServerFn({ method: "POST" })
+export const getDhanMarketSnapshot = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { symbols?: string[] }) => ({
     symbols: (input?.symbols?.length ? input.symbols : DEFAULT_WATCHLIST)
       .map((s) => String(s).trim().toUpperCase())
