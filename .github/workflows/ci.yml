@@ -15,5 +15,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - run: bunx prettier --write .
+      - run: bun audit --audit-level=high
+      - run: bun run security:check
       - run: bun run lint
       - run: bun run build
