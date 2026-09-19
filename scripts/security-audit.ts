@@ -21,10 +21,10 @@ const source = files
   .join("\n");
 
 const forbidden = [
-  /VITE_DHAN_CLIENT_ID/i,
-  /VITE_DHAN_ACCESS_TOKEN/i,
-  /PUBLIC_DHAN_CLIENT_ID/i,
-  /PUBLIC_DHAN_ACCESS_TOKEN/i,
+  new RegExp(["VITE", "DHAN_CLIENT_ID"].join("_"), "i"),
+  new RegExp(["VITE", "DHAN_ACCESS_TOKEN"].join("_"), "i"),
+  new RegExp(["PUBLIC", "DHAN_CLIENT_ID"].join("_"), "i"),
+  new RegExp(["PUBLIC", "DHAN_ACCESS_TOKEN"].join("_"), "i"),
   /fetch\s*\([^)]*\/orders/i,
 ];
 
