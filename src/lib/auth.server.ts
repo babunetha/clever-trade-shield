@@ -12,7 +12,7 @@ export function authConfiguration() {
   return { configured: Boolean(process.env["APP_SESSION_SECRET"] && process.env["APP_LOGIN_PASSWORD"]) };
 }
 
-export function useAppSession() {
+export function getAppSession() {
   const secret = process.env["APP_SESSION_SECRET"];
   if (!secret || secret.length < 32) throw new Error("APP_SESSION_SECRET must be configured with at least 32 characters.");
   return useSession<SessionData>({
@@ -68,13 +68,13 @@ export async function verifyLoginPassword(password: string) {
 
 export async function currentAuthState() {
   if (!authConfiguration().configured) return { configured: false, authenticated: false as const };
-  const session = await useAppSession();
+  const session = await getAppSession();
   return { configured: true, authenticated: session.data.authenticated === true };
 }
 
 export async function requireAppSession() {
   if (!authConfiguration().configured) throw new Error("Application authentication is not configured.");
-  const session = await useAppSession();
+  const session = await getAppSession();
   if (session.data.authenticated !== true) throw new Error("Unauthorized");
   return session;
 }
