@@ -67,13 +67,13 @@ export function getServerRiskPolicy(): ServerRiskPolicy {
   };
 }
 
-export function validateServerOrderIntent(intent: ServerOrderIntent, policy = getServerRiskPolicy(), now = new Date()) {
+export function validateServerOrderIntent(intent: ServerOrderIntent, policy = getServerRiskPolicy(), now = new Date(), options: { requireLiveReady?: boolean } = {}) {
   const reasons: string[] = [];
   const current = indiaMinutes(now);
   const start = timeMinutes(policy.sessionStart);
   const end = timeMinutes(policy.sessionEnd);
 
-  if (!SERVER_LIVE_EXECUTION_READY) reasons.push("Server live-execution readiness gate is OFF.");
+  if (options.requireLiveReady !== false && !SERVER_LIVE_EXECUTION_READY) reasons.push("Server live-execution readiness gate is OFF.");
   if (!policy.tradingEnabled) reasons.push("Server trading switch is OFF.");
   if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) {
     reasons.push("Server trading session configuration is invalid.");
