@@ -18,8 +18,20 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bunx prettier --write .
+      - run: bunx prettier --check .
       - run: bun audit --audit-level=high
+      - run: bun test
       - run: bun run security:check
       - run: bun run lint
       - run: bun run build
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
