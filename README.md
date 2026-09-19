@@ -1,42 +1,46 @@
-# Dhan Trading Buddy
+# Clever Trade Shield
 
-Build a full-stack web app called “₹1L Trading Assistant” for my Dhan-based trading workflow. This is a risk-controlled signal and manual-approval dashboard, NOT an unrestricted auto-trading bot. Starting capital ₹1,00,000; max risk/trade ₹500; max daily loss ₹1,000; max 3 trades/day; lock after 2 losing trades or ₹1,000 daily loss; equity intraday only, no F&O/options by default. Include Dashboard, Market Overview, Signals, Trade Approval, Trade Journal, Risk Controls, and Settings. Signal fields: EMA 9/20/50/200, RSI 14, MACD, VWAP, ADX, volume/relative volume, support/resistance, 5m/15m context, Nifty/Bank Nifty bias. Approval mode must show entry/SL/T1/T2/quantity/risk/R:R and require explicit APPROVE/REJECT, but this first version must NOT place live orders. Use mock/simulated market data clearly labeled. Prepare server-side-only Dhan integration interfaces and a future OAuth callback placeholder; never expose/store API secrets or access tokens in the browser. Keep live execution behind a disabled feature flag. Professional dark trading-terminal UI, responsive, INR formatting, audit logs, validation, safe risk controls, emergency disable trading, and educational disclaimer. Do not ask for credentials in chat.
+Professional Indian market research and risk-controlled trading terminal for Dhan.
 
-This project was built with [Lovable](https://lovable.dev).
+## Safety status
 
-**Live app**: https://clever-trade-shield.lovable.app
+**LIVE ORDER EXECUTION: DISABLED**
 
-## Build with Lovable
+The application is designed so market data and research can be connected to Dhan while live order placement remains blocked. Authentication, CSRF, server-side broker boundaries, risk controls, security headers and automated security checks are part of the application.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/85ae5811-3ce6-443a-a21e-f4cfce9cd6af).
+## Architecture
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+The current build follows the requested architecture:
+
+MARKET DATA ENGINE → DHAN
+
+AI RESEARCH → Technical / News / Fundamental / Sentiment → Bull/Bear Debate → Research Manager → Trader → Risk Management → Portfolio Manager → RISK ENGINE → Semi-Automatic Approval → DHAN API → Order Execution
+
+The final order-execution layer remains physically disabled.
+
+## Security configuration
+
+Set these server-side only:
+
+- `DHAN_CLIENT_ID`
+- `DHAN_ACCESS_TOKEN`
+- `APP_SESSION_SECRET` — random, at least 32 characters
+- `APP_LOGIN_PASSWORD` — strong private operator password
+
+Never prefix Dhan or authentication secrets with `VITE_` or `PUBLIC_`.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev
 ```
 
+Security checks:
 
-## Phase 4 — Real market engine
+```sh
+bun run security:check
+bun run build
+```
 
-The application now has a server-side Dhan market-data path:
-- instrument master resolution and caching
-- real Market Quote snapshots
-- real intraday historical candles
-- deterministic EMA/RSI/MACD/VWAP/ADX/ATR/relative-volume calculations
-- Dhan-derived technical signals
-- manual approval + paper execution pipeline remains intact
-- live order execution remains disabled
-
-Dhan's current API documentation states that Market Quote can request up to 1,000 instruments per request, while Historical Data provides minute OHLCV candles including 1/5/15/25/60-minute intervals. Historical Data requests are intentionally paced in this application rather than fired as an uncontrolled burst.
-
-The current Dhan API requires a valid access token for each request; manually generated individual access tokens are currently valid for 24 hours.
+See [docs/SECURITY.md](docs/SECURITY.md) for the real-money readiness gate.

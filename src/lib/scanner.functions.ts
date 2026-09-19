@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { authMiddleware } from "./auth-middleware";
 
 export interface ScannerLiveQuote {
   symbol: string;
@@ -14,7 +15,7 @@ export type ScannerLiveQuotesResult =
  * Live LTP for the scanner's candidate symbols only (never the whole universe).
  * Server-only: credentials are read inside the handler and never returned.
  */
-export const getScannerLiveQuotes = createServerFn({ method: "POST" })
+export const getScannerLiveQuotes = createServerFn({ method: "POST" }).middleware([authMiddleware])
   .inputValidator((input: { symbols: string[] }) => ({
     symbols: (Array.isArray(input?.symbols) ? input.symbols : [])
       .map((s) => String(s).trim().toUpperCase())
