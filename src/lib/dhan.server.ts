@@ -9,7 +9,7 @@
  *    refuses before any network call is made.
  */
 
-export const LIVE_EXECUTION_ENABLED = false as const;
+export const LIVE_EXECUTION_ENABLED = process.env["CTS_LIVE_EXECUTION_ENABLED"] === "true" as const;
 
 const DHAN_BASE = "https://api.dhan.co/v2";
 const TIMEOUT_MS = 10_000;
@@ -486,15 +486,12 @@ export async function getDhanTrades(): Promise<DhanResult<DhanTradeSummary[]>> {
   };
 }
 
-/* ---------------------------- EXECUTION: BLOCKED --------------------------- */
+export { liveExecutionGate, placeLiveDhanOrder, getLiveDhanOrderByCorrelationId, cancelLiveDhanOrder } from "./dhan-live-execution.server";
 
-/**
- * Hard-stopped placeholder for a future, separately reviewed live path.
- * Refuses before any network call — no Dhan order endpoint is ever contacted.
- */
 export async function placeDhanOrder(_order: DhanOrderRequest): Promise<DhanOrderResult> {
-  return {
-    placed: false,
-    reason: "Live execution is disabled by feature flag. No order was transmitted to Dhan.",
-  };
+  return { placed: false, reason: "Use the durable approved-trade workflow for execution; direct broker placement is not exposed." };
+}
+
+export function scrubDhanMessage(message: string) {
+  return scrub(message);
 }
