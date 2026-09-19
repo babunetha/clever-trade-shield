@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  redirect,
   useRouter,
   HeadContent,
   Scripts,
@@ -77,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     if (location.pathname === "/login") return;
     const auth = await getAuthStatus();
     if (!auth.authenticated) {
-      throw new Error("AUTH_REDIRECT:/login");
+      throw redirect({ to: "/login" });
     }
   },
   head: () => ({
