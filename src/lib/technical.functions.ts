@@ -10,7 +10,7 @@ interface TechnicalSnapshot {
   securityId: string;
   exchangeSegment: string;
   candles: number;
-  asOf: string | null;
+  asOf: string | number | null;
   indicators: Indicators | null;
 }
 
