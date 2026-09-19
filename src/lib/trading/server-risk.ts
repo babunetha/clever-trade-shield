@@ -26,7 +26,7 @@ export interface ServerRiskPolicy {
   tradingEnabled: boolean;
 }
 
-export const SERVER_LIVE_EXECUTION_READY = false as const;
+export const SERVER_LIVE_EXECUTION_READY = process.env["CTS_LIVE_EXECUTION_ENABLED"] === "true" && process.env["CTS_LIVE_EXECUTION_CONFIRMATION"] === "ENABLE_LIVE_TRADING" as const;
 
 function numberEnv(name: string, fallback: number) {
   const value = Number(process.env[name]);
