@@ -4,7 +4,7 @@ import {
   clearLoginFailures,
   currentAuthState,
   loginAllowed,
-  useAppSession,
+  getAppSession,
   verifyLoginPassword,
 } from "./auth.server";
 
@@ -24,7 +24,7 @@ export const loginApp = createServerFn({ method: "POST" })
     if (!(await verifyLoginPassword(data.password))) {
       return { ok: false as const, code: "INVALID_CREDENTIALS", error: "Invalid password." };
     }
-    const session = await useAppSession();
+    const session = await getAppSession();
     await session.update({ authenticated: true, issuedAt: Date.now() }, { maxAge: 8 * 60 * 60 });
     clearLoginFailures();
     return { ok: true as const };
@@ -32,7 +32,7 @@ export const loginApp = createServerFn({ method: "POST" })
 
 export const logoutApp = createServerFn({ method: "POST" }).handler(async () => {
   if (authConfiguration().configured) {
-    const session = await useAppSession();
+    const session = await getAppSession();
     await session.clear();
   }
   return { ok: true as const };
