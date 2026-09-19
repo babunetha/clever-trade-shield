@@ -55,7 +55,7 @@ export const submitApprovedTrade = createServerFn({ method: "POST" }).middleware
   }))
   .handler(async ({ data }) => {
     const { validateServerOrderIntent } = await import("./trading/server-risk");
-    const { placeLiveDhanOrder, liveExecutionGate, getLiveDhanOrderByCorrelationId, cancelLiveDhanOrder } = await import("./dhan-live-execution.server");
+    const { placeLiveDhanOrder, liveExecutionGate } = await import("./dhan-live-execution.server");
     const { createOrderIntent, getOrderIntentByIdempotencyKey, recordRiskEvent, updateOrderIntentByIdempotencyKey } = await import("./supabase.server");
 
     if (!data.idempotencyKey) return { placed: false as const, reason: "Missing idempotency key." };
