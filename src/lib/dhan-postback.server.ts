@@ -1,10 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { transitionOrderStatus, type OrderStatus } from "./trading/order-state-machine";
 import {
   ingestDhanPostback,
   getOrderIntentByCorrelationId,
   updateOrderIntentByCorrelationId,
   upsertBrokerOrder,
   upsertBrokerTrade,
+  getOrderIntentStateByCorrelationId,
 } from "./supabase.server";
 
 const allowedStatuses = new Set(["TRANSIT", "PENDING", "REJECTED", "CANCELLED", "TRADED", "EXPIRED"]);
@@ -36,6 +38,7 @@ export async function processDhanPostback(url: string, body: string) {
 
   const eventKey = createHash("sha256").update(body).digest("hex");
   const intent = await getOrderIntentByCorrelationId(correlationId);
+  const durableState = await getOrderIntentStateByCorrelationId(correlationId);
   await ingestDhanPostback(payload, eventKey);
 
   const filledQty = Number(payload.filled_qty ?? 0);
@@ -60,8 +63,9 @@ export async function processDhanPostback(url: string, body: string) {
     raw_payload: payload,
     last_seen_at: new Date().toISOString(),
   });
+  const safeNext = transitionOrderStatus(durableState?.status ?? "SUBMITTED", mappedStatus as OrderStatus);
   await updateOrderIntentByCorrelationId(correlationId, {
-    status: mappedStatus,
+    status: safeNext,
     broker_order_id: orderId,
   });
 
