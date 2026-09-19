@@ -10,6 +10,7 @@ import {
   Settings as SettingsIcon,
   ShieldAlert,
   ShieldCheck,
+  Workflow,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTrading } from "@/lib/trading/store";
@@ -21,6 +22,7 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/market", label: "Market Overview", icon: LineChart },
   { to: "/scanner", label: "Scanner", icon: Radar },
+  { to: "/architecture", label: "System Architecture", icon: Workflow },
   { to: "/signals", label: "Signals", icon: Radio },
   { to: "/approvals", label: "Trade Approval", icon: CheckSquare },
   { to: "/journal", label: "Trade Journal", icon: BookOpen },
