@@ -47,6 +47,6 @@ bun run build
 
 Supabase stores order intents, broker orders, broker trades, Dhan postbacks and risk events. All exposed tables use RLS with deny-by-default policies; server access uses the Supabase service-role key only on the backend.
 
-Configure Dhan Postback URL as `https://<your-app-host>/api/public/dhan/postback?token=<DHAN_POSTBACK_SECRET>`. Dhan sends order-status changes and partial-fill updates to this URL; the application verifies the shared secret and Dhan client ID before persisting them. citeturn0search0
+Configure Dhan Postback URL as `https://<your-app-host>/api/public/dhan/postback?token=<DHAN_POSTBACK_SECRET>`. Dhan sends order-status changes and partial-fill updates to this URL; the application verifies the shared secret and Dhan client ID before persisting them.
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the real-money readiness gate.
