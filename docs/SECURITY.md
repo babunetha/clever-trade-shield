@@ -13,8 +13,12 @@ The application now has a real authentication boundary, CSRF protection, server-
 - Live Dhan order placement remains hard-disabled before any broker order request.
 - Risk engine enforces trading switch, daily loss, rolling 7-day loss, max trades/day, max open positions, session hours, per-trade risk and minimum R:R.
 - Response security headers: CSP baseline, frame denial, MIME sniffing protection, strict referrer policy, Permissions Policy and COOP/CORP.
-- CI runs security tests, source-boundary checks, formatting, lint and build; dependency audit is also included.
+- CI runs security tests, source-boundary checks, formatting, lint, build, and a high-severity dependency audit. GitHub's hosted Dependency Review action is not available for this personal private repository, so it is not used as a false security gate.
 - Lovable runtime configuration and telemetry are removed from the active application.
+
+## GitHub security note
+
+GitHub documents Dependency Review as available for public repositories and eligible private repositories with GitHub Code Security/Advanced Security. This repository is a personal private repository, and GitHub currently rejects the Dependency Review action for it. The CI therefore relies on `bun audit --audit-level=high` plus the repository's source-boundary/security tests rather than pretending the unsupported check is passing.
 
 ## Real-money gate still closed
 
