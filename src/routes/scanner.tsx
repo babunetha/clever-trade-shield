@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
@@ -25,6 +27,8 @@ import { MAX_TICK_AGE_SECONDS, stateClasses, verifyCandidate, type VerificationR
 import { SECTORS } from "@/lib/scanner/series";
 import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
+import { getDhanStatus } from "@/lib/dhan.functions";
+import { getScannerLiveQuotes } from "@/lib/scanner.functions";
 
 export const Route = createFileRoute("/scanner")({
   head: () => ({
@@ -100,6 +104,41 @@ function ScannerPage() {
   const openPositions = trades.filter((t) => t.status === "OPEN").length;
   const niftyBias = indices[0]?.bias ?? "NEUTRAL";
 
+  const symbols = useMemo(
+    () => Array.from(new Set((candidates ?? []).map((c) => c.symbol))).sort(),
+    [candidates],
+  );
+
+  const dhanStatus = useQuery({ queryKey: ["dhan-status"], queryFn: () => getDhanStatus(), staleTime: 60_000 });
+  const brokerConfigured = Boolean(
+    dhanStatus.data?.clientIdConfigured && dhanStatus.data?.accessTokenConfigured,
+  );
+
+  const fetchLive = useServerFn(getScannerLiveQuotes);
+  const live = useQuery({
+    queryKey: ["scanner-live-quotes", symbols.join(",")],
+    queryFn: () => fetchLive({ data: { symbols } }),
+    enabled: brokerConfigured && symbols.length > 0,
+    // Only the candidate symbols are subscribed, and only while this screen is open.
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+    retry: 2,
+    gcTime: 30_000,
+  });
+
+  const liveResult = live.data;
+  const liveOk = Boolean(liveResult?.ok);
+  const liveMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q.price);
+    return map;
+  }, [liveResult]);
+  const liveError = live.isError
+    ? "The live price request failed. Reconnect to retry."
+    : liveResult && !liveResult.ok
+      ? liveResult.error
+      : null;
+
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
@@ -108,11 +147,16 @@ function ScannerPage() {
       const sector = SECTORS[candidate.symbol] ?? "Unclassified";
       const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
       const sectorChangePct = peers.length ? peers.reduce((s, q) => s + q.changePct, 0) / peers.length : 0;
+      const livePrice = liveMap.get(candidate.symbol.toUpperCase());
+      const tick =
+        liveOk && livePrice !== undefined && liveResult?.ok
+          ? { price: livePrice, asOf: liveResult.asOf, source: "DHAN_LIVE" as const }
+          : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
       return {
         candidate,
         verification: verifyCandidate({
           candidate,
-          tick: { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" },
+          tick,
           niftyBias,
           sectorChangePct,
           settings,
@@ -122,7 +166,7 @@ function ScannerPage() {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidates, quotes, niftyBias, settings, risk, openPositions, scanAgeSeconds]);
+  }, [candidates, quotes, niftyBias, settings, risk, openPositions, scanAgeSeconds, liveMap, liveOk, liveResult]);
 
   const counts = {
     buy: rows.filter((r) => r.verification.state === "BUY CANDIDATE").length,
@@ -162,10 +206,23 @@ function ScannerPage() {
       subtitle="Five scanner concepts as candidate sources only. Every candidate is re-verified here before it can become a paper trade."
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="border-warn/40 bg-warn-muted text-warn">
-          SIMULATED / MOCK DATA
+        {liveOk ? (
+          <Badge className="bg-success text-success-foreground">LIVE DHAN PRICES · READ-ONLY</Badge>
+        ) : (
+          <Badge variant="outline" className="border-warn/40 bg-warn-muted text-warn">
+            SIMULATED / MOCK PRICES
+          </Badge>
+        )}
+        <Badge variant="outline" className="border-border">
+          Scanner history: simulated
         </Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
+        {liveOk && liveResult?.ok ? (
+          <span className="num text-xs text-muted-foreground">
+            Prices {formatTime(liveResult.asOf)}
+            {live.isFetching ? " · refreshing" : ""}
+          </span>
+        ) : null}
         {scannedAt ? (
           <span className="num text-xs text-muted-foreground">
             Scanned {formatTime(scannedAt)} · {scanAgeSeconds}s ago
@@ -176,11 +233,36 @@ function ScannerPage() {
             <AlertTriangle className="mr-1 size-3" /> STALE — RE-RUN
           </Badge>
         ) : null}
-        <Button size="sm" variant="outline" className="ml-auto" onClick={runScan} disabled={status === "loading"}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() => void live.refetch()}
+          disabled={!brokerConfigured || live.isFetching}
+        >
+          {live.isFetching ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <RefreshCw className="mr-1 size-3.5" />}
+          Reconnect prices
+        </Button>
+        <Button size="sm" variant="outline" onClick={runScan} disabled={status === "loading"}>
           {status === "loading" ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <RefreshCw className="mr-1 size-3.5" />}
           Re-run scan
         </Button>
       </div>
+
+      {!brokerConfigured && !dhanStatus.isLoading ? (
+        <div className="mb-3 rounded-md border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
+          Live Dhan prices are off because the broker credentials are not configured on the server. Add
+          <span className="num"> DHAN_CLIENT_ID </span> and <span className="num">DHAN_ACCESS_TOKEN</span> as backend
+          secrets (Settings → Dhan connection). Until then every price here is simulated and paper trading is judged on
+          simulated prices only.
+        </div>
+      ) : null}
+
+      {brokerConfigured && liveError ? (
+        <div className="mb-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
+          {liveError} Verification falls back to simulated prices, and a stale price blocks paper trading by design.
+        </div>
+      ) : null}
 
       <div className="grid gap-3 xl:grid-cols-[22rem_1fr]">
         <section className="panel p-4">
@@ -315,7 +397,7 @@ function ScannerPage() {
                       </div>
 
                       <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1 num text-xs sm:grid-cols-4">
-                        <Metric label="Price (sim)" value={formatPrice(v.plan.entry)} />
+                        <Metric label={liveOk && liveMap.has(cand.symbol.toUpperCase()) ? "Price (Dhan live)" : "Price (sim)"} value={formatPrice(v.plan.entry)} />
                         <Metric label="Scan close" value={formatPrice(cand.scanClose)} />
                         <Metric label="52w proximity" value={`${v.metrics.pctOf52wHigh}%`} />
                         <Metric label="Liquidity" value={`₹${v.metrics.tradedValueCr} Cr`} />
