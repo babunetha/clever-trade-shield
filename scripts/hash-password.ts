@@ -1,10 +1,16 @@
 import { randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { promisify } from "node:util";
+import { createInterface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 
 const scrypt = promisify(scryptCallback);
-const password = process.argv[2];
-if (!password) {
-  console.error("Usage: bun scripts/hash-password.ts '<strong-password>'");
+
+const rl = createInterface({ input, output });
+const password = await rl.question("Operator password (input is visible in this terminal): ");
+rl.close();
+
+if (!password || password.length < 12) {
+  console.error("Password must be at least 12 characters.");
   process.exit(1);
 }
 
