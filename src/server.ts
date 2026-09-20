@@ -51,6 +51,9 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       const secured = await normalizeCatastrophicSsrResponse(response);
       const headers = new Headers(secured.headers);
+      if (secured.status >= 500 && !headers.has("X-Correlation-ID")) {
+        headers.set("X-Correlation-ID", crypto.randomUUID());
+      }
       headers.set("X-Content-Type-Options", "nosniff");
       headers.set("X-Frame-Options", "DENY");
       headers.set("Referrer-Policy", "no-referrer");
@@ -63,10 +66,14 @@ export default {
       }
       return new Response(secured.body, { status: secured.status, statusText: secured.statusText, headers });
     } catch (error) {
-      console.error(error);
+      const correlationId = crypto.randomUUID();
+      console.error({ correlationId, error });
       return new Response(renderErrorPage(), {
         status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "X-Correlation-ID": correlationId,
+        },
       });
     }
   },
