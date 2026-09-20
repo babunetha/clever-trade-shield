@@ -78,6 +78,13 @@ function Journal() {
   const avgR = closed.length
     ? Number((closed.reduce((s, t) => s + (t.rMultiple ?? 0), 0) / closed.length).toFixed(2))
     : 0;
+  const unrealisedPnl = trades.filter((t) => t.status === "OPEN").reduce((sum, t) => {
+    const current = livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
+    return sum + (current - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1);
+  }, 0);
+  const grossProfit = closed.filter((t) => (t.pnl ?? 0) > 0).reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const grossLoss = Math.abs(closed.filter((t) => (t.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0));
+  const profitFactor = grossLoss ? Number((grossProfit / grossLoss).toFixed(2)) : closed.length ? "∞" : "—";
 
   return (
     <AppShell title="Trade Journal" subtitle="Paper trades can be marked against live Dhan prices; no broker order is required.">
@@ -88,7 +95,7 @@ function Journal() {
           <RefreshCw className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh live prices
         </Button>
       </div>
-      {liveError ? <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">{liveError}</div> : null>
+      {liveError ? <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">{liveError}</div> : null}
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="panel p-4">
           <div className="label-caps">Trades logged</div>
@@ -131,7 +138,7 @@ function Journal() {
               <div className="mt-2 num text-xs text-muted-foreground">
                 {t.quantity} qty · entry {formatPrice(t.entry)} · SL {formatPrice(t.stopLoss)} · T1{" "}
                 {formatPrice(t.target1)} · risk {formatINR(Math.abs(t.entry - t.stopLoss) * t.quantity)}
-                {t.exit ? ` · exit ${formatPrice(t.exit)}` : ` · simulated LTP ${formatPrice(live)}`}
+                {t.exit ? ` · exit ${formatPrice(t.exit)}` : ` · live mark ${formatPrice(live)}`}
               </div>
 
               {t.status === "OPEN" ? (
