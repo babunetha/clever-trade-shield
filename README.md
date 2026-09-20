@@ -16,7 +16,7 @@ MARKET DATA ENGINE → DHAN
 
 AI RESEARCH → Technical / News / Fundamental / Sentiment → Bull/Bear Debate → Research Manager → Trader → Risk Management → Portfolio Manager → RISK ENGINE → Semi-Automatic Approval → DHAN API → Order Execution
 
-The final order-execution layer remains physically disabled.
+The final order-execution layer is present behind a multi-condition server gate and remains OFF by default. Phase 1 live-data/paper-trading is supported; Phase 2 semi-automatic execution requires explicit production configuration and user approval. See [docs/MASTER_TRADING_SPEC.md](docs/MASTER_TRADING_SPEC.md) for the complete requirements.
 
 ## Security configuration
 
@@ -29,7 +29,7 @@ Set these server-side only:
 
 Never prefix Dhan or authentication secrets with `VITE_` or `PUBLIC_`.
 
-## Development
+## Current trading workflow\n\n1. **Live Dhan data:** authenticated server-side quote/candle reads; the Market and Signals screens clearly label live data.\n2. **Paper trading:** approved signals are simulated and the journal can mark open paper positions against live Dhan prices.\n3. **Semi-automatic execution:** durable order intent, idempotency, server risk gate, Dhan order adapter, postback/reconciliation and cancellation paths are implemented, but the production live gate is closed by default.\n4. **Full automation:** intentionally not enabled; it is a later phase requiring a separately reviewed automation gate.\n\n## Development
 
 ```sh
 bun install
