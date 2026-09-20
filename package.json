@@ -13,7 +13,8 @@
     "test:security": "bun test tests/security.test.ts",
     "security:audit": "bun scripts/security-audit.ts",
     "security:check": "bun run test:security && bun run security:audit",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "auth:hash-password": "bun scripts/hash-password.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"
