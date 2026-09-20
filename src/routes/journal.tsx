@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/trading/AppShell";
+import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatSignedINR, tone } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +33,44 @@ export const Route = createFileRoute("/journal")({
 function Journal() {
   const { trades, closeTrade, updateNotes, quotes } = useTrading();
   const [exits, setExits] = useState<Record<string, string>>({});
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveAsOf, setLiveAsOf] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const symbols = useMemo(() => [...new Set(trades.filter((t) => t.status === "OPEN").map((t) => t.symbol))], [trades]);
+
+  const refreshLive = useCallback(async () => {
+    if (!symbols.length) { setLiveMode(false); return; }
+    setRefreshing(true);
+    try {
+      const result = await getDhanMarketSnapshot({ data: { symbols } });
+      if (!result.ok) { setLiveMode(false); setLiveError(result.error); return; }
+      const prices: Record<string, number> = {};
+      for (const [symbol, quote] of Object.entries(result.data.quotes)) prices[symbol] = quote.ltp;
+      if (Object.keys(prices).length) {
+        setLivePrices(prices);
+        setLiveMode(true);
+        setLiveError(null);
+        setLiveAsOf(result.data.asOf);
+      } else {
+        setLiveMode(false);
+        setLiveError("Dhan returned no live prices for the open paper positions.");
+      }
+    } catch (error) {
+      setLiveMode(false);
+      setLiveError(error instanceof Error ? error.message : "Dhan live-price request failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [symbols]);
+
+  useEffect(() => {
+    void refreshLive();
+    const timer = window.setInterval(() => void refreshLive(), 5000);
+    return () => window.clearInterval(timer);
+  }, [refreshLive]);
 
   const closed = trades.filter((t) => t.status === "CLOSED");
   const wins = closed.filter((t) => (t.pnl ?? 0) > 0).length;
@@ -40,7 +80,15 @@ function Journal() {
     : 0;
 
   return (
-    <AppShell title="Trade Journal" subtitle="Every entry here is a simulated fill — no broker order was placed.">
+    <AppShell title="Trade Journal" subtitle="Paper trades can be marked against live Dhan prices; no broker order is required.">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Badge variant={liveMode ? "default" : "outline"}>{liveMode ? "DHAN LIVE MARKING" : "SIMULATED FALLBACK"}</Badge>
+        {liveAsOf ? <span className="num text-xs text-muted-foreground">Updated {new Date(liveAsOf).toLocaleTimeString()}</span> : null}
+        <Button size="sm" variant="outline" className="ml-auto" onClick={() => void refreshLive()} disabled={refreshing || !symbols.length}>
+          <RefreshCw className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh live prices
+        </Button>
+      </div>
+      {liveError ? <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">{liveError}</div> : null>
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="panel p-4">
           <div className="label-caps">Trades logged</div>
@@ -64,7 +112,7 @@ function Journal() {
 
       <div className="mt-4 space-y-3">
         {trades.map((t) => {
-          const live = quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
+          const live = livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
           return (
             <div key={t.id} className="panel p-4">
               <div className="flex flex-wrap items-center gap-2">
