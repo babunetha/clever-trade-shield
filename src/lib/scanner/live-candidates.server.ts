@@ -72,11 +72,12 @@ export async function runDhanLiveScanners(config:ScannerConfig):Promise<ScanCand
    });
    if(!pass)continue;
    const price=x.quote?.lastPrice??m.lastPrice;
+   const marketScore=Math.min(100, Number((40 + (m.breakout?30:0) + (m.lastPrice>m.vwap?15:0) + Math.min(15, (m.sessionVol / Math.max(1, x.bars.at(-1)!.volume)) * 15)).toFixed(1)));
    out.push({id:"DHAN-"+x.instrument.securityId,scannerId:"BEST_BUY_INTRADAY",scannerName:"Dhan multi-stage intraday scanner",symbol:x.symbol,name:x.instrument.customSymbol||x.symbol,scanClose:price,matched:[
      "Dhan completed daily OHLCV","Dhan current-session 5m data","VWAP "+m.vwap.toFixed(2),
      "Opening range "+m.openingLow.toFixed(2)+"-"+m.openingHigh.toFixed(2),
      "ORB "+(m.breakout?"confirmed":"not confirmed"),"Walk-forward OOS windows "+wf.stability.profitableWindows+"/"+wf.stability.totalWindows
-   ],scannedAt,bars:x.bars,research:{...research,score:researchScore(research)},securityId:x.instrument.securityId});
+   ],scannedAt,bars:x.bars,research:{...research,score:researchScore(research)},marketScore,securityId:x.instrument.securityId});
  }
- return out.sort((a,b)=>b.research.score-a.research.score).slice(0,20);
+ return out.sort((a,b)=>(0.55*(b.marketScore??0)+0.45*b.research.score)-(0.55*(a.marketScore??0)+0.45*a.research.score)).slice(0,20);
 }
