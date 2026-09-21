@@ -26,7 +26,7 @@ export interface ScanCandidate {
   matched: string[];
   scannedAt: string;
   bars: DailyBar[];
-  research: BacktestResult & { score: number };
+  research: BacktestResult & { score: number };\n  /** Present for Dhan-backed candidates. */\n  securityId?: string;
 }
 
 const crit = (config: ScannerConfig, id: ScannerId, key: string, fallback: number) =>
