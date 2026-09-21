@@ -246,6 +246,7 @@ function ScannerPage() {
     }
     const res = openPaperTrade({
       symbol: row.candidate.symbol,
+      securityId: row.candidate.securityId,
       name: row.candidate.name,
       entry: row.verification.plan.entry,
       stopLoss: row.verification.plan.stopLoss,
