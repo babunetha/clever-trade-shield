@@ -312,6 +312,51 @@ export async function getDhanHistoricalCandles(
   };
 }
 
+export interface DhanDailyHistoricalRequest {
+  securityId: string;
+  exchangeSegment: "NSE_EQ" | "BSE_EQ";
+  instrument: "EQUITY";
+  fromDate: string;
+  toDate: string;
+}
+
+export async function getDhanDailyHistoricalCandles(
+  request: DhanDailyHistoricalRequest,
+): Promise<DhanResult<DhanCandle[]>> {
+  const result = await dhanRequest<Record<string, unknown>>("/charts/historical", {
+    method: "POST",
+    body: {
+      securityId: request.securityId,
+      exchangeSegment: request.exchangeSegment,
+      instrument: request.instrument,
+      expiryCode: 0,
+      oi: false,
+      fromDate: request.fromDate,
+      toDate: request.toDate,
+    },
+  });
+  if (!result.ok) return result;
+  const raw = result.data;
+  const open = Array.isArray(raw["open"]) ? raw["open"] as unknown[] : [];
+  const high = Array.isArray(raw["high"]) ? raw["high"] as unknown[] : [];
+  const low = Array.isArray(raw["low"]) ? raw["low"] as unknown[] : [];
+  const close = Array.isArray(raw["close"]) ? raw["close"] as unknown[] : [];
+  const volume = Array.isArray(raw["volume"]) ? raw["volume"] as unknown[] : [];
+  const timestamps = Array.isArray(raw["timestamp"]) ? raw["timestamp"] as unknown[] : [];
+  const length = Math.min(open.length, high.length, low.length, close.length, volume.length, timestamps.length);
+  return {
+    ok: true,
+    data: Array.from({ length }, (_, i) => ({
+      timestamp: Number(timestamps[i]),
+      open: Number(open[i]),
+      high: Number(high[i]),
+      low: Number(low[i]),
+      close: Number(close[i]),
+      volume: Number(volume[i]),
+    })).filter((x) => Number.isFinite(x.timestamp) && Number.isFinite(x.close)),
+  };
+}
+
 export interface DhanQuote {
   securityId: string;
   lastPrice: number;

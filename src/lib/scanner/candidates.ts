@@ -13,6 +13,7 @@ import {
   type DailyBar,
 } from "./series";
 import { UNIVERSE } from "@/lib/trading/mock";
+import { backtestTrendBreakout, researchScore, type BacktestResult } from "@/lib/research/backtest";
 
 export interface ScanCandidate {
   id: string;
@@ -25,6 +26,7 @@ export interface ScanCandidate {
   matched: string[];
   scannedAt: string;
   bars: DailyBar[];
+  research: BacktestResult & { score: number };\n  /** Present for Dhan-backed candidates. */\n  securityId?: string;
 }
 
 const crit = (config: ScannerConfig, id: ScannerId, key: string, fallback: number) =>
@@ -119,7 +121,9 @@ export function runScanners(config: ScannerConfig, seed: number): ScanCandidate[
         if (pass) matched.push(`At ${pct}% of the 52-week high ${h52}`, `Price ${last.close} inside the configured band`);
       }
 
-      if (pass)
+      if (pass) {
+        const bt = backtestTrendBreakout(bars);
+        const research = { ...bt, score: researchScore(bt) };
         out.push({
           id: `${def.id}-${u.symbol}`,
           scannerId: def.id,
@@ -130,7 +134,9 @@ export function runScanners(config: ScannerConfig, seed: number): ScanCandidate[
           matched,
           scannedAt,
           bars,
+          research,
         });
+      }
     }
   }
 

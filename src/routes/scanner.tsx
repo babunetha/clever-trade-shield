@@ -29,7 +29,7 @@ import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
 import { getDhanStatus } from "@/lib/dhan.functions";
 import { getScannerLiveQuotes } from "@/lib/scanner.functions";
-import { runAiTradingAgents } from "@/lib/ai-agents.functions";
+import { runAiTradingAgents } from "@/lib/ai-agents.functions";\nimport { runDhanLiveScan } from "@/lib/live-scan.functions";
 
 export const Route = createFileRoute("/scanner")({
   head: () => ({
@@ -66,7 +66,7 @@ function ScannerPage() {
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scannedAt, setScannedAt] = useState<string | null>(null);
+  const [scannedAt, setScannedAt] = useState<string | null>(null);\n  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -80,11 +80,11 @@ function ScannerPage() {
   const runScan = useCallback(() => {
     setStatus("loading");
     setError(null);
-    // Deferred so the loading state paints before the (synchronous) scan runs.
     window.setTimeout(() => {
       try {
         const found = runScanners(config, Math.floor(Math.random() * 1e9));
         setCandidates(found);
+        setScanSource("SIMULATED");
         setScannedAt(new Date().toISOString());
         setNowMs(Date.now());
         setStatus("ready");
@@ -94,6 +94,26 @@ function ScannerPage() {
         setStatus("error");
       }
     }, 30);
+  }, [config]);
+
+  const runLiveScan = useCallback(async () => {
+    setStatus("loading");
+    setError(null);
+    try {
+      const result = await runDhanLiveScan({ data: { config } });
+      if (!result.ok) throw new Error(result.error);
+      setCandidates(result.candidates);
+      setScanSource("DHAN_LIVE");
+      setScannedAt(new Date().toISOString());
+      setNowMs(Date.now());
+      setStatus("ready");
+      toast.success("Dhan live research scan complete.");
+    } catch (e) {
+      setCandidates(null);
+      setError(e instanceof Error ? e.message : "Dhan live scan failed.");
+      setStatus("error");
+      toast.error(e instanceof Error ? e.message : "Dhan live scan failed.");
+    }
   }, [config]);
 
   // Client-only first scan (the engine is heavy and must not run during SSR).
@@ -145,7 +165,7 @@ function ScannerPage() {
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
-    return candidates.map((candidate) => {
+    return [...candidates].sort((a, b) => b.research.score - a.research.score).map((candidate) => {
       const quote = quotes.find((q) => q.symbol === candidate.symbol);
       const sector = SECTORS[candidate.symbol] ?? "Unclassified";
       const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
@@ -202,6 +222,7 @@ function ScannerPage() {
           target1: v.plan.target1,
           target2: v.plan.target2,
           riskReward: v.plan.riskReward,
+          research: row.candidate.research,
         },
       });
       setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
@@ -382,7 +403,7 @@ function ScannerPage() {
 
           {status === "loading" ? (
             <div className="panel flex items-center gap-2 p-8 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Running the enabled scanners over simulated daily history…
+              <Loader2 className="size-4 animate-spin" /> Running the enabled scanners…
             </div>
           ) : null}
 
@@ -442,6 +463,7 @@ function ScannerPage() {
                         <Metric label="RSI 14" value={v.metrics.rsi14 ?? "—"} />
                         <Metric label="ATR 14" value={v.metrics.atr14 ?? "—"} />
                         <Metric label="Checks" value={`${v.passed}/${v.total}`} />
+                        <Metric label="Research score" value={`${cand.research.score}/100`} />
                       </div>
 
                       <div className="num text-right text-xs">
@@ -458,7 +480,7 @@ function ScannerPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">\n                      <div className="flex flex-wrap gap-x-4 gap-y-1 num">\n                        <span>Backtest {cand.research.trades} trades</span>\n                        <span>Win {cand.research.winRate}%</span>\n                        <span>Expectancy {cand.research.expectancyR}R</span>\n                        <span>PF {cand.research.profitFactor}</span>\n                        <span>Max DD {cand.research.maxDrawdownR}R</span>\n                      </div>\n                      <div className="mt-1 text-[11px] text-muted-foreground">Historical simulation only; used for ranking, not future-return prediction.</div>\n                    </div>\n\n                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => setSelected(open ? null : cand.id)}>
 
                         {open ? "Hide checks" : `Why ${v.state}`}
