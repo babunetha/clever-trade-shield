@@ -516,10 +516,10 @@ function ScannerPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => void runAiValidation(row)}
-                        disabled={aiLoading === cand.symbol}
+                        disabled={aiLoading === cand.symbol || rowIndex >= 3}
                       >
                         {aiLoading === cand.symbol ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
-                        Gemini validate
+                        {rowIndex < 3 ? "Gemini validate (Top 3)" : "AI limited to Top 3"}
                       </Button>
 
                       <span className="num text-[11px] text-muted-foreground">
