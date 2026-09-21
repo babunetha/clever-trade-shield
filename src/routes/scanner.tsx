@@ -29,7 +29,7 @@ import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
 import { getDhanStatus } from "@/lib/dhan.functions";
 import { getScannerLiveQuotes } from "@/lib/scanner.functions";
-import { runAiTradingAgents } from "@/lib/ai-agents.functions";
+import { runAiTradingAgents } from "@/lib/ai-agents.functions";\nimport { runDhanLiveScan } from "@/lib/live-scan.functions";
 
 export const Route = createFileRoute("/scanner")({
   head: () => ({
@@ -66,7 +66,7 @@ function ScannerPage() {
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scannedAt, setScannedAt] = useState<string | null>(null);
+  const [scannedAt, setScannedAt] = useState<string | null>(null);\n  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -80,11 +80,11 @@ function ScannerPage() {
   const runScan = useCallback(() => {
     setStatus("loading");
     setError(null);
-    // Deferred so the loading state paints before the (synchronous) scan runs.
     window.setTimeout(() => {
       try {
         const found = runScanners(config, Math.floor(Math.random() * 1e9));
         setCandidates(found);
+        setScanSource("SIMULATED");
         setScannedAt(new Date().toISOString());
         setNowMs(Date.now());
         setStatus("ready");
@@ -94,6 +94,26 @@ function ScannerPage() {
         setStatus("error");
       }
     }, 30);
+  }, [config]);
+
+  const runLiveScan = useCallback(async () => {
+    setStatus("loading");
+    setError(null);
+    try {
+      const result = await runDhanLiveScan({ data: { config } });
+      if (!result.ok) throw new Error(result.error);
+      setCandidates(result.candidates);
+      setScanSource("DHAN_LIVE");
+      setScannedAt(new Date().toISOString());
+      setNowMs(Date.now());
+      setStatus("ready");
+      toast.success("Dhan live research scan complete.");
+    } catch (e) {
+      setCandidates(null);
+      setError(e instanceof Error ? e.message : "Dhan live scan failed.");
+      setStatus("error");
+      toast.error(e instanceof Error ? e.message : "Dhan live scan failed.");
+    }
   }, [config]);
 
   // Client-only first scan (the engine is heavy and must not run during SSR).
@@ -383,7 +403,7 @@ function ScannerPage() {
 
           {status === "loading" ? (
             <div className="panel flex items-center gap-2 p-8 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Running the enabled scanners over simulated daily history…
+              <Loader2 className="size-4 animate-spin" /> Running the enabled scanners…
             </div>
           ) : null}
 
