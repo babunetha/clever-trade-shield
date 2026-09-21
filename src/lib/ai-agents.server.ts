@@ -18,6 +18,15 @@ export interface AgentMarketSnapshot {
   target1: number;
   target2?: number;
   riskReward: number;
+  research?: {
+    score: number;
+    trades: number;
+    winRate: number;
+    expectancyR: number;
+    profitFactor: number;
+    maxDrawdownR: number;
+    totalR: number;
+  };
 }
 
 export interface AgentOpinion {
@@ -109,24 +118,27 @@ export async function runTradingAgents(snapshot: AgentMarketSnapshot): Promise<A
     role: "India equity swing/intraday research assistant",
     rule: "Analyze only the supplied market data. Do not invent prices, news, fundamentals, or indicators. This is decision support, not an order instruction.",
     market: snapshot,
+    research: snapshot.research ?? null,
   };
 
-  const bull = await askGemini(
-    "You are the BULL agent. Find concrete evidence supporting a long trade. Be skeptical and identify what would invalidate the bullish thesis.",
-    base,
-  );
+  // Bull, Bear and Risk are independent. Run them concurrently so one candidate costs
+  // one parallel round-trip plus the final validation round-trip instead of four serial calls.
+  const [bull, bear, risk] = await Promise.all([
+    askGemini(
+      "You are the BULL agent. Find concrete evidence supporting a long trade. Be skeptical and identify what would invalidate the bullish thesis.",
+      base,
+    ),
+    askGemini(
+      "You are the BEAR agent. Try to disprove a long trade. Look for trend weakness, poor risk/reward, overextension, low liquidity, and missing confirmation. Do not invent facts.",
+      base,
+    ),
+    askGemini(
+      "You are the RISK agent. Focus only on downside, stop-loss distance, risk/reward, volatility, liquidity, and whether the supplied setup should be rejected for risk reasons. Do not change numeric prices.",
+      base,
+    ),
+  ]);
   bull.agent = "BULL";
-
-  const bear = await askGemini(
-    "You are the BEAR agent. Try to disprove a long trade. Look for trend weakness, poor risk/reward, overextension, low liquidity, and missing confirmation. Do not invent facts.",
-    base,
-  );
   bear.agent = "BEAR";
-
-  const risk = await askGemini(
-    "You are the RISK agent. Focus only on downside, stop-loss distance, risk/reward, volatility, liquidity, and whether the supplied setup should be rejected for risk reasons. Do not change numeric prices.",
-    base,
-  );
   risk.agent = "RISK";
 
   const validator = await askGemini(

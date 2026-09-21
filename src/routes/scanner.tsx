@@ -145,7 +145,7 @@ function ScannerPage() {
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
-    return candidates.map((candidate) => {
+    return [...candidates].sort((a, b) => b.research.score - a.research.score).map((candidate) => {
       const quote = quotes.find((q) => q.symbol === candidate.symbol);
       const sector = SECTORS[candidate.symbol] ?? "Unclassified";
       const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
@@ -202,6 +202,7 @@ function ScannerPage() {
           target1: v.plan.target1,
           target2: v.plan.target2,
           riskReward: v.plan.riskReward,
+          research: row.candidate.research,
         },
       });
       setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
@@ -442,6 +443,7 @@ function ScannerPage() {
                         <Metric label="RSI 14" value={v.metrics.rsi14 ?? "—"} />
                         <Metric label="ATR 14" value={v.metrics.atr14 ?? "—"} />
                         <Metric label="Checks" value={`${v.passed}/${v.total}`} />
+                        <Metric label="Research score" value={`${cand.research.score}/100`} />
                       </div>
 
                       <div className="num text-right text-xs">
@@ -458,7 +460,7 @@ function ScannerPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">\n                      <div className="flex flex-wrap gap-x-4 gap-y-1 num">\n                        <span>Backtest {cand.research.trades} trades</span>\n                        <span>Win {cand.research.winRate}%</span>\n                        <span>Expectancy {cand.research.expectancyR}R</span>\n                        <span>PF {cand.research.profitFactor}</span>\n                        <span>Max DD {cand.research.maxDrawdownR}R</span>\n                      </div>\n                      <div className="mt-1 text-[11px] text-muted-foreground">Historical simulation only; used for ranking, not future-return prediction.</div>\n                    </div>\n\n                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => setSelected(open ? null : cand.id)}>
 
                         {open ? "Hide checks" : `Why ${v.state}`}
