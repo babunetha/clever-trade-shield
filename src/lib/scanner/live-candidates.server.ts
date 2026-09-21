@@ -53,11 +53,14 @@ export async function runDhanLiveScanners(config:ScannerConfig):Promise<ScanCand
  }).sort((a,b)=>b.score-a.score).slice(0,40);
  const intradayRows=await mapLimit(ranked,5,async x=>{
    const r=await getDhanHistoricalCandles({securityId:x.instrument.securityId,exchangeSegment:"NSE_EQ",instrument:"EQUITY",interval:"5",fromDate:daysAgo(90)+" 09:15:00",toDate:iso(new Date())+" 15:30:00"});
-   const bars=r.ok?todayBars(r.data):[],q=await getDhanQuote({securityIds:[x.instrument.securityId],exchangeSegment:"NSE_EQ"});
-   return {...x,today:bars,quote:q.ok?q.data[x.instrument.securityId]:undefined};
+   return {...x,today:r.ok?todayBars(r.data):[]};
  });
+ const quoteIds=ranked.map(x=>x.instrument.securityId);
+ const quoteResult=await getDhanQuote({securityIds:quoteIds,exchangeSegment:"NSE_EQ"});
+ const quoteMap=quoteResult.ok?quoteResult.data:{};
+ const markedRows=intradayRows.map(x=>({...x,quote:quoteMap[x.instrument.securityId]}));
  const out:ScanCandidate[]=[];const scannedAt=new Date().toISOString();
- for(const x of intradayRows){
+ for(const x of markedRows){
    const m=intraday(x.today);if(!m)continue;
    const research=backtestTrendBreakout(x.bars),wf=walkForwardTrendBreakout(x.bars);
    const r22=returnOver(x.bars,22)??-999,r66=returnOver(x.bars,66)??-999,streak=higherCloseStreak(x.bars),tight=tightnessPct(x.bars)??999,pct=(x.bars.at(-1)!.close/(high52w(x.bars)||x.bars.at(-1)!.close))*100;
