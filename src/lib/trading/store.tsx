@@ -158,7 +158,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     void tick();
     const timer = window.setInterval(() => void tick(), 3000);
     return () => window.clearInterval(timer);
-  }, [hydrated, trades, closeTrade]);
+  }, [hydrated, trades]);
 
   // Simulated tick loop (clearly labelled as mock data in the UI).
   useEffect(() => {
