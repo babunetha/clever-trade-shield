@@ -60,7 +60,7 @@ interface Ctx extends Persisted {
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
   publishLiveSignals: (signals: Signal[]) => void;
-  closeTrade: (id: string, exit: number, notes?: string) => void;
+  closeTrade: (id: string, exit: number, notes?: string, exitReason?: "STOP" | "TARGET" | "MANUAL") => void;
   updateNotes: (id: string, notes: string) => void;
   saveSettings: (patch: Partial<Settings>) => void;
   setTradingEnabled: (enabled: boolean) => void;
@@ -146,9 +146,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           const price = quotes[trade.symbol]?.ltp;
           if (!Number.isFinite(price)) continue;
           if (price <= trade.stopLoss) {
-            closeTrade(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss");
+            closeTrade(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss", "STOP");
           } else if (price >= trade.target1) {
-            closeTrade(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target");
+            closeTrade(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target", "TARGET");
           } else {
             setTrades((prev) => prev.map((t) => t.id === trade.id ? { ...t, markPrice: price, unrealizedPnl: Number(((price - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1)).toFixed(2)) } : t));
           }
@@ -289,7 +289,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [quotes, indices, settings.maxRiskPerTrade, log]);
 
   const closeTrade = useCallback(
-    (id: string, exit: number, notes?: string) => {
+    (id: string, exit: number, notes?: string, exitReason: "STOP" | "TARGET" | "MANUAL" = "MANUAL") => {
       setTrades((prev) =>
         prev.map((t) => {
           if (t.id !== id || t.status === "CLOSED") return t;
@@ -303,6 +303,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             pnl,
             rMultiple: perShareRisk ? Number((pnl / (perShareRisk * t.quantity)).toFixed(2)) : 0,
             outcome,
+            exitReason,
             status: "CLOSED",
             closedAt: new Date().toISOString(),
             notes: notes ?? t.notes,
