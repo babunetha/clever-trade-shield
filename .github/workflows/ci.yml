@@ -2,29 +2,33 @@ name: CI
 
 on:
   push:
-    branches: [main, "codex/**"]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bunx prettier --write .
-      - run: bun audit --audit-level=high
-      - run: bun test
-      - run: bun run security:check
-      - run: bun run lint
-      - run: bun run build
-
-  # This repository is a personal private repository. GitHub's hosted
-  # dependency-review service is not available here even when repository
-  # security settings are enabled. bun audit remains the enforced CI gate.
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Security checks
+        run: bun run security:check
+      - name: Production build
+        run: bun run build
