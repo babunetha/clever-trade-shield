@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
 import type {
@@ -47,6 +48,7 @@ interface Ctx extends Persisted {
   /** Logs an explicitly approved, verified scanner candidate as a simulated trade. */
   openPaperTrade: (input: {
     symbol: string;
+    securityId?: string;
     name: string;
     entry: number;
     stopLoss: number;
@@ -58,7 +60,7 @@ interface Ctx extends Persisted {
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
   publishLiveSignals: (signals: Signal[]) => void;
-  closeTrade: (id: string, exit: number, notes?: string) => void;
+  closeTrade: (id: string, exit: number, notes?: string, exitReason?: "STOP" | "TARGET" | "MANUAL") => void;
   updateNotes: (id: string, notes: string) => void;
   saveSettings: (patch: Partial<Settings>) => void;
   setTradingEnabled: (enabled: boolean) => void;
@@ -129,6 +131,35 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
+  // When paper positions are open, mark them from Dhan and simulate SL/target fills.
+  // This is deliberately read-only: the client never calls an order endpoint.
+  useEffect(() => {
+    if (!hydrated) return;
+    const tick = async () => {
+      const open = trades.filter((t) => t.status === "OPEN");
+      if (!open.length) return;
+      try {
+        const result = await getDhanMarketSnapshot({ data: { symbols: [...new Set(open.map((t) => t.symbol))] } });
+        if (!result.ok) return;
+        const quotes = result.data.quotes as Record<string, { ltp: number }>;
+        for (const trade of open) {
+          const price = quotes[trade.symbol]?.ltp;
+          if (!Number.isFinite(price)) continue;
+          if (price <= trade.stopLoss) {
+            closeTrade(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss", "STOP");
+          } else if (price >= trade.target1) {
+            closeTrade(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target", "TARGET");
+          } else {
+            setTrades((prev) => prev.map((t) => t.id === trade.id ? { ...t, markPrice: price, unrealizedPnl: Number(((price - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1)).toFixed(2)) } : t));
+          }
+        }
+      } catch { /* Dhan is optional; keep paper journal usable without it. */ }
+    };
+    void tick();
+    const timer = window.setInterval(() => void tick(), 3000);
+    return () => window.clearInterval(timer);
+  }, [hydrated, trades]);
+
   // Simulated tick loop (clearly labelled as mock data in the UI).
   useEffect(() => {
     const t = window.setInterval(() => {
@@ -198,6 +229,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         {
           id: uid("TRD"),
           signalId: `SCAN-${input.source}`,
+          securityId: input.securityId,
           symbol: input.symbol,
           name: input.name,
           side: "LONG",
@@ -257,7 +289,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [quotes, indices, settings.maxRiskPerTrade, log]);
 
   const closeTrade = useCallback(
-    (id: string, exit: number, notes?: string) => {
+    (id: string, exit: number, notes?: string, exitReason: "STOP" | "TARGET" | "MANUAL" = "MANUAL") => {
       setTrades((prev) =>
         prev.map((t) => {
           if (t.id !== id || t.status === "CLOSED") return t;
@@ -271,6 +303,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             pnl,
             rMultiple: perShareRisk ? Number((pnl / (perShareRisk * t.quantity)).toFixed(2)) : 0,
             outcome,
+            exitReason,
             status: "CLOSED",
             closedAt: new Date().toISOString(),
             notes: notes ?? t.notes,

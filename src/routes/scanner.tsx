@@ -38,7 +38,7 @@ export const Route = createFileRoute("/scanner")({
       {
         name: "description",
         content:
-          "Five configurable scanner concepts run over simulated daily history, then verified independently before any paper trade is allowed.",
+          "Dhan-backed multi-stage scanner with daily research, current-session 5m confirmation, independent verification and paper-only execution.",
       },
       { property: "og:title", content: "Scanner — ₹1L Trading Assistant" },
       {
@@ -165,7 +165,7 @@ function ScannerPage() {
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
-    return [...candidates].sort((a, b) => b.research.score - a.research.score).map((candidate) => {
+    return [...candidates].sort((a, b) => (0.55 * (b.marketScore ?? 0) + 0.45 * b.research.score) - (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score)).map((candidate) => {
       const quote = quotes.find((q) => q.symbol === candidate.symbol);
       const sector = SECTORS[candidate.symbol] ?? "Unclassified";
       const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
@@ -246,6 +246,7 @@ function ScannerPage() {
     }
     const res = openPaperTrade({
       symbol: row.candidate.symbol,
+      securityId: row.candidate.securityId,
       name: row.candidate.name,
       entry: row.verification.plan.entry,
       stopLoss: row.verification.plan.stopLoss,
@@ -272,7 +273,7 @@ function ScannerPage() {
           </Badge>
         )}
         <Badge variant="outline" className="border-border">
-          Scanner history: simulated
+          Scanner history: completed Dhan daily + current-session 5m
         </Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         {liveOk && liveResult?.ok ? (
@@ -515,10 +516,10 @@ function ScannerPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => void runAiValidation(row)}
-                        disabled={aiLoading === cand.symbol}
+                        disabled={aiLoading === cand.symbol || rowIndex >= 3}
                       >
                         {aiLoading === cand.symbol ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
-                        Gemini validate
+                        {rowIndex < 3 ? "Gemini validate (Top 3)" : "AI limited to Top 3"}
                       </Button>
 
                       <span className="num text-[11px] text-muted-foreground">

@@ -71,6 +71,8 @@ export interface Signal {
 export interface Trade {
   id: string;
   signalId: string;
+  /** Dhan Security ID when the trade originated from a live-data scan. */
+  securityId?: string;
   symbol: string;
   name: string;
   side: Side;
@@ -80,7 +82,11 @@ export interface Trade {
   quantity: number;
   exit?: number;
   pnl?: number;
+  /** Current Dhan mark for an open paper position. */
+  markPrice?: number;
+  unrealizedPnl?: number;
   rMultiple?: number;
+  exitReason?: "STOP" | "TARGET" | "MANUAL";
   outcome?: Outcome;
   status: TradeStatus;
   openedAt: string;
