@@ -29,6 +29,7 @@ import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
 import { getDhanStatus } from "@/lib/dhan.functions";
 import { getScannerLiveQuotes } from "@/lib/scanner.functions";
+import { runAiTradingAgents } from "@/lib/ai-agents.functions";
 
 export const Route = createFileRoute("/scanner")({
   head: () => ({
@@ -68,6 +69,8 @@ function ScannerPage() {
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [aiResults, setAiResults] = useState<Record<string, Awaited<ReturnType<typeof runAiTradingAgents>>>>({});
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 5000);
@@ -176,6 +179,41 @@ function ScannerPage() {
 
   const setCriterion = (id: ScannerId, key: string, value: number) =>
     setConfig((prev) => ({ ...prev, [id]: { ...prev[id], criteria: { ...prev[id].criteria, [key]: value } } }));
+
+  const runAiValidation = async (row: Row) => {
+    setAiLoading(row.candidate.symbol);
+    try {
+      const v = row.verification;
+      const response = await runAiTradingAgents({
+        data: {
+          symbol: row.candidate.symbol,
+          name: row.candidate.name,
+          price: v.plan.entry,
+          scanClose: row.candidate.scanClose,
+          changePct: row.candidate.changePct,
+          rsi14: v.metrics.rsi14,
+          atr14: v.metrics.atr14,
+          rvol: v.metrics.rvol,
+          pctOf52wHigh: v.metrics.pctOf52wHigh,
+          tradedValueCr: v.metrics.tradedValueCr,
+          niftyBias,
+          sectorChangePct: v.sectorChangePct,
+          entry: v.plan.entry,
+          stopLoss: v.plan.stopLoss,
+          target1: v.plan.target1,
+          target2: v.plan.target2,
+          riskReward: v.plan.riskReward,
+        },
+      });
+      setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
+      if (!response.ok) toast.error(response.error);
+      else toast.success(`Gemini validation complete for ${row.candidate.symbol}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "AI validation failed.");
+    } finally {
+      setAiLoading(null);
+    }
+  };
 
   const takePaperTrade = (row: Row) => {
     if (stale) {
@@ -423,6 +461,7 @@ function ScannerPage() {
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => setSelected(open ? null : cand.id)}>
+
                         {open ? "Hide checks" : `Why ${v.state}`}
                       </Button>
 
@@ -451,11 +490,41 @@ function ScannerPage() {
                         </AlertDialogContent>
                       </AlertDialog>
 
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void runAiValidation(row)}
+                        disabled={aiLoading === cand.symbol}
+                      >
+                        {aiLoading === cand.symbol ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
+                        Gemini validate
+                      </Button>
+
                       <span className="num text-[11px] text-muted-foreground">
                         Price age {v.freshnessSeconds}s (limit {MAX_TICK_AGE_SECONDS}s) · found{" "}
                         {formatDateTime(cand.scannedAt)}
                       </span>
                     </div>
+
+                    {aiResults[cand.symbol]?.ok ? (
+                      <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">Gemini multi-agent validation</span>
+                          <Badge variant="outline">
+                            {aiResults[cand.symbol].result.finalDecision} · {aiResults[cand.symbol].result.confidence}%
+                          </Badge>
+                        </div>
+                        <div className="mt-2 grid gap-2 text-xs md:grid-cols-4">
+                          <div><span className="label-caps">Bull</span> {aiResults[cand.symbol].result.bull.decision}</div>
+                          <div><span className="label-caps">Bear</span> {aiResults[cand.symbol].result.bear.decision}</div>
+                          <div><span className="label-caps">Risk</span> {aiResults[cand.symbol].result.risk.decision}</div>
+                          <div><span className="label-caps">Validator</span> {aiResults[cand.symbol].result.validator.decision}</div>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {aiResults[cand.symbol].result.validator.notes}
+                        </p>
+                      </div>
+                    ) : null}
 
                     {open ? (
                       <div className="mt-3 grid gap-3 border-t border-border pt-3 md:grid-cols-2">
