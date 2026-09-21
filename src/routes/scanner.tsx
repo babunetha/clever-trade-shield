@@ -145,7 +145,7 @@ function ScannerPage() {
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
-    return candidates.map((candidate) => {
+    return [...candidates].sort((a, b) => b.research.score - a.research.score).map((candidate) => {
       const quote = quotes.find((q) => q.symbol === candidate.symbol);
       const sector = SECTORS[candidate.symbol] ?? "Unclassified";
       const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
@@ -202,6 +202,7 @@ function ScannerPage() {
           target1: v.plan.target1,
           target2: v.plan.target2,
           riskReward: v.plan.riskReward,
+          research: row.candidate.research,
         },
       });
       setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
