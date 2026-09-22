@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
@@ -133,32 +133,55 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   // When paper positions are open, mark them from Dhan and simulate SL/target fills.
   // This is deliberately read-only: the client never calls an order endpoint.
+  const tradesRef = useRef(trades);
+  const closeTradeRef = useRef<Ctx["closeTrade"]>(() => undefined);
+
+  useEffect(() => {
+    tradesRef.current = trades;
+  }, [trades]);
+
+  useEffect(() => {
+    closeTradeRef.current = closeTrade;
+  }, [closeTrade]);
+
+  // One stable poller avoids timer churn on every mark/P&L update.
+  // Dhan quote reads are batched by symbol and polled at 3s, well below the
+  // single-request-per-second quote rate when this client is the sole reader.
   useEffect(() => {
     if (!hydrated) return;
     const tick = async () => {
-      const open = trades.filter((t) => t.status === "OPEN");
+      const open = tradesRef.current.filter((t) => t.status === "OPEN");
       if (!open.length) return;
       try {
         const result = await getDhanMarketSnapshot({ data: { symbols: [...new Set(open.map((t) => t.symbol))] } });
         if (!result.ok) return;
         const quotes = result.data.quotes as Record<string, { ltp: number }>;
-        for (const trade of open) {
+        setTrades((prev) => prev.map((trade) => {
+          if (trade.status !== "OPEN") return trade;
           const price = quotes[trade.symbol]?.ltp;
-          if (!Number.isFinite(price)) continue;
+          if (!Number.isFinite(price)) return trade;
           if (price <= trade.stopLoss) {
-            closeTrade(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss", "STOP");
-          } else if (price >= trade.target1) {
-            closeTrade(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target", "TARGET");
-          } else {
-            setTrades((prev) => prev.map((t) => t.id === trade.id ? { ...t, markPrice: price, unrealizedPnl: Number(((price - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1)).toFixed(2)) } : t));
+            void closeTradeRef.current?.(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss", "STOP");
+            return trade;
           }
-        }
-      } catch { /* Dhan is optional; keep paper journal usable without it. */ }
+          if (price >= trade.target1) {
+            void closeTradeRef.current?.(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target", "TARGET");
+            return trade;
+          }
+          return {
+            ...trade,
+            markPrice: price,
+            unrealizedPnl: Number(((price - trade.entry) * trade.quantity * (trade.side === "LONG" ? 1 : -1)).toFixed(2)),
+          };
+        }));
+      } catch {
+        /* Dhan is optional; keep paper journal usable without it. */
+      }
     };
     void tick();
     const timer = window.setInterval(() => void tick(), 3000);
     return () => window.clearInterval(timer);
-  }, [hydrated, trades]);
+  }, [hydrated]);
 
   // Simulated tick loop (clearly labelled as mock data in the UI).
   useEffect(() => {
