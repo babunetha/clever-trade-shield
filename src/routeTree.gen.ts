@@ -18,6 +18,10 @@ import { Route as ScannerRouteImport } from './routes/scanner'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignalsRouteImport } from './routes/signals'
 import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
+import { Route as ApiPublicDhanPostbackRouteImport } from './routes/api/public/dhan/postback'
+import { Route as AgentsRouteImport } from './routes/agents'
+import { Route as ArchitectureRouteImport } from './routes/architecture'
+import { Route as LoginRouteImport } from './routes/login'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +68,26 @@ const ApiPublicDhanCallbackRoute = ApiPublicDhanCallbackRouteImport.update({
   path: '/api/public/dhan/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDhanPostbackRoute = ApiPublicDhanPostbackRouteImport.update({
+  id: '/api/public/dhan/postback',
+  path: '/api/public/dhan/postback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchitectureRoute = ArchitectureRouteImport.update({
+  id: '/architecture',
+  path: '/architecture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +99,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
+  '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
+  '/agents': typeof AgentsRoute
+  '/architecture': typeof ArchitectureRoute
+  '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +114,10 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
+  '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
+  '/agents': typeof AgentsRoute
+  '/architecture': typeof ArchitectureRoute
+  '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -145,6 +177,10 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignalsRoute: typeof SignalsRoute
   ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
+  ApiPublicDhanPostbackRoute: typeof ApiPublicDhanPostbackRoute
+  AgentsRoute: typeof AgentsRoute
+  ArchitectureRoute: typeof ArchitectureRoute
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +248,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicDhanCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/dhan/postback': {
+      id: '/api/public/dhan/postback'
+      path: '/api/public/dhan/postback'
+      fullPath: '/api/public/dhan/postback'
+      preLoaderRoute: typeof ApiPublicDhanPostbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/architecture': {
+      id: '/architecture'
+      path: '/architecture'
+      fullPath: '/architecture'
+      preLoaderRoute: typeof ArchitectureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +289,10 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignalsRoute: SignalsRoute,
   ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
+  ApiPublicDhanPostbackRoute: ApiPublicDhanPostbackRoute,
+  AgentsRoute: AgentsRoute,
+  ArchitectureRoute: ArchitectureRoute,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
