@@ -108,3 +108,39 @@ export async function getOrderIntentStateByCorrelationId(correlationId: string) 
   const rows = await request(`order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status,broker_order_id,quantity,symbol,transaction_type`);
   return Array.isArray(rows) ? rows[0] ?? null : null;
 }
+
+
+export async function upsertPaperTrade(input: {
+  id: string;
+  symbol: string;
+  status: "OPEN" | "CLOSED";
+  opened_at: string;
+  closed_at?: string | null;
+  payload: Record<string, unknown>;
+}) {
+  return request("paper_trades?on_conflict=id", {
+    method: "POST",
+    body: JSON.stringify({
+      ...input,
+      updated_at: new Date().toISOString(),
+    }),
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+  });
+}
+
+export async function appendTradeAudit(input: {
+  id: string;
+  at: string;
+  action: string;
+  severity: "INFO" | "WARN" | "CRITICAL";
+  detail: string;
+  payload?: Record<string, unknown>;
+}) {
+  return request("trade_audit", {
+    method: "POST",
+    body: JSON.stringify({
+      ...input,
+      payload: input.payload ?? {},
+    }),
+  });
+}
