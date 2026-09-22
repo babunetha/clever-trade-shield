@@ -15,7 +15,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (n: number) => iso(new Date(Date.now() - n * 86400000));
 
 const universe = () => {
-  const raw = process.env.CTS_UNIVERSE_SYMBOLS?.trim();
+  const raw = process.env["CTS_UNIVERSE_SYMBOLS"]?.trim();
   return raw
     ? raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 500)
     : [
