@@ -145,7 +145,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [closeTrade]);
 
   // One stable poller avoids timer churn on every mark/P&L update.
-  // Dhan quote reads are batched by symbol and polled at 3s.
+  // Dhan quote reads are batched by symbol and polled at 30s to conserve broker/API bandwidth.
   useEffect(() => {
     if (!hydrated) return;
     const tick = async () => {
@@ -192,7 +192,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       }
     };
     void tick();
-    const timer = window.setInterval(() => void tick(), 3000);
+    const timer = window.setInterval(() => void tick(), 30000);
     return () => window.clearInterval(timer);
   }, [hydrated]);
 
