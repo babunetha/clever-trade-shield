@@ -17,7 +17,7 @@ const TIMEOUT_MS = 10_000;
 export interface DhanCredentialStatus {
   clientIdConfigured: boolean;
   accessTokenConfigured: boolean;
-  liveExecutionEnabled: false;
+  liveExecutionEnabled: boolean;
   /** SIMULATION until both credentials exist; then live data reads are possible. */
   mode: "SIMULATION" | "LIVE_READ_ONLY";
 }
