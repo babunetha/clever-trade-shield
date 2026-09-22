@@ -29,7 +29,8 @@ import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
 import { getDhanStatus } from "@/lib/dhan.functions";
 import { getScannerLiveQuotes } from "@/lib/scanner.functions";
-import { runAiTradingAgents } from "@/lib/ai-agents.functions";\nimport { runDhanLiveScan } from "@/lib/live-scan.functions";
+import { runAiTradingAgents } from "@/lib/ai-agents.functions";
+import { runDhanLiveScan } from "@/lib/live-scan.functions";
 
 export const Route = createFileRoute("/scanner")({
   head: () => ({
@@ -66,7 +67,8 @@ function ScannerPage() {
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [scannedAt, setScannedAt] = useState<string | null>(null);\n  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
+  const [scannedAt, setScannedAt] = useState<string | null>(null);
+  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -435,7 +437,7 @@ function ScannerPage() {
           ) : null}
 
           {status === "ready"
-            ? rows.map((row) => {
+            ? rows.map((row, rowIndex) => {
                 const { candidate: cand, verification: v } = row;
                 const open = selected === cand.id;
                 const canTrade = v.state === "BUY CANDIDATE" && !stale && !risk.locked;
@@ -481,7 +483,18 @@ function ScannerPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">\n                      <div className="flex flex-wrap gap-x-4 gap-y-1 num">\n                        <span>Backtest {cand.research.trades} trades</span>\n                        <span>Win {cand.research.winRate}%</span>\n                        <span>Expectancy {cand.research.expectancyR}R</span>\n                        <span>PF {cand.research.profitFactor}</span>\n                        <span>Max DD {cand.research.maxDrawdownR}R</span>\n                      </div>\n                      <div className="mt-1 text-[11px] text-muted-foreground">Historical simulation only; used for ranking, not future-return prediction.</div>\n                    </div>\n\n                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 num">
+                        <span>Backtest {cand.research.trades} trades</span>
+                        <span>Win {cand.research.winRate}%</span>
+                        <span>Expectancy {cand.research.expectancyR}R</span>
+                        <span>PF {cand.research.profitFactor}</span>
+                        <span>Max DD {cand.research.maxDrawdownR}R</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">Historical simulation only; used for ranking, not future-return prediction.</div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => setSelected(open ? null : cand.id)}>
 
                         {open ? "Hide checks" : `Why ${v.state}`}
