@@ -25,7 +25,7 @@ export const loginApp = createServerFn({ method: "POST" })
       return { ok: false as const, code: "INVALID_CREDENTIALS", error: "Invalid password." };
     }
     const session = await getAppSession();
-    await session.update({ authenticated: true, issuedAt: Date.now() }, { maxAge: 8 * 60 * 60 });
+    await session.update({ authenticated: true, issuedAt: Date.now() });
     clearLoginFailures();
     return { ok: true as const };
   });
