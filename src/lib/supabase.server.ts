@@ -144,3 +144,57 @@ export async function appendTradeAudit(input: {
     }),
   });
 }
+
+
+const APP_USER_ID = process.env["CTS_APP_USER_ID"] ?? "local-app";
+
+export async function upsertPaperTrade(input: {
+  id: string;
+  symbol: string;
+  status: "OPEN" | "CLOSED";
+  opened_at: string;
+  closed_at: string | null;
+  payload: Record<string, unknown>;
+}) {
+  const p = input.payload;
+  return request("paper_trades", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: APP_USER_ID,
+      symbol: input.symbol,
+      security_id: typeof p["securityId"] === "string" ? p["securityId"] : null,
+      side: typeof p["side"] === "string" ? p["side"] : "LONG",
+      quantity: Number(p["quantity"] ?? 0),
+      entry_price: Number(p["entry"] ?? p["entryPrice"] ?? 0),
+      exit_price: p["exit"] == null ? null : Number(p["exit"]),
+      stop_loss: p["stopLoss"] == null ? null : Number(p["stopLoss"]),
+      take_profit: p["target1"] == null ? null : Number(p["target1"]),
+      status: input.status,
+      pnl: Number(p["pnl"] ?? 0),
+      strategy: typeof p["strategy"] === "string" ? p["strategy"] : null,
+      metadata: p,
+      created_at: input.opened_at,
+      closed_at: input.closed_at,
+    }),
+  });
+}
+
+export async function appendTradeAudit(input: {
+  id: string;
+  at: string;
+  action: string;
+  severity: "INFO" | "WARN" | "CRITICAL";
+  detail: string;
+  payload?: Record<string, unknown>;
+}) {
+  return request("audit_log", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: APP_USER_ID,
+      event_type: input.action,
+      entity_id: input.id,
+      payload: { severity: input.severity, detail: input.detail, ...(input.payload ?? {}) },
+      created_at: input.at,
+    }),
+  });
+}
