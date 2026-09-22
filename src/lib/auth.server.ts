@@ -1,5 +1,4 @@
 import { scrypt as scryptCallback, randomBytes, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
 import { getRequest } from "@tanstack/react-start/server";
 import { useSession } from "@tanstack/react-start/server";
 
