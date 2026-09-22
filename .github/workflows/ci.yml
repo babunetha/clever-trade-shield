@@ -26,6 +26,8 @@ jobs:
           bun-version: latest
       - name: Install
         run: bun install --frozen-lockfile
+      - name: Generate route tree
+        run: bun run generate:routes
       - name: Typecheck
         run: bunx tsc --noEmit
       - name: Lint
