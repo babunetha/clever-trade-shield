@@ -72,11 +72,11 @@ function AgentsPage() {
       {result?.ok ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {[
-            ["Bull", result.result.bull],
-            ["Bear", result.result.bear],
-            ["Risk", result.result.risk],
-            ["Final Validator", result.result.validator],
-          ].map(([name, agent]) => (
+            { name: "Bull", agent: result.result.bull },
+            { name: "Bear", agent: result.result.bear },
+            { name: "Risk", agent: result.result.risk },
+            { name: "Final Validator", agent: result.result.validator },
+          ].map(({ name, agent }) => (
             <section key={name} className="panel p-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">{name}</h2>
