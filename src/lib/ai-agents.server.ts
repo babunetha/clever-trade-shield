@@ -54,6 +54,7 @@ export interface AgentValidationResult {
 }
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const AI_TIMEOUT_MS = 15_000;
 
 function getApiKey(): string {
   const key = process.env.GEMINI_API_KEY?.trim();
@@ -62,9 +63,13 @@ function getApiKey(): string {
 }
 
 async function askGemini(systemInstruction: string, payload: unknown): Promise<AgentOpinion> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
