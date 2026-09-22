@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { getDhanMarketSnapshot } from "@/lib/market.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { getDhanPaperMarks } from "@/lib/paper-market.functions";
+import { persistPaperTrade as persistPaperTradeFn, persistTradeAudit as persistTradeAuditFn } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
 import type {
@@ -88,6 +90,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const persistPaperTrade = useServerFn(persistPaperTradeFn);
+  const persistTradeAudit = useServerFn(persistTradeAuditFn);
 
   const log = useCallback((action: string, detail: string, severity: AuditSeverity = "INFO") => {
     setAudit((prev) =>
@@ -159,7 +163,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         setTrades((prev) =>
           prev.map((trade) => {
             if (trade.status !== "OPEN") return trade;
-            const price = quotes[trade.symbol]?.ltp;
+            const price = trade.securityId ? quotesBySecurityId[trade.securityId]?.lastPrice : undefined;
             if (!Number.isFinite(price)) return trade;
             if (price <= trade.stopLoss) {
               exits.push({
