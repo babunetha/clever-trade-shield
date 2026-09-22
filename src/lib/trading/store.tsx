@@ -94,10 +94,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
 
   const log = useCallback((action: string, detail: string, severity: AuditSeverity = "INFO") => {
-    setAudit((prev) =>
-      [{ id: uid("AUD"), at: new Date().toISOString(), actor: "operator", action, detail, severity }, ...prev].slice(0, 300),
-    );
-  }, []);
+    const entry = { id: uid("AUD"), at: new Date().toISOString(), actor: "operator", action, detail, severity };
+    setAudit((prev) => [entry, ...prev].slice(0, 300));
+    void persistTradeAudit({ data: entry }).catch(() => {});
+  }, [persistTradeAudit]);
 
   // Restore persisted state on the client only.
   useEffect(() => {
@@ -149,16 +149,18 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [closeTrade]);
 
   // One stable poller avoids timer churn on every mark/P&L update.
-  // Dhan quote reads are batched by symbol and polled at 3s.
+  // Dhan quote reads are batched by Security ID and polled at 3s.
   useEffect(() => {
     if (!hydrated) return;
     const tick = async () => {
       const open = tradesRef.current.filter((t) => t.status === "OPEN");
       if (!open.length) return;
       try {
-        const result = await getDhanMarketSnapshot({ data: { symbols: [...new Set(open.map((t) => t.symbol))] } });
+        const securityIds = [...new Set(open.map((t) => t.securityId).filter((id): id is string => Boolean(id)))];
+        if (!securityIds.length) return;
+        const result = await getDhanPaperMarks({ data: { securityIds } });
         if (!result.ok) return;
-        const quotes = result.data.quotes as Record<string, { ltp: number }>;
+        const quotesBySecurityId = result.quotes as Record<string, { lastPrice: number }>;
         const exits: Array<{ id: string; price: number; notes: string; reason: "STOP" | "TARGET" }> = [];
         setTrades((prev) =>
           prev.map((trade) => {
@@ -265,32 +267,39 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
 
       const now = new Date().toISOString();
-      setTrades((prev) => [
-        {
-          id: uid("TRD"),
-          signalId: `SCAN-${input.source}`,
-          securityId: input.securityId,
-          symbol: input.symbol,
-          name: input.name,
-          side: "LONG",
-          entry: input.entry,
-          stopLoss: input.stopLoss,
-          target1: input.target1,
-          quantity: input.quantity,
+      const paperTrade: Trade = {
+        id: uid("TRD"),
+        signalId: `SCAN-${input.source}`,
+        securityId: input.securityId,
+        symbol: input.symbol,
+        name: input.name,
+        side: "LONG",
+        entry: input.entry,
+        stopLoss: input.stopLoss,
+        target1: input.target1,
+        quantity: input.quantity,
+        status: "OPEN",
+        openedAt: now,
+        notes: `Scanner candidate (${input.source}) — verified, simulated only`,
+        simulated: true,
+      };
+      setTrades((prev) => [paperTrade, ...prev]);
+      void persistPaperTrade({
+        data: {
+          id: paperTrade.id,
+          symbol: paperTrade.symbol,
           status: "OPEN",
-          openedAt: now,
-          notes: `Scanner candidate (${input.source}) — verified, simulated only`,
-          simulated: true,
+          openedAt: paperTrade.openedAt,
+          payload: paperTrade as unknown as Record<string, unknown>,
         },
-        ...prev,
-      ]);
+      }).catch(() => {});
       log(
         "PAPER_TRADE_OPENED",
         `LONG ${input.quantity} ${input.symbol} @ ${input.entry}, SL ${input.stopLoss}, risk ₹${input.riskRupees} from ${input.source} — simulated only, no order sent`,
       );
       return { ok: true, message: "Logged as a simulated paper trade. No live order was placed." };
     },
-    [risk, settings, trades, log],
+    [risk, settings, trades, log, persistPaperTrade],
   );
 
   const rejectSignal = useCallback(
@@ -330,29 +339,37 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const closeTrade = useCallback(
     (id: string, exit: number, notes?: string, exitReason: "STOP" | "TARGET" | "MANUAL" = "MANUAL") => {
-      setTrades((prev) =>
-        prev.map((t) => {
-          if (t.id !== id || t.status === "CLOSED") return t;
-          const dir = t.side === "LONG" ? 1 : -1;
-          const pnl = Number(((exit - t.entry) * dir * t.quantity).toFixed(2));
-          const perShareRisk = Math.abs(t.entry - t.stopLoss);
-          const outcome: Outcome = pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : "BREAKEVEN";
-          return {
-            ...t,
-            exit,
-            pnl,
-            rMultiple: perShareRisk ? Number((pnl / (perShareRisk * t.quantity)).toFixed(2)) : 0,
-            outcome,
-            exitReason,
-            status: "CLOSED",
-            closedAt: new Date().toISOString(),
-            notes: notes ?? t.notes,
-          };
-        }),
-      );
+      const existing = trades.find((t) => t.id === id);
+      if (!existing || existing.status === "CLOSED") return;
+      const dir = existing.side === "LONG" ? 1 : -1;
+      const pnl = Number(((exit - existing.entry) * dir * existing.quantity).toFixed(2));
+      const perShareRisk = Math.abs(existing.entry - existing.stopLoss);
+      const outcome: Outcome = pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : "BREAKEVEN";
+      const closedTrade: Trade = {
+        ...existing,
+        exit,
+        pnl,
+        rMultiple: perShareRisk ? Number((pnl / (perShareRisk * existing.quantity)).toFixed(2)) : 0,
+        outcome,
+        exitReason,
+        status: "CLOSED",
+        closedAt: new Date().toISOString(),
+        notes: notes ?? existing.notes,
+      };
+      setTrades((prev) => prev.map((t) => (t.id === id ? closedTrade : t)));
+      void persistPaperTrade({
+        data: {
+          id: closedTrade.id,
+          symbol: closedTrade.symbol,
+          status: "CLOSED",
+          openedAt: closedTrade.openedAt,
+          closedAt: closedTrade.closedAt,
+          payload: closedTrade as unknown as Record<string, unknown>,
+        },
+      }).catch(() => {});
       log("TRADE_CLOSED", `Trade ${id} closed at ${exit} (simulated)`);
     },
-    [log],
+    [log, persistPaperTrade, trades],
   );
 
   const updateNotes = useCallback((id: string, notes: string) => {
