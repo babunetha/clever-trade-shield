@@ -43,6 +43,8 @@ export interface IndexQuote extends Quote {
 
 export interface Signal {
   id: string;
+  /** Dhan Security ID for live-data signals and paper-mark polling. */
+  securityId?: string;
   symbol: string;
   name: string;
   side: Side;
