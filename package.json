@@ -14,7 +14,8 @@
     "security:audit": "bun scripts/security-audit.ts",
     "security:check": "bun run test:security && bun run security:audit",
     "start": "node .output/server/index.mjs",
-    "auth:hash-password": "bun scripts/hash-password.ts"
+    "auth:hash-password": "bun scripts/hash-password.ts",
+    "generate:routes": "bunx --package=@tanstack/router-cli@1.167.38 tsr generate"
   },
   "overrides": {
     "rolldown": "1.2.1"
