@@ -105,6 +105,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware(
 
       signals.push({
         id: `LIVE-${instrument.tradingSymbol}-${Date.now()}`,
+        securityId: instrument.securityId,
         symbol: instrument.tradingSymbol,
         name: instrument.customSymbol,
         side,
