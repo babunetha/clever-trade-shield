@@ -225,32 +225,39 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       }
 
       const now = new Date().toISOString();
+      const paperTrade: Trade = {
+        id: uid("TRD"),
+        signalId: signal.id,
+        symbol: signal.symbol,
+        name: signal.name,
+        side: signal.side,
+        entry: signal.entry,
+        stopLoss: signal.stopLoss,
+        target1: signal.target1,
+        quantity: signal.quantity,
+        status: "OPEN",
+        openedAt: now,
+        notes: "",
+        simulated: true,
+      };
       setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)));
-      setTrades((prev) => [
-        {
-          id: uid("TRD"),
-          signalId: signal.id,
-          symbol: signal.symbol,
-          name: signal.name,
-          side: signal.side,
-          entry: signal.entry,
-          stopLoss: signal.stopLoss,
-          target1: signal.target1,
-          quantity: signal.quantity,
+      setTrades((prev) => [paperTrade, ...prev]);
+      void persistPaperTrade({
+        data: {
+          id: paperTrade.id,
+          symbol: paperTrade.symbol,
           status: "OPEN",
-          openedAt: now,
-          notes: "",
-          simulated: true,
+          openedAt: paperTrade.openedAt,
+          payload: paperTrade as unknown as Record<string, unknown>,
         },
-        ...prev,
-      ]);
+      }).catch(() => {});
       log(
         "SIGNAL_APPROVED",
         `${signal.side} ${signal.quantity} ${signal.symbol} @ ${signal.entry}, SL ${signal.stopLoss}, risk ₹${signal.riskRupees} — simulated only, no order sent`,
       );
       return { ok: true, message: "Approved — logged as a simulated trade. No live order was placed." };
     },
-    [signals, risk, settings, log],
+    [signals, risk, settings, log, persistPaperTrade],
   );
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
