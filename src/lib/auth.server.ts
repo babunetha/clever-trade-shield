@@ -3,9 +3,8 @@ import { promisify } from "node:util";
 import { getRequest } from "@tanstack/react-start/server";
 import { useSession } from "@tanstack/react-start/server";
 
-const scrypt = promisify(scryptCallback);
 
-const SESSION_NAME = process.env.NODE_ENV === "production" ? "__Host-cts-session" : "cts-session";
+const SESSION_NAME = process.env["NODE_ENV"] === "production" ? "__Host-cts-session" : "cts-session";
 const SESSION_MAX_AGE = 8 * 60 * 60;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 60 * 1000;
@@ -72,7 +71,7 @@ export function clearLoginFailures(ip = clientIp()) {
   loginFailures.delete(ip);
 }
 
-function parsePasswordHash(encoded: string) {
+function deriveScryptKey(password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number; maxmem: number }): Promise<Buffer> {\n  return new Promise((resolve, reject) => {\n    scryptCallback(password, salt, keylen, options, (error, derivedKey) => {\n      if (error) reject(error);\n      else resolve(derivedKey as Buffer);\n    });\n  });\n}\n\nfunction parsePasswordHash(encoded: string) {
   const parts = encoded.split("$");
   if (parts.length !== 6 || parts[0] !== "scrypt") return null;
   const [, n, r, p, saltHex, hashHex] = parts;
@@ -89,14 +88,12 @@ export async function verifyLoginPassword(password: string) {
   if (!encoded || !password) return false;
   const parsed = parsePasswordHash(encoded);
   if (!parsed || parsed.expected.length !== SCRYPT_KEYLEN) return false;
-  const actual = Buffer.from(
-    await scrypt(password, parsed.salt, SCRYPT_KEYLEN, {
-      N: parsed.N,
-      r: parsed.R,
-      p: parsed.P,
-      maxmem: 32 * 1024 * 1024,
-    }),
-  );
+  const actual = await deriveScryptKey(password, parsed.salt, SCRYPT_KEYLEN, {
+    N: parsed.N,
+    r: parsed.R,
+    p: parsed.P,
+    maxmem: 32 * 1024 * 1024,
+  });
   return timingSafeEqual(actual, parsed.expected);
 }
 
