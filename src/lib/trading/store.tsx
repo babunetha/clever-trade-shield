@@ -228,6 +228,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const paperTrade: Trade = {
         id: uid("TRD"),
         signalId: signal.id,
+        securityId: signal.securityId,
         symbol: signal.symbol,
         name: signal.name,
         side: signal.side,
