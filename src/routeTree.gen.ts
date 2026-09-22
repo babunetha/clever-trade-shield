@@ -130,6 +130,10 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
+  '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
+  '/agents': typeof AgentsRoute
+  '/architecture': typeof ArchitectureRoute
+  '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -143,6 +147,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
+    | '/api/public/dhan/postback'
+    | '/agents'
+    | '/architecture'
+    | '/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,6 +162,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
+    | '/api/public/dhan/postback'
+    | '/agents'
+    | '/architecture'
+    | '/login'
   id:
     | '__root__'
     | '/'
@@ -165,6 +177,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signals'
     | '/api/public/dhan/callback'
+    | '/api/public/dhan/postback'
+    | '/agents'
+    | '/architecture'
+    | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
