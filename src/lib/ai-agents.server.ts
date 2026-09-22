@@ -53,11 +53,11 @@ export interface AgentValidationResult {
   disclaimer: string;
 }
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
 const AI_TIMEOUT_MS = 15_000;
 
 function getApiKey(): string {
-  const key = process.env.GEMINI_API_KEY?.trim();
+  const key = process.env["GEMINI_API_KEY"]?.trim();
   if (!key) throw new Error("GEMINI_API_KEY is not configured on the server.");
   return key;
 }
