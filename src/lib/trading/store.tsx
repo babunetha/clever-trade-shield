@@ -144,10 +144,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     tradesRef.current = trades;
   }, [trades]);
 
-  useEffect(() => {
-    closeTradeRef.current = closeTrade;
-  }, [closeTrade]);
-
   // One stable poller avoids timer churn on every mark/P&L update.
   // Dhan quote reads are batched by Security ID and polled at 3s.
   useEffect(() => {
@@ -379,6 +375,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     },
     [log, persistPaperTrade, trades],
   );
+
+  closeTradeRef.current = closeTrade;
 
   const updateNotes = useCallback((id: string, notes: string) => {
     setTrades((prev) => prev.map((t) => (t.id === id ? { ...t, notes } : t)));
