@@ -145,8 +145,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   }, [closeTrade]);
 
   // One stable poller avoids timer churn on every mark/P&L update.
-  // Dhan quote reads are batched by symbol and polled at 3s, well below the
-  // single-request-per-second quote rate when this client is the sole reader.
+  // Dhan quote reads are batched by symbol and polled at 3s.
   useEffect(() => {
     if (!hydrated) return;
     const tick = async () => {
@@ -156,24 +155,38 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         const result = await getDhanMarketSnapshot({ data: { symbols: [...new Set(open.map((t) => t.symbol))] } });
         if (!result.ok) return;
         const quotes = result.data.quotes as Record<string, { ltp: number }>;
-        setTrades((prev) => prev.map((trade) => {
-          if (trade.status !== "OPEN") return trade;
-          const price = quotes[trade.symbol]?.ltp;
-          if (!Number.isFinite(price)) return trade;
-          if (price <= trade.stopLoss) {
-            void closeTradeRef.current?.(trade.id, trade.stopLoss, "Automatic paper fill: Dhan live mark crossed stop-loss", "STOP");
-            return trade;
-          }
-          if (price >= trade.target1) {
-            void closeTradeRef.current?.(trade.id, trade.target1, "Automatic paper fill: Dhan live mark crossed target", "TARGET");
-            return trade;
-          }
-          return {
-            ...trade,
-            markPrice: price,
-            unrealizedPnl: Number(((price - trade.entry) * trade.quantity * (trade.side === "LONG" ? 1 : -1)).toFixed(2)),
-          };
-        }));
+        const exits: Array<{ id: string; price: number; notes: string; reason: "STOP" | "TARGET" }> = [];
+        setTrades((prev) =>
+          prev.map((trade) => {
+            if (trade.status !== "OPEN") return trade;
+            const price = quotes[trade.symbol]?.ltp;
+            if (!Number.isFinite(price)) return trade;
+            if (price <= trade.stopLoss) {
+              exits.push({
+                id: trade.id,
+                price: trade.stopLoss,
+                notes: "Automatic paper fill: Dhan live mark crossed stop-loss",
+                reason: "STOP",
+              });
+              return trade;
+            }
+            if (price >= trade.target1) {
+              exits.push({
+                id: trade.id,
+                price: trade.target1,
+                notes: "Automatic paper fill: Dhan live mark crossed target",
+                reason: "TARGET",
+              });
+              return trade;
+            }
+            return {
+              ...trade,
+              markPrice: price,
+              unrealizedPnl: Number(((price - trade.entry) * trade.quantity * (trade.side === "LONG" ? 1 : -1)).toFixed(2)),
+            };
+          }),
+        );
+        for (const exit of exits) closeTradeRef.current(exit.id, exit.price, exit.notes, exit.reason);
       } catch {
         /* Dhan is optional; keep paper journal usable without it. */
       }
