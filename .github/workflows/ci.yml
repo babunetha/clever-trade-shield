@@ -30,6 +30,8 @@ jobs:
         run: bunx tsc --noEmit
       - name: Lint
         run: bun run lint
+      - name: Test suite
+        run: bun test
       - name: Security checks
         run: bun run security:check
       - name: Production build
