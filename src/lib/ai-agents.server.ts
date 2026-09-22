@@ -54,6 +54,7 @@ export interface AgentValidationResult {
 }
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const AI_TIMEOUT_MS = 15_000;
 
 function getApiKey(): string {
   const key = process.env.GEMINI_API_KEY?.trim();
