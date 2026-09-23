@@ -1,0 +1,115 @@
+[ai]
+required = true
+providers = ["anthropic", "openai", "google"]
+description = "Used for authenticated trading research and risk analysis."
+
+[[secret]]
+name = "DHAN_CLIENT_ID"
+required = true
+description = "Dhan client identifier used only for server-side API integration."
+
+[[secret]]
+name = "DHAN_ACCESS_TOKEN"
+required = true
+description = "Dhan API access token. Never expose this to the browser."
+
+[[secret]]
+name = "TRADINGAGENTS_SERVICE_URL"
+required = false
+description = "Authenticated TradingAgents research-service URL. Research only; never a broker endpoint."
+
+[[secret]]
+name = "TRADINGAGENTS_SERVICE_TOKEN"
+required = false
+description = "Bearer token for the TradingAgents research service. Never expose this to the browser."
+
+[[config]]
+name = "tradingagents_enabled"
+type = "boolean"
+label = "TradingAgents research engine"
+default = false
+description = "Enable the external TradingAgents v0.5.0 research layer. It cannot execute broker orders."
+
+[[config]]
+name = "live_trading_enabled"
+type = "boolean"
+label = "Live order execution"
+default = false
+description = "Hard gate for real-money order execution."
+
+[[config]]
+name = "dhan_static_ip_verified"
+type = "boolean"
+label = "Dhan static IP verified"
+default = false
+description = "Enable only after the app outbound IP exactly matches a Dhan-whitelisted static IP."
+
+[[config]]
+name = "max_order_value_inr"
+type = "number"
+label = "Maximum order value (INR)"
+default = 25000
+description = "Maximum notional value of one equity intraday order."
+
+[[config]]
+name = "max_capital_inr"
+type = "number"
+label = "Model trading capital (INR)"
+default = 100000
+description = "Reference capital for risk and performance tracking."
+
+[[config]]
+name = "max_position_value_inr"
+type = "number"
+label = "Maximum position value (INR)"
+default = 50000
+description = "Configured per-symbol exposure ceiling; application hard cap is also enforced."
+
+[[config]]
+name = "max_daily_loss_inr"
+type = "number"
+label = "Maximum daily loss (INR)"
+default = 1000
+description = "Hard daily loss threshold for the trading system."
+
+[[config]]
+name = "max_risk_per_trade_inr"
+type = "number"
+label = "Maximum risk per trade (INR)"
+default = 500
+description = "Maximum planned stop-loss loss per trade."
+
+[[config]]
+name = "max_weekly_loss_inr"
+type = "number"
+label = "Maximum weekly loss (INR)"
+default = 2500
+description = "Hard weekly realized loss threshold."
+
+[[config]]
+name = "max_daily_trades"
+type = "number"
+label = "Maximum trades per day"
+default = 3
+description = "Maximum new trade entries per trading day."
+
+[[config]]
+name = "max_open_positions"
+type = "number"
+label = "Maximum open positions"
+default = 2
+description = "Maximum concurrent open equity positions."
+
+[[config]]
+name = "minimum_risk_reward"
+type = "number"
+label = "Minimum risk reward"
+default = 1.5
+description = "Minimum planned reward-to-risk ratio for every trade."
+
+[[config]]
+name = "require_manual_approval"
+type = "boolean"
+label = "Require manual approval"
+default = true
+description = "Every real-money order must be explicitly approved by the project admin before execution."
