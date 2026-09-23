@@ -3,6 +3,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   // CodeSandbox exposes the dev server through a reverse proxy. Bind
@@ -18,6 +19,7 @@ export default defineConfig({
     // failed WebSocket upgrade can never take down the HTTP preview. `vite dev` remains fully usable with manual refresh.
   },
   plugins: [
+    tsconfigPaths(),
     tanstackStart({
       server: { entry: "server" },
     }),
