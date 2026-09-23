@@ -1,0 +1,21 @@
+name: TradingAgents service build
+
+on:
+  push:
+    paths:
+      - "tradingagents-service/**"
+      - "render.yaml"
+      - ".github/workflows/tradingagents-service.yml"
+  pull_request:
+    paths:
+      - "tradingagents-service/**"
+      - "render.yaml"
+      - ".github/workflows/tradingagents-service.yml"
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build service image
+        run: docker build -f tradingagents-service/Dockerfile -t clever-trade-shield-tradingagents:test .
