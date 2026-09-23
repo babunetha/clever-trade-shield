@@ -70,7 +70,16 @@ export function clearLoginFailures(ip = clientIp()) {
   loginFailures.delete(ip);
 }
 
-function deriveScryptKey(password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number; maxmem: number }): Promise<Buffer> {\n  return new Promise((resolve, reject) => {\n    scryptCallback(password, salt, keylen, options, (error, derivedKey) => {\n      if (error) reject(error);\n      else resolve(derivedKey as Buffer);\n    });\n  });\n}\n\nfunction parsePasswordHash(encoded: string) {
+function deriveScryptKey(password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number; maxmem: number }): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keylen, options, (error, derivedKey) => {
+      if (error) reject(error);
+      else resolve(derivedKey as Buffer);
+    });
+  });
+}
+
+function parsePasswordHash(encoded: string) {
   const parts = encoded.split("$");
   if (parts.length !== 6 || parts[0] !== "scrypt") return null;
   const [, n, r, p, saltHex, hashHex] = parts;
