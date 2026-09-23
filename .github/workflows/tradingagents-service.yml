@@ -1,7 +1,8 @@
-name: TradingAgents service build
+name: TradingAgents service CI
 
 on:
   push:
+    branches: ["main"]
     paths:
       - "tradingagents-service/**"
       - "render.yaml"
@@ -13,9 +14,35 @@ on:
       - ".github/workflows/tradingagents-service.yml"
 
 jobs:
-  docker-build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build service image
+
+      - name: Validate Python syntax
+        run: python -m compileall -q tradingagents-service
+
+      - name: Validate Docker build
         run: docker build -f tradingagents-service/Dockerfile -t clever-trade-shield-tradingagents:test .
+
+      - name: Smoke test service health
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid=$(docker run -d --rm -e TRADINGAGENTS_SERVICE_TOKEN=ci-smoke-token clever-trade-shield-tradingagents:test)
+          cleanup() { docker stop "$cid" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:8020/health" >/dev/null 2>&1; then
+              exit 0
+            fi
+            if ! docker ps --format '{{.ID}}' | grep -q "^$cid$"; then
+              docker logs "$cid" || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          docker logs "$cid" || true
+          exit 1
