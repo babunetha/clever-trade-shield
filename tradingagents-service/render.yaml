@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: clever-trade-shield-tradingagents
+    runtime: docker
+    dockerfilePath: ./tradingagents-service/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: TRADINGAGENTS_SERVICE_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TRADINGAGENTS_LLM_PROVIDER
+        value: openai
+      - key: TRADINGAGENTS_DEEP_THINK_LLM
+        value: gpt-5.6
+      - key: TRADINGAGENTS_QUICK_THINK_LLM
+        value: gpt-5.6-luna
+      - key: TRADINGAGENTS_MAX_DEBATE_ROUNDS
+        value: "1"
+      - key: TRADINGAGENTS_MAX_RISK_ROUNDS
+        value: "1"
+      - key: TRADINGAGENTS_OUTPUT_LANGUAGE
+        value: English
+      - key: TRADINGAGENTS_LLM_MAX_RETRIES
+        value: "3"
+      - key: TRADINGAGENTS_MAX_TOKENS
+        value: "8192"
