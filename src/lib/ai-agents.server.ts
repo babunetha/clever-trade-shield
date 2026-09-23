@@ -107,6 +107,10 @@ async function askGemini(systemInstruction: string, payload: unknown): Promise<A
   const text = json.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text;
   if (!text) throw new Error("Gemini returned no usable agent response.");
 
+  } finally {
+    clearTimeout(timeout);
+  }
+
   const parsed = JSON.parse(text) as Omit<AgentOpinion, "agent">;
   return {
     agent: "VALIDATOR",
