@@ -6,7 +6,7 @@ import { useSession } from "@tanstack/react-start/server";
 const SESSION_NAME = process.env["NODE_ENV"] === "production" ? "__Host-cts-session" : "cts-session";
 const SESSION_MAX_AGE = 8 * 60 * 60;
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_WINDOW_MS = 60 * 1000;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const SCRYPT_N = 16_384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
@@ -56,6 +56,10 @@ function clientIp() {
 
 export function loginAllowed(ip = clientIp()) {
   const now = Date.now();
+  // Bound the in-process map so repeated probes cannot grow memory without limit.
+  for (const [key, entry] of loginFailures) {
+    if (now >= entry.resetAt) loginFailures.delete(key);
+  }
   const current = loginFailures.get(ip);
   if (!current || now >= current.resetAt) {
     loginFailures.set(ip, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
