@@ -82,6 +82,14 @@ describe("live execution safety", () => {
 });
 
 describe("risk guardrails", () => {
+  test("server trading switch fails closed by default", async () => {
+    const previous = process.env.RISK_TRADING_ENABLED;
+    delete process.env.RISK_TRADING_ENABLED;
+    const { getServerRiskPolicy } = await import("../src/lib/trading/server-risk");
+    expect(getServerRiskPolicy().tradingEnabled).toBe(false);
+    if (previous === undefined) delete process.env.RISK_TRADING_ENABLED;
+    else process.env.RISK_TRADING_ENABLED = previous;
+  });
   test("blocks a trade above the per-trade risk cap", () => {
     const settings = { ...DEFAULT_SETTINGS };
     const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
