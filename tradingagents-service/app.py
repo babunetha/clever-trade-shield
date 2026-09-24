@@ -1,3 +1,4 @@
+import json
 import os
 import secrets
 from datetime import date
@@ -115,6 +116,23 @@ def analyze(req: AnalyzeRequest, authorization: str | None = Header(default=None
             debug=False,
             config=build_config(),
         )
+        # TradingAgents v0.5.1 injects instrument_context into every analyst.
+        # Override that resolver for this run so verified Dhan/NSE context is
+        # actually consumed by the agents, not merely echoed in the response.
+        if req.context:
+            context_json = json.dumps(req.context, ensure_ascii=False, separators=(",", ":"))
+            if len(context_json) > 24000:
+                context_json = context_json[:24000] + "..."
+            original_resolver = graph.resolve_instrument_context
+            def resolve_context(_ticker: str, asset_type: str = "stock") -> str:
+                base = original_resolver(_ticker, asset_type)
+                return (
+                    base
+                    + "\\n\\nVERIFIED CLEVER TRADE SHIELD MARKET CONTEXT (authoritative for this run):\\n"
+                    + context_json
+                    + "\\nTreat this Dhan/NSE context as the source of truth for current price, OHLCV, volume, market regime and timestamps. Flag disagreements with other tools."
+                )
+            graph.resolve_instrument_context = resolve_context
         final_state, decision = graph.propagate(ticker, analysis_date)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"TradingAgents analysis failed: {type(exc).__name__}") from exc
