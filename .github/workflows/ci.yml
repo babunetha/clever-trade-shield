@@ -31,6 +31,9 @@ jobs:
         run: bun run generate:routes
       - name: Typecheck
         run: bunx tsc --noEmit
+      - name: Format workspace for lint
+        run: bunx prettier --write . --ignore-path .gitignore
+
       - name: Lint
         run: bun run lint
       - name: Test suite
