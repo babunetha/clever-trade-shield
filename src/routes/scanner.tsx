@@ -541,25 +541,29 @@ function ScannerPage() {
                       </span>
                     </div>
 
-                    {aiResults[cand.symbol]?.ok ? (
-                      <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">Gemini multi-agent validation</span>
-                          <Badge variant="outline">
-                            {aiResults[cand.symbol].result.finalDecision} · {aiResults[cand.symbol].result.confidence}%
-                          </Badge>
+                    {(() => {
+                      const ai = aiResults[cand.symbol];
+                      if (!ai?.ok) return null;
+                      return (
+                        <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">Gemini multi-agent validation</span>
+                            <Badge variant="outline">
+                              {ai.result.finalDecision} · {ai.result.confidence}%
+                            </Badge>
+                          </div>
+                          <div className="mt-2 grid gap-2 text-xs md:grid-cols-4">
+                            <div><span className="label-caps">Bull</span> {ai.result.bull.decision}</div>
+                            <div><span className="label-caps">Bear</span> {ai.result.bear.decision}</div>
+                            <div><span className="label-caps">Risk</span> {ai.result.risk.decision}</div>
+                            <div><span className="label-caps">Validator</span> {ai.result.validator.decision}</div>
+                          </div>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {ai.result.validator.notes}
+                          </p>
                         </div>
-                        <div className="mt-2 grid gap-2 text-xs md:grid-cols-4">
-                          <div><span className="label-caps">Bull</span> {aiResults[cand.symbol].result.bull.decision}</div>
-                          <div><span className="label-caps">Bear</span> {aiResults[cand.symbol].result.bear.decision}</div>
-                          <div><span className="label-caps">Risk</span> {aiResults[cand.symbol].result.risk.decision}</div>
-                          <div><span className="label-caps">Validator</span> {aiResults[cand.symbol].result.validator.decision}</div>
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {aiResults[cand.symbol].result.validator.notes}
-                        </p>
-                      </div>
-                    ) : null}
+                      );
+                    })()}
 
                     {open ? (
                       <div className="mt-3 grid gap-3 border-t border-border pt-3 md:grid-cols-2">
