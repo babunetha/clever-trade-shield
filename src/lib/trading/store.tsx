@@ -162,7 +162,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           prev.map((trade) => {
             if (trade.status !== "OPEN") return trade;
             const price = trade.securityId ? quotesBySecurityId[trade.securityId]?.lastPrice : undefined;
-            if (!Number.isFinite(price)) return trade;
+            if (price === undefined || !Number.isFinite(price)) return trade;
             if (price <= trade.stopLoss) {
               exits.push({
                 id: trade.id,
