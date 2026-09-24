@@ -6,10 +6,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY tradingagents-service/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+COPY tradingagents-service/app.py ./app.py
 
 RUN useradd --create-home appuser \
     && chown -R appuser:appuser /app
