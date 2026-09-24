@@ -30,9 +30,3 @@ jobs:
 
       - name: Smoke test service health
         run: docker run --rm -e TRADINGAGENTS_SERVICE_TOKEN=ci-smoke-token clever-trade-shield-tradingagents:test python -c "from fastapi.testclient import TestClient; import app; r=TestClient(app.app).get('/health'); assert r.status_code == 200; body=r.json(); assert body['ok'] is True; assert body['execution']['allowed'] is False; print(body)"
-            fi
-            sleep 2
-          done
-
-          docker logs "$cid" || true
-          exit 1
