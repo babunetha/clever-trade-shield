@@ -124,8 +124,8 @@ def analyze(req: AnalyzeRequest, authorization: str | None = Header(default=None
             if len(context_json) > 24000:
                 context_json = context_json[:24000] + "..."
             original_resolver = graph.resolve_instrument_context
-            def resolve_context(_ticker: str, asset_type: str = "stock") -> str:
-                base = original_resolver(_ticker, asset_type)
+            def resolve_context(_ticker: str, asset_type: str = "stock", trade_date: str | None = None) -> str:
+                base = original_resolver(_ticker, asset_type, trade_date)
                 return (
                     base
                     + "\\n\\nVERIFIED CLEVER TRADE SHIELD MARKET CONTEXT (authoritative for this run):\\n"
