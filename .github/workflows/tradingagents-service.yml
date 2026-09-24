@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cid=$(docker run -d --rm -e TRADINGAGENTS_SERVICE_TOKEN=ci-smoke-token clever-trade-shield-tradingagents:test)
+          cid=$(docker run -d --rm -p 8020:8020 -e TRADINGAGENTS_SERVICE_TOKEN=ci-smoke-token clever-trade-shield-tradingagents:test)
           cleanup() { docker stop "$cid" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
 
