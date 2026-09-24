@@ -43,6 +43,8 @@ export interface IndexQuote extends Quote {
 
 export interface Signal {
   id: string;
+  /** Dhan Security ID when the signal originated from live broker data. */
+  securityId?: string;
   symbol: string;
   name: string;
   side: Side;
