@@ -58,5 +58,11 @@ export default async function(req,res){
       }catch{aiValidation={status:"AI_REVIEW_UNAVAILABLE"};}
     }
     return res.json({ok:true,generatedAt:new Date().toISOString(),paperOnly:true,market:{nifty:market?.nifty??null,bankNifty:market?.bankNifty??null,vix:market?.vix??null,regime:market?.regime??"UNAVAILABLE"},aiValidation,source:{scanner:"Dhan-backed technical scanner",aiValidation:"Gemini + Sonnet dual review",charts:"use Dhan/TradingView"},limits:{capital:100000,maxRiskPerTrade:MAX_RISK,maxOrderValue:MAX_ORDER,maxPositionValue:MAX_POSITION,minRiskReward:MIN_RR},scanned:scan.analyzed||0,topTrades:candidates.slice(0,limit),message:candidates.length?"Candidates passed the technical and hard risk filters. They are research candidates, not guaranteed outcomes.":"No candidate passed the current technical and risk filters."});
-  }catch{return res.status(502).json({ok:false,error:"Top-trades scan stopped safely. No trade action was taken.",code:"TOP_TRADES_UNAVAILABLE"})}
+  } catch {
+    return res.status(502).json({
+      ok: false,
+      error: "Top-trades scan stopped safely. No trade action was taken.",
+      code: "TOP_TRADES_UNAVAILABLE",
+    });
+  }
 }
