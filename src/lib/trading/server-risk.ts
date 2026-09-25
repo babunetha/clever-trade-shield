@@ -63,7 +63,7 @@ export function getServerRiskPolicy(): ServerRiskPolicy {
     minRiskReward: numberEnv("RISK_MIN_RR", 1.5),
     sessionStart: process.env["RISK_SESSION_START"] ?? "09:20",
     sessionEnd: process.env["RISK_SESSION_END"] ?? "15:10",
-    tradingEnabled: process.env["RISK_TRADING_ENABLED"] !== "false",
+    tradingEnabled: process.env["RISK_TRADING_ENABLED"] === "true",
   };
 }
 
