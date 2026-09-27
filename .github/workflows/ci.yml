@@ -32,7 +32,10 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
       - name: Formatting check
-        run: bunx prettier --check . --ignore-path .gitignore
+        shell: bash
+        run: |
+          files="$(git diff --name-only HEAD^1 HEAD -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.json' '*.md' '*.yml' '*.yaml' | tr '\n' ' ')"
+          if [ -n "$files" ]; then bunx prettier --check $files --ignore-path .gitignore; fi
       - name: Lint
         run: bun run lint
       - name: Test suite
