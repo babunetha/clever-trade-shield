@@ -10,13 +10,21 @@ function minutesOfDay(value: string) {
   return hours * 60 + minutes;
 }
 
-function indiaMinutes(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
+function indiaParts(now: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(now);
+}
+
+function indiaMinutes(now: Date) {
+  const parts = indiaParts(now);
   const hour = Number(parts.find((part) => part.type === "hour")?.value ?? NaN);
   const minute = Number(parts.find((part) => part.type === "minute")?.value ?? NaN);
   return hour * 60 + minute;
@@ -31,6 +39,15 @@ function indiaDateKey(now: Date) {
   }).format(now);
 }
 
+function indiaWeekKey(now: Date) {
+  const parts = indiaParts(now);
+  const date = new Date(`${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}T00:00:00Z`);
+  const weekday = date.getUTCDay();
+  const mondayOffset = weekday === 0 ? 6 : weekday - 1;
+  date.setUTCDate(date.getUTCDate() - mondayOffset);
+  return date.toISOString().slice(0, 10);
+}
+
 function inSession(now: Date, settings: Settings) {
   const current = indiaMinutes(now);
   const start = minutesOfDay(settings.sessionStart);
@@ -40,12 +57,13 @@ function inSession(now: Date, settings: Settings) {
 
 export function calculateRiskState(trades: Trade[], settings: Settings, now = new Date()): RiskState {
   const todayKey = indiaDateKey(now);
+  const currentWeekKey = indiaWeekKey(now);
   const isToday = (iso: string) => indiaDateKey(new Date(iso)) === todayKey;
-  const weekStart = now.getTime() - 7 * 86_400_000;
-  const recent = trades.filter((t) => new Date(t.openedAt).getTime() >= weekStart);
+  const isCurrentWeek = (iso: string) => indiaWeekKey(new Date(iso)) === currentWeekKey;
   const todays = trades.filter((t) => isToday(t.openedAt));
+  const currentWeekTrades = trades.filter((t) => isCurrentWeek(t.openedAt));
   const closed = todays.filter((t) => t.status === "CLOSED");
-  const weeklyClosed = recent.filter((t) => t.status === "CLOSED");
+  const weeklyClosed = currentWeekTrades.filter((t) => t.status === "CLOSED");
   const open = todays.filter((t) => t.status === "OPEN");
   const realisedPnl = closed.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
   const weeklyRealisedPnl = weeklyClosed.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
@@ -58,7 +76,7 @@ export function calculateRiskState(trades: Trade[], settings: Settings, now = ne
   if (!settings.tradingEnabled) lockReasons.push("Trading manually disabled (emergency switch).");
   if (!inSession(now, settings)) lockReasons.push("Outside configured trading session " + settings.sessionStart + "–" + settings.sessionEnd + ".");
   if (realisedPnl <= -settings.maxDailyLoss) lockReasons.push("Daily loss limit hit (₹" + settings.maxDailyLoss + ").");
-  if (weeklyRealisedPnl <= -settings.weeklyLossLimit) lockReasons.push("7-day loss limit hit (₹" + settings.weeklyLossLimit + ").");
+  if (weeklyRealisedPnl <= -settings.weeklyLossLimit) lockReasons.push("Calendar-week loss limit hit (₹" + settings.weeklyLossLimit + ").");
   if (losingTradesToday >= settings.lockAfterLosingTrades) lockReasons.push(losingTradesToday + " losing trades today (limit " + settings.lockAfterLosingTrades + ").");
   if (todays.length >= settings.maxTradesPerDay) lockReasons.push("Maximum " + settings.maxTradesPerDay + " trades/day reached.");
   if (open.length >= settings.maxOpenPositions) lockReasons.push("Maximum " + settings.maxOpenPositions + " open positions reached.");
