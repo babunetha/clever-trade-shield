@@ -2,11 +2,11 @@ import type { RiskState, Settings } from "@/lib/trading/types";
 import type { ScanCandidate } from "./candidates";
 import { atr, closes, ema, high52w, macd, rsi, rvol, SECTORS, tradedValueCr, vwap } from "./series";
 
-/** Where the price used for verification came from, and how fresh it is. */
+/** Only authoritative broker data may be used for a trade decision. */
 export interface LiveTick {
   price: number;
   asOf: string;
-  source: "SIMULATED" | "DHAN_LIVE";
+  source: "DHAN_LIVE";
 }
 
 export type CandidateState = "BUY CANDIDATE" | "WAIT" | "AVOID";
@@ -68,7 +68,7 @@ export function verifyCandidate(input: {
   const { candidate, tick, niftyBias, sectorChangePct, settings, risk, openPositions } = input;
   const bars = candidate.bars;
   const c = closes(bars);
-  const lastCompleted = bars.at(-1)!;
+  const lastCompleted = bars.at(-1);
 
   const metrics = {
     ema10: ema(c, 10),
@@ -79,43 +79,66 @@ export function verifyCandidate(input: {
     atr14: atr(bars, 14),
     rvol: rvol(bars),
     tradedValueCr: tradedValueCr(bars),
-    pctOf52wHigh: round((lastCompleted.close / high52w(bars)) * 100),
+    pctOf52wHigh: lastCompleted ? round((lastCompleted.close / high52w(bars)) * 100) : 0,
   };
 
-  const atrValue = metrics.atr14 ?? Math.max(0.5, lastCompleted.close * 0.015);
-  const entry = round(Math.max(tick.price, lastCompleted.close));
-  const stopLoss = round(Math.max(0.05, entry - 1.2 * atrValue));
-  const perShareRisk = Math.max(0.05, round(entry - stopLoss));
-  const quantity = Math.max(0, Math.floor(settings.maxRiskPerTrade / perShareRisk));
-  const target1 = round(entry + 1.5 * perShareRisk);
-  const target2 = round(entry + 2.5 * perShareRisk);
+  // No synthetic/default indicator values are permitted. Missing ATR means no
+  // structural stop can be justified, therefore no trade plan is generated.
+  const atrValue = metrics.atr14;
+  const entry = tick.price;
+  const perShareRisk = atrValue !== null && Number.isFinite(atrValue) && atrValue > 0
+    ? round(1.2 * atrValue)
+    : null;
+  const stopLoss = perShareRisk !== null ? round(entry - perShareRisk) : 0;
+  const quantity = perShareRisk !== null && perShareRisk > 0
+    ? Math.floor(settings.maxRiskPerTrade / perShareRisk)
+    : 0;
+  const target1 = perShareRisk !== null ? round(entry + 1.5 * perShareRisk) : 0;
+  const target2 = perShareRisk !== null ? round(entry + 2.5 * perShareRisk) : 0;
   const plan: TradePlan = {
     entry,
     stopLoss,
     target1,
     target2,
     quantity,
-    riskRupees: round(perShareRisk * quantity),
-    riskReward: round((target1 - entry) / perShareRisk),
+    riskRupees: perShareRisk !== null ? round(perShareRisk * quantity) : 0,
+    riskReward: perShareRisk !== null && perShareRisk > 0 ? 1.5 : 0,
   };
 
   const freshnessSeconds = Math.max(0, Math.round(((input.now ?? Date.now()) - new Date(tick.asOf).getTime()) / 1000));
   const sector = SECTORS[candidate.symbol] ?? "Unclassified";
+  const sourceIsLive = tick.source === "DHAN_LIVE";
+  const hasCompletedCandle = Boolean(lastCompleted);
+  const indicatorsComplete = metrics.ema10 !== null && metrics.ema30 !== null && metrics.vwap !== null &&
+    metrics.rsi14 !== null && metrics.macdHistogram !== null && metrics.atr14 !== null && metrics.rvol !== null;
 
   const checks: VerificationCheck[] = [
     {
+      label: "Authoritative price source",
+      ok: sourceIsLive && Number.isFinite(tick.price) && tick.price > 0,
+      detail: sourceIsLive ? "Dhan live read-only price" : "Non-authoritative price source rejected",
+      blocking: true,
+    },
+    {
       label: "Price freshness",
-      ok: freshnessSeconds <= MAX_TICK_AGE_SECONDS,
-      detail: `${tick.source === "DHAN_LIVE" ? "Dhan live" : "Simulated"} price ${freshnessSeconds}s old (limit ${MAX_TICK_AGE_SECONDS}s)`,
+      ok: sourceIsLive && freshnessSeconds <= MAX_TICK_AGE_SECONDS,
+      detail: `Dhan price ${freshnessSeconds}s old (limit ${MAX_TICK_AGE_SECONDS}s)`,
       blocking: true,
     },
     {
       label: "Completed-candle confirmation",
-      ok: tick.price >= lastCompleted.close,
-      detail:
-        tick.price >= lastCompleted.close
-          ? `Holding above the last completed daily close ${lastCompleted.close}`
-          : `Below the last completed daily close ${lastCompleted.close} — the running candle is not final, so no entry`,
+      ok: hasCompletedCandle && tick.price >= lastCompleted!.close,
+      detail: hasCompletedCandle
+        ? tick.price >= lastCompleted!.close
+          ? `Holding above the last completed daily close ${lastCompleted!.close}`
+          : `Below the last completed daily close ${lastCompleted!.close} — no entry`
+        : "No completed candle available",
+      blocking: true,
+    },
+    {
+      label: "Required indicators available",
+      ok: indicatorsComplete,
+      detail: indicatorsComplete ? "EMA/VWAP/RSI/MACD/ATR/RVOL available from supplied candles" : "One or more decision-critical indicators are unavailable",
       blocking: true,
     },
     {
@@ -133,7 +156,7 @@ export function verifyCandidate(input: {
     {
       label: "RSI 14 in 45-75",
       ok: metrics.rsi14 !== null && metrics.rsi14 >= 45 && metrics.rsi14 <= 75,
-      detail: `RSI ${metrics.rsi14 ?? "—"}${metrics.rsi14 !== null && metrics.rsi14 > 75 ? " — overbought, chasing risk" : ""}`,
+      detail: `RSI ${metrics.rsi14 ?? "—"}`,
       blocking: false,
     },
     {
@@ -174,8 +197,8 @@ export function verifyCandidate(input: {
     },
     {
       label: "ATR-based stop is sane",
-      ok: perShareRisk / entry <= 0.05,
-      detail: `Stop distance ${round((perShareRisk / entry) * 100)}% of price (ATR ${metrics.atr14 ?? "—"})`,
+      ok: perShareRisk !== null && entry > 0 && perShareRisk / entry <= 0.05,
+      detail: perShareRisk !== null ? `Stop distance ${round((perShareRisk / entry) * 100)}% of price (ATR ${metrics.atr14})` : "ATR unavailable — stop cannot be justified",
       blocking: true,
     },
     {
@@ -207,7 +230,6 @@ export function verifyCandidate(input: {
   const blockingFailed = checks.some((c2) => c2.blocking && !c2.ok);
   const passed = checks.filter((c2) => c2.ok).length;
   const nonBlockingFailed = checks.filter((c2) => !c2.blocking && !c2.ok).length;
-
   const state: CandidateState = blockingFailed ? "AVOID" : nonBlockingFailed <= 1 ? "BUY CANDIDATE" : "WAIT";
 
   return { state, checks, plan, passed, total: checks.length, sector, freshnessSeconds, metrics };

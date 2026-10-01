@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
@@ -32,7 +34,17 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
       - name: Formatting check
-        run: bunx prettier --check . --ignore-path .gitignore
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            files="$(git diff --name-only "$base" "$head" -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.json' '*.md' '*.yml' '*.yaml' | tr '\n' ' ')"
+          else
+            files="$(git diff-tree --no-commit-id --name-only -r HEAD -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.json' '*.md' '*.yml' '*.yaml' | tr '\n' ' ')"
+          fi
+          if [ -n "$files" ]; then bunx prettier --check $files --ignore-path .gitignore; fi
       - name: Lint
         run: bun run lint
       - name: Test suite

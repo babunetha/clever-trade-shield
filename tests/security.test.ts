@@ -35,14 +35,7 @@ describe("live execution safety", () => {
   test("Dhan live execution is hard-disabled", async () => {
     expect(LIVE_EXECUTION_ENABLED).toBe(false);
     expect(SERVER_LIVE_EXECUTION_READY).toBe(false);
-    const result = await placeDhanOrder({
-      symbol: "TEST",
-      side: "BUY",
-      quantity: 1,
-      price: 100,
-      stopLoss: 99,
-      productType: "INTRADAY",
-    });
+    const result = await placeDhanOrder({ symbol: "TEST", side: "BUY", quantity: 1, price: 100, stopLoss: 99, productType: "INTRADAY" });
     expect(result.placed).toBe(false);
   });
 
@@ -52,30 +45,19 @@ describe("live execution safety", () => {
   });
 
   test("paper execution rejects invalid quantity without side effects", async () => {
-    const adapter = executionAdapterFor("PAPER");
-    const result = await adapter.place({
-      symbol: "TEST",
-      side: "BUY",
-      quantity: 0,
-      entryPrice: 100,
-      stopLoss: 99,
-      target1: 102,
-      productType: "INTRADAY",
-    });
+    const result = await executionAdapterFor("PAPER").place({ symbol: "TEST", side: "BUY", quantity: 0, entryPrice: 100, stopLoss: 99, target1: 102, productType: "INTRADAY" });
     expect(result.accepted).toBe(false);
     expect(result.orderId).toBeUndefined();
   });
 
   test("paper cancellation is deterministic", async () => {
-    const adapter = executionAdapterFor("PAPER");
-    const result = await adapter.cancel("PAPER-TEST");
+    const result = await executionAdapterFor("PAPER").cancel("PAPER-TEST");
     expect(result.accepted).toBe(true);
     expect(result.orderId).toBe("PAPER-TEST");
   });
 
   test("disabled live cancellation cannot reach a broker", async () => {
-    const adapter = executionAdapterFor("LIVE_AUTO");
-    const result = await adapter.cancel("LIVE-TEST");
+    const result = await executionAdapterFor("LIVE_AUTO").cancel("LIVE-TEST");
     expect(result.accepted).toBe(false);
     expect(result.reason).toContain("Live execution is disabled");
   });
@@ -90,15 +72,17 @@ describe("risk guardrails", () => {
     if (previous === undefined) delete process.env.RISK_TRADING_ENABLED;
     else process.env.RISK_TRADING_ENABLED = previous;
   });
+
   test("blocks a trade above the per-trade risk cap", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
-    expect(validateSignalRisk(signal({ riskRupees: 1000 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+    const atSession = new Date("2026-09-19T04:00:00Z");
+    const risk = calculateRiskState([], settings, atSession);
+    expect(validateSignalRisk(signal({ riskRupees: 1000 }), settings, risk, atSession).allowed).toBe(false);
   });
 
   test("blocks outside the configured trading session using India time", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const atOpen = new Date("2026-09-19T03:45:00Z"); // 09:15 IST
+    const atOpen = new Date("2026-09-19T03:45:00Z");
     const risk = calculateRiskState([], settings, atOpen);
     expect(validateSignalRisk(signal(), settings, risk, atOpen).allowed).toBe(false);
   });
@@ -106,19 +90,9 @@ describe("risk guardrails", () => {
   test("blocks when the open-position cap is reached", () => {
     const settings = { ...DEFAULT_SETTINGS, maxOpenPositions: 1 };
     const trade = {
-      id: "OPEN-1",
-      signalId: "S1",
-      symbol: "TEST",
-      name: "Test",
-      side: "LONG" as const,
-      entry: 100,
-      stopLoss: 99,
-      target1: 102,
-      quantity: 1,
-      status: "OPEN" as const,
-      openedAt: "2026-09-19T10:00:00+05:30",
-      notes: "",
-      simulated: true as const,
+      id: "OPEN-1", signalId: "S1", symbol: "TEST", name: "Test", side: "LONG" as const,
+      entry: 100, stopLoss: 99, target1: 102, quantity: 1, status: "OPEN" as const,
+      openedAt: "2026-09-19T10:00:00+05:30", notes: "", simulated: true as const,
     };
     const risk = calculateRiskState([trade], settings, new Date("2026-09-19T10:00:00+05:30"));
     expect(validateSignalRisk(signal(), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
@@ -126,36 +100,41 @@ describe("risk guardrails", () => {
 
   test("blocks a long signal whose declared risk does not match the position", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
-    expect(validateSignalRisk(signal({ riskRupees: 0.5 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+    const atSession = new Date("2026-09-19T04:00:00Z");
+    const risk = calculateRiskState([], settings, atSession);
+    expect(validateSignalRisk(signal({ riskRupees: 0.5 }), settings, risk, atSession).allowed).toBe(false);
   });
 
   test("blocks a long signal with an invalid stop direction", () => {
     const settings = { ...DEFAULT_SETTINGS };
-    const risk = calculateRiskState([], settings, new Date("2026-09-19T10:00:00+05:30"));
-    expect(validateSignalRisk(signal({ stopLoss: 101, riskRupees: 1 }), settings, risk, new Date("2026-09-19T10:00:00+05:30")).allowed).toBe(false);
+    const atSession = new Date("2026-09-19T04:00:00Z");
+    const risk = calculateRiskState([], settings, atSession);
+    expect(validateSignalRisk(signal({ stopLoss: 101, riskRupees: 1 }), settings, risk, atSession).allowed).toBe(false);
   });
 
   test("server gate rejects mismatched declared risk", () => {
     const decision = validateServerOrderIntent({
-      signalId: "SECURITY-TEST",
-      symbol: "TEST",
-      side: "BUY",
-      quantity: 10,
-      entry: 100,
-      stopLoss: 99,
-      riskRupees: 1,
-      riskReward: 2,
-      exchangeSegment: "NSE_EQ",
-      productType: "INTRADAY",
-      securityId: "11536",
+      signalId: "SECURITY-TEST", symbol: "TEST", side: "BUY", quantity: 10, entry: 100,
+      stopLoss: 99, riskRupees: 1, riskReward: 2, exchangeSegment: "NSE_EQ", productType: "INTRADAY", securityId: "11536",
     }, undefined, new Date("2026-09-19T04:00:00Z"));
     expect(decision.allowed).toBe(false);
     expect(decision.reasons).toContain("Server live-execution readiness gate is OFF.");
     expect(decision.reasons).toContain("Declared trade risk does not match entry, stop-loss and quantity.");
   });
-});
 
+  test("weekly loss resets at the India Monday boundary", () => {
+    const settings = { ...DEFAULT_SETTINGS, tradingEnabled: true, weeklyLossLimit: 2500 };
+    const priorWeekLoss = {
+      id: "OLD-LOSS", signalId: "OLD", symbol: "TEST", name: "Test", side: "LONG" as const,
+      entry: 100, stopLoss: 99, target1: 102, quantity: 25, pnl: -2500, status: "CLOSED" as const,
+      openedAt: "2026-09-20T10:00:00+05:30", closedAt: "2026-09-20T10:05:00+05:30", notes: "", simulated: true as const,
+    };
+    const monday = new Date("2026-09-21T04:00:00Z");
+    const risk = calculateRiskState([priorWeekLoss], settings, monday);
+    expect(risk.weeklyRealisedPnl).toBe(0);
+    expect(risk.locked).not.toBe(true);
+  });
+});
 
 describe("production execution gate", () => {
   test("live gate is closed unless every production condition is explicitly configured", async () => {

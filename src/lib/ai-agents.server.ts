@@ -23,7 +23,7 @@ export interface AgentMarketSnapshot {
     trades: number;
     winRate: number;
     expectancyR: number;
-    profitFactor: number;
+    profitFactor: number | null;
     maxDrawdownR: number;
     totalR: number;
   };
@@ -130,8 +130,6 @@ export async function runTradingAgents(snapshot: AgentMarketSnapshot): Promise<A
     research: snapshot.research ?? null,
   };
 
-  // Bull, Bear and Risk are independent. Run them concurrently so one candidate costs
-  // one parallel round-trip plus the final validation round-trip instead of four serial calls.
   const [bull, bear, risk] = await Promise.all([
     askGemini(
       "You are the BULL agent. Find concrete evidence supporting a long trade. Be skeptical and identify what would invalidate the bullish thesis.",

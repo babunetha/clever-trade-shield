@@ -35,7 +35,8 @@ export interface BacktestResult {
   winRate: number;
   expectancyR: number;
   grossExpectancyR: number;
-  profitFactor: number;
+  /** Null when there are no losing trades, because a finite profit factor is undefined. */
+  profitFactor: number | null;
   maxDrawdownR: number;
   totalR: number;
   grossTotalR: number;
@@ -71,7 +72,7 @@ function summarize(trades: BacktestTrade[], includeDetails = false): BacktestRes
     winRate: trades.length ? round((wins / trades.length) * 100, 1) : 0,
     expectancyR: trades.length ? round(totalR / trades.length) : 0,
     grossExpectancyR: trades.length ? round(grossTotalR / trades.length) : 0,
-    profitFactor: grossLoss ? round(grossWin / grossLoss, 2) : grossWin ? 99 : 0,
+    profitFactor: grossLoss ? round(grossWin / grossLoss, 2) : null,
     maxDrawdownR: round(maxDrawdownR, 2),
     totalR: round(totalR, 2),
     grossTotalR: round(grossTotalR, 2),
@@ -129,8 +130,6 @@ function runBacktest(
       continue;
     }
 
-    // Critical anti-look-ahead rule:
-    // the signal is known only after signalBar.close; execution starts on the next bar.
     const entryBar = i + 1;
     const rawEntry = bars[entryBar]!.open;
     const risk = Math.max(0.05, a * stopAtr);
@@ -147,9 +146,6 @@ function runBacktest(
       const next = bars[j]!;
       const gapOpen = next.open;
 
-      // If price gaps through a level, a marketable stop/target fills at the open,
-      // not at the requested level. When both intrabar levels are touched, STOP wins
-      // as the conservative assumption because daily OHLC cannot reveal the path.
       if (gapOpen <= stop) {
         exitBar = j;
         rawExit = gapOpen;
@@ -215,7 +211,6 @@ export interface WalkForwardResult {
     testStart: number;
     testEnd: number;
   }>;
-  /** Aggregated trades from each independent OOS window. No test slices are re-concatenated. */
   outOfSample: BacktestResult;
   stability: {
     profitableWindows: number;
@@ -242,8 +237,6 @@ export function walkForwardTrendBreakout(
   for (let trainEnd = trainBars; trainEnd + testBars <= bars.length; trainEnd += stepBars) {
     const testEnd = trainEnd + testBars;
     const trainTrades = runBacktest(bars, options.config ?? {}, 30, trainEnd);
-    // Indicators use all bars before each OOS signal, but only signals/exits inside this
-    // window are counted. This preserves warm-up history without leaking future test data.
     const testTrades = runBacktest(bars, options.config ?? {}, trainEnd, testEnd);
     const train = summarize(trainTrades);
     const test = summarize(testTrades);
@@ -271,12 +264,32 @@ export function walkForwardTrendBreakout(
   };
 }
 
+/**
+ * Transparent derived research score. It is not a model confidence value and must
+ * never be displayed as a probability of future success. Every component comes
+ * directly from the measured backtest result; an undefined profit factor contributes
+ * zero rather than receiving a fabricated sentinel value.
+ */
 export function researchScore(result: BacktestResult): number {
   if (!result.trades) return 0;
-  const expectancy = Math.max(-1, Math.min(1, result.expectancyR));
-  const dd = Math.min(30, result.maxDrawdownR * 1.5);
-  const confidence = Math.min(20, result.trades * 1.5);
-  const win = Math.max(0, Math.min(30, (result.winRate - 40) * 0.75));
-  const pf = Math.max(0, Math.min(25, (result.profitFactor - 1) * 12.5));
-  return Math.max(0, Math.min(100, Number((50 + expectancy * 20 + win + pf + confidence - dd).toFixed(1))));
+  const expectancyComponent = Math.max(0, Math.min(25, ((result.expectancyR + 1) / 2) * 25));
+  const winRateComponent = Math.max(0, Math.min(20, result.winRate * 0.2));
+  const profitFactorComponent =
+    result.profitFactor === null ? 0 : Math.max(0, Math.min(25, (result.profitFactor / 3) * 25));
+  const drawdownComponent = Math.max(0, Math.min(15, 15 / (1 + result.maxDrawdownR)));
+  const sampleComponent = Math.min(15, result.trades * 0.5);
+  return round(
+    Math.max(
+      0,
+      Math.min(
+        100,
+        expectancyComponent +
+          winRateComponent +
+          profitFactorComponent +
+          drawdownComponent +
+          sampleComponent,
+      ),
+    ),
+    1,
+  );
 }
