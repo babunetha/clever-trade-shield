@@ -14,6 +14,8 @@ export interface ScanCandidate {
   scannedAt: string;
   bars: DailyBar[];
   research: BacktestResult & { score: number };
+  /** Dhan-derived market-context score. Never populated from synthetic data. */
+  marketScore?: number;
   /** Present for Dhan-backed candidates. */
   securityId?: string;
   /** Identifies the authoritative source used to create this candidate. */
@@ -27,9 +29,6 @@ export interface ScanCandidate {
  * history. That path is deliberately disabled. A trading candidate must come
  * from the Dhan-backed server scan so that prices, candles, indicators and
  * research evidence can be traced to real market data.
- *
- * Keep this function only as a compatibility guard for old callers. It fails
- * closed instead of returning simulated candidates.
  */
 export function runScanners(_config: ScannerConfig, _seed?: number): ScanCandidate[] {
   throw new Error(
