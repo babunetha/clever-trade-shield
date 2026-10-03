@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
+import { QuoteHealthPanel } from "@/components/trading/QuoteHealthPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -324,6 +325,48 @@ function ScannerPage() {
           {liveError} Verification falls back to simulated prices, and a stale price blocks paper trading by design.
         </div>
       ) : null}
+
+      <QuoteHealthPanel
+        rows={rows.map((r) => {
+          const lp = liveMap.get(r.candidate.symbol.toUpperCase());
+          const isLive = liveOk && lp !== undefined && liveResult?.ok;
+          return {
+            symbol: r.candidate.symbol,
+            scanClose: r.candidate.scanClose,
+            verification: r.verification,
+            price: isLive ? lp : (quotes.find((q) => q.symbol === r.candidate.symbol)?.ltp ?? r.candidate.scanClose),
+            source: isLive ? "DHAN_LIVE" : "SIMULATED",
+            asOf: isLive && liveResult?.ok
+              ? liveResult.asOf
+              : new Date(nowMs - r.verification.freshnessSeconds * 1000).toISOString(),
+            missingFromFeed: Boolean(liveOk && lp === undefined),
+          };
+        })}
+        connection={
+          dhanStatus.isLoading
+            ? "CONNECTING"
+            : !brokerConfigured
+              ? "NOT_CONFIGURED"
+              : liveError
+                ? "ERROR"
+                : liveOk
+                  ? "LIVE"
+                  : live.isFetching
+                    ? "CONNECTING"
+                    : "SIMULATED"
+        }
+        lastSuccessAt={liveOk && live.dataUpdatedAt ? live.dataUpdatedAt : null}
+        lastErrorAt={live.errorUpdatedAt || (liveResult && !liveResult.ok ? live.dataUpdatedAt : null) || null}
+        errorMessage={liveError}
+        failureCount={live.failureCount}
+        isFetching={live.isFetching}
+        scanAgeSeconds={scanAgeSeconds}
+        scanStaleAfter={STALE_AFTER_SECONDS}
+        nowMs={nowMs}
+        onReconnect={() => void live.refetch()}
+        onRescan={runScan}
+        canReconnect={brokerConfigured}
+      />
 
       <div className="grid gap-3 xl:grid-cols-[22rem_1fr]">
         <section className="panel p-4">
