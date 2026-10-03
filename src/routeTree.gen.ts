@@ -10,8 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
+import { Route as ArchitectureRouteImport } from './routes/architecture'
 import { Route as JournalRouteImport } from './routes/journal'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketRouteImport } from './routes/market'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as ScannerRouteImport } from './routes/scanner'
@@ -19,13 +22,15 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignalsRouteImport } from './routes/signals'
 import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
 import { Route as ApiPublicDhanPostbackRouteImport } from './routes/api/public/dhan/postback'
-import { Route as AgentsRouteImport } from './routes/agents'
-import { Route as ArchitectureRouteImport } from './routes/architecture'
-import { Route as LoginRouteImport } from './routes/login'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
@@ -33,9 +38,19 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
   path: '/approvals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchitectureRoute = ArchitectureRouteImport.update({
+  id: '/architecture',
+  path: '/architecture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JournalRoute = JournalRouteImport.update({
   id: '/journal',
   path: '/journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketRoute = MarketRouteImport.update({
@@ -73,26 +88,14 @@ const ApiPublicDhanPostbackRoute = ApiPublicDhanPostbackRouteImport.update({
   path: '/api/public/dhan/postback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArchitectureRoute = ArchitectureRouteImport.update({
-  id: '/architecture',
-  path: '/architecture',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
+  '/architecture': typeof ArchitectureRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
   '/scanner': typeof ScannerRoute
@@ -100,14 +103,14 @@ export interface FileRoutesByFullPath {
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
-  '/agents': typeof AgentsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
+  '/architecture': typeof ArchitectureRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
   '/scanner': typeof ScannerRoute
@@ -115,15 +118,15 @@ export interface FileRoutesByTo {
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
-  '/agents': typeof AgentsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
+  '/architecture': typeof ArchitectureRoute
   '/journal': typeof JournalRoute
+  '/login': typeof LoginRoute
   '/market': typeof MarketRoute
   '/risk': typeof RiskRoute
   '/scanner': typeof ScannerRoute
@@ -131,16 +134,16 @@ export interface FileRoutesById {
   '/signals': typeof SignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
-  '/agents': typeof AgentsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agents'
     | '/approvals'
+    | '/architecture'
     | '/journal'
+    | '/login'
     | '/market'
     | '/risk'
     | '/scanner'
@@ -148,14 +151,14 @@ export interface FileRouteTypes {
     | '/signals'
     | '/api/public/dhan/callback'
     | '/api/public/dhan/postback'
-    | '/agents'
-    | '/architecture'
-    | '/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agents'
     | '/approvals'
+    | '/architecture'
     | '/journal'
+    | '/login'
     | '/market'
     | '/risk'
     | '/scanner'
@@ -163,14 +166,14 @@ export interface FileRouteTypes {
     | '/signals'
     | '/api/public/dhan/callback'
     | '/api/public/dhan/postback'
-    | '/agents'
-    | '/architecture'
-    | '/login'
   id:
     | '__root__'
     | '/'
+    | '/agents'
     | '/approvals'
+    | '/architecture'
     | '/journal'
+    | '/login'
     | '/market'
     | '/risk'
     | '/scanner'
@@ -178,15 +181,15 @@ export interface FileRouteTypes {
     | '/signals'
     | '/api/public/dhan/callback'
     | '/api/public/dhan/postback'
-    | '/agents'
-    | '/architecture'
-    | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentsRoute: typeof AgentsRoute
   ApprovalsRoute: typeof ApprovalsRoute
+  ArchitectureRoute: typeof ArchitectureRoute
   JournalRoute: typeof JournalRoute
+  LoginRoute: typeof LoginRoute
   MarketRoute: typeof MarketRoute
   RiskRoute: typeof RiskRoute
   ScannerRoute: typeof ScannerRoute
@@ -194,9 +197,6 @@ export interface RootRouteChildren {
   SignalsRoute: typeof SignalsRoute
   ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
   ApiPublicDhanPostbackRoute: typeof ApiPublicDhanPostbackRoute
-  AgentsRoute: typeof AgentsRoute
-  ArchitectureRoute: typeof ArchitectureRoute
-  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/approvals': {
       id: '/approvals'
       path: '/approvals'
@@ -215,11 +222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApprovalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/architecture': {
+      id: '/architecture'
+      path: '/architecture'
+      fullPath: '/architecture'
+      preLoaderRoute: typeof ArchitectureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/journal': {
       id: '/journal'
       path: '/journal'
       fullPath: '/journal'
       preLoaderRoute: typeof JournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/market': {
@@ -271,34 +292,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicDhanPostbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/architecture': {
-      id: '/architecture'
-      path: '/architecture'
-      fullPath: '/architecture'
-      preLoaderRoute: typeof ArchitectureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentsRoute: AgentsRoute,
   ApprovalsRoute: ApprovalsRoute,
+  ArchitectureRoute: ArchitectureRoute,
   JournalRoute: JournalRoute,
+  LoginRoute: LoginRoute,
   MarketRoute: MarketRoute,
   RiskRoute: RiskRoute,
   ScannerRoute: ScannerRoute,
@@ -306,9 +309,6 @@ const rootRouteChildren: RootRouteChildren = {
   SignalsRoute: SignalsRoute,
   ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
   ApiPublicDhanPostbackRoute: ApiPublicDhanPostbackRoute,
-  AgentsRoute: AgentsRoute,
-  ArchitectureRoute: ArchitectureRoute,
-  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
