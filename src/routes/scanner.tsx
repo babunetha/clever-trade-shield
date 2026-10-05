@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
 import { QuoteHealthPanel } from "@/components/trading/QuoteHealthPanel";
+import { BacktestPanel } from "@/components/trading/BacktestPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -325,6 +326,8 @@ function ScannerPage() {
           {liveError} Verification falls back to simulated prices, and a stale price blocks paper trading by design.
         </div>
       ) : null}
+
+      <BacktestPanel config={config} />
 
       <QuoteHealthPanel
         rows={rows.map((r) => {
