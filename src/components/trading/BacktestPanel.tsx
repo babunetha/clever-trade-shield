@@ -13,7 +13,7 @@ export function BacktestPanel({ config }: { config: ScannerConfig }) {
     <section className="mb-4 rounded-md border border-border bg-card p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Backtest (our own standardized test)</h2>
-        <span className="rounded border border-warning/40 px-2 py-0.5 text-[10px] uppercase text-warning">
+        <span className="rounded border border-border px-2 py-0.5 text-[10px] uppercase text-muted-foreground">
           Simulated history · not a performance promise
         </span>
       </div>
@@ -56,7 +56,7 @@ export function BacktestPanel({ config }: { config: ScannerConfig }) {
         </table>
       </div>
       {results.every((r) => r.m.trades < 30) ? (
-        <p className="mt-2 text-[11px] text-warning">Fewer than 30 trades per scanner — too small a sample to trust.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">Fewer than 30 trades per scanner — too small a sample to trust.</p>
       ) : null}
     </section>
   );
