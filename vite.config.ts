@@ -25,6 +25,6 @@ export default defineConfig({
     }),
     viteReact(),
     tailwindcss(),
-    nitro({ preset: "bun" }),
+    nitro({ preset: "bun", output: { dir: "dist" } }),
   ],
 });
