@@ -7,7 +7,7 @@ The application is a TanStack Start + React + TypeScript trading terminal. It al
 ## Target architecture
 
 UI -> server functions/API -> domain services -> broker/data adapters
-                         |\n                         +-> strategy -> risk -> execution\n                         +-> audit / journal\n                         +-> AI research (later)
+|\n +-> strategy -> risk -> execution\n +-> audit / journal\n +-> AI research (later)
 
 ## Build order
 

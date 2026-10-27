@@ -33,7 +33,13 @@ function Metric({ label, value, hint }: { label: string; value: string; hint?: s
 const biasTone = (b: string) =>
   b === "BULLISH" ? "text-bull" : b === "BEARISH" ? "text-bear" : "text-muted-foreground";
 
-export function SignalCard({ signal, showActions = true }: { signal: Signal; showActions?: boolean }) {
+export function SignalCard({
+  signal,
+  showActions = true,
+}: {
+  signal: Signal;
+  showActions?: boolean;
+}) {
   const { settings, risk, approveSignal, rejectSignal } = useTrading();
   const [reason, setReason] = useState("");
   const { verdict, reasons, invalidation } = evaluateSignal(signal, settings, risk);
@@ -65,13 +71,15 @@ export function SignalCard({ signal, showActions = true }: { signal: Signal; sho
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            {signal.name} · LTP {formatPrice(signal.ltp)} · generated {formatTime(signal.generatedAt)} · expires{" "}
-            {formatTime(signal.expiresAt)}
+            {signal.name} · LTP {formatPrice(signal.ltp)} · generated{" "}
+            {formatTime(signal.generatedAt)} · expires {formatTime(signal.expiresAt)}
           </p>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold tracking-wide ${verdictClasses[verdict]}`}>
+          <span
+            className={`rounded-md border px-2.5 py-1 text-xs font-semibold tracking-wide ${verdictClasses[verdict]}`}
+          >
             {verdict}
           </span>
           <span className="num text-xs text-muted-foreground">score {signal.score}/100</span>
@@ -93,17 +101,31 @@ export function SignalCard({ signal, showActions = true }: { signal: Signal; sho
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         <Metric label="EMA 9 / 20" value={`${formatPrice(ind.ema9)} / ${formatPrice(ind.ema20)}`} />
-        <Metric label="EMA 50 / 200" value={`${formatPrice(ind.ema50)} / ${formatPrice(ind.ema200)}`} />
+        <Metric
+          label="EMA 50 / 200"
+          value={`${formatPrice(ind.ema50)} / ${formatPrice(ind.ema200)}`}
+        />
         <Metric label="RSI 14" value={`${ind.rsi14}`} />
-        <Metric label="MACD" value={`${ind.macdLine} / ${ind.macdSignal}`} hint={`hist ${ind.macdHist}`} />
+        <Metric
+          label="MACD"
+          value={`${ind.macdLine} / ${ind.macdSignal}`}
+          hint={`hist ${ind.macdHist}`}
+        />
         <Metric label="VWAP" value={formatPrice(ind.vwap)} />
         <Metric label="ADX" value={`${ind.adx}`} />
-        <Metric label="Volume" value={ind.volume.toLocaleString("en-IN")} hint={`${ind.relVolume}x avg`} />
+        <Metric
+          label="Volume"
+          value={ind.volume.toLocaleString("en-IN")}
+          hint={`${ind.relVolume}x avg`}
+        />
         <Metric label="Support" value={formatPrice(ind.support)} />
         <Metric label="Resistance" value={formatPrice(ind.resistance)} />
         <Metric label="5m context" value={ind.context5m} />
         <Metric label="15m context" value={ind.context15m} />
-        <Metric label="Index bias" value={`N ${signal.niftyBias[0]} · BN ${signal.bankNiftyBias[0]}`} />
+        <Metric
+          label="Index bias"
+          value={`N ${signal.niftyBias[0]} · BN ${signal.bankNiftyBias[0]}`}
+        />
       </div>
 
       <div className="mt-3 flex flex-wrap gap-4 text-xs">
@@ -154,9 +176,9 @@ export function SignalCard({ signal, showActions = true }: { signal: Signal; sho
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirm simulated trade</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {signal.side} {signal.quantity} {signal.symbol} at {formatPrice(signal.entry)}, stop{" "}
-                  {formatPrice(signal.stopLoss)}, risk {formatINR(signal.riskRupees)}. This is logged as a simulated
-                  trade only — no live order is ever sent to any broker.
+                  {signal.side} {signal.quantity} {signal.symbol} at {formatPrice(signal.entry)},
+                  stop {formatPrice(signal.stopLoss)}, risk {formatINR(signal.riskRupees)}. This is
+                  logged as a simulated trade only — no live order is ever sent to any broker.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

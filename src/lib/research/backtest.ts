@@ -101,7 +101,7 @@ function runBacktest(
   const trades: BacktestTrade[] = [];
   const lastSignalBar = Math.min(evaluationEnd - 2, bars.length - 2);
 
-  for (let i = Math.max(30, evaluationStart); i <= lastSignalBar; ) {
+  for (let i = Math.max(30, evaluationStart); i <= lastSignalBar;) {
     const history = bars.slice(0, i + 1);
     const closes = history.map((b) => b.close);
     const e10 = ema(closes, 10);
@@ -278,5 +278,8 @@ export function researchScore(result: BacktestResult): number {
   const confidence = Math.min(20, result.trades * 1.5);
   const win = Math.max(0, Math.min(30, (result.winRate - 40) * 0.75));
   const pf = Math.max(0, Math.min(25, (result.profitFactor - 1) * 12.5));
-  return Math.max(0, Math.min(100, Number((50 + expectancy * 20 + win + pf + confidence - dd).toFixed(1))));
+  return Math.max(
+    0,
+    Math.min(100, Number((50 + expectancy * 20 + win + pf + confidence - dd).toFixed(1))),
+  );
 }

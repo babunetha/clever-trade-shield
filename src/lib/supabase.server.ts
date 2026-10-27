@@ -34,11 +34,15 @@ export interface DurableOrderIntent {
 
 export async function getOrderIntentByIdempotencyKey(idempotencyKey: string) {
   const safe = encodeURIComponent(idempotencyKey);
-  const rows = await request(`order_intents?idempotency_key=eq.${safe}&select=id,idempotency_key,status,broker_correlation_id,broker_order_id`);
-  return Array.isArray(rows) ? rows[0] ?? null : null;
+  const rows = await request(
+    `order_intents?idempotency_key=eq.${safe}&select=id,idempotency_key,status,broker_correlation_id,broker_order_id`,
+  );
+  return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
 
-export async function createOrderIntent(input: Record<string, unknown>): Promise<DurableOrderIntent> {
+export async function createOrderIntent(
+  input: Record<string, unknown>,
+): Promise<DurableOrderIntent> {
   const rows = await request("order_intents", {
     method: "POST",
     body: JSON.stringify(input),
@@ -64,13 +68,15 @@ export async function ingestDhanPostback(payload: Record<string, unknown>, event
     }),
     headers: { Prefer: "resolution=ignore-duplicates,return=representation" },
   });
-  return Array.isArray(rows) ? rows[0] ?? null : rows;
+  return Array.isArray(rows) ? (rows[0] ?? null) : rows;
 }
 
 export async function getOrderIntentByCorrelationId(correlationId: string) {
   const safe = encodeURIComponent(correlationId);
-  const rows = await request(`order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status`);
-  return Array.isArray(rows) ? rows[0] ?? null : null;
+  const rows = await request(
+    `order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status`,
+  );
+  return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
 
 export async function upsertBrokerOrder(input: Record<string, unknown>) {
@@ -89,7 +95,10 @@ export async function upsertBrokerTrade(input: Record<string, unknown>) {
   });
 }
 
-export async function updateOrderIntentByCorrelationId(correlationId: string, patch: Record<string, unknown>) {
+export async function updateOrderIntentByCorrelationId(
+  correlationId: string,
+  patch: Record<string, unknown>,
+) {
   const safe = encodeURIComponent(correlationId);
   return request(`order_intents?broker_correlation_id=eq.${safe}`, {
     method: "PATCH",
@@ -97,18 +106,24 @@ export async function updateOrderIntentByCorrelationId(correlationId: string, pa
   });
 }
 
-
-export async function updateOrderIntentByIdempotencyKey(idempotencyKey: string, patch: Record<string, unknown>) {
+export async function updateOrderIntentByIdempotencyKey(
+  idempotencyKey: string,
+  patch: Record<string, unknown>,
+) {
   const safe = encodeURIComponent(idempotencyKey);
-  return request(`order_intents?idempotency_key=eq.${safe}`, { method: "PATCH", body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }) });
+  return request(`order_intents?idempotency_key=eq.${safe}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
 }
 
 export async function getOrderIntentStateByCorrelationId(correlationId: string) {
   const safe = encodeURIComponent(correlationId);
-  const rows = await request(`order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status,broker_order_id,quantity,symbol,transaction_type`);
-  return Array.isArray(rows) ? rows[0] ?? null : null;
+  const rows = await request(
+    `order_intents?broker_correlation_id=eq.${safe}&select=id,idempotency_key,status,broker_order_id,quantity,symbol,transaction_type`,
+  );
+  return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
-
 
 export async function upsertPaperTrade(input: {
   id: string;

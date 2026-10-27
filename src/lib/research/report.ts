@@ -13,6 +13,7 @@ export function buildResearchReport(bars: DailyBar[]): ResearchReport {
   if (bars.length < 240 || fullSample.trades < 20 || walkForward.outOfSample.trades < 5) {
     return { fullSample, walkForward, verdict: "INSUFFICIENT_DATA" };
   }
-  const supported = walkForward.outOfSample.expectancyR > 0 && walkForward.stability.profitableRate >= 50;
+  const supported =
+    walkForward.outOfSample.expectancyR > 0 && walkForward.stability.profitableRate >= 50;
   return { fullSample, walkForward, verdict: supported ? "RESEARCH_SUPPORTED" : "RESEARCH_WEAK" };
 }

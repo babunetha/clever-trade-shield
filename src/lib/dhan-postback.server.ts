@@ -9,7 +9,15 @@ import {
   getOrderIntentStateByCorrelationId,
 } from "./supabase.server";
 
-const allowedStatuses = new Set(["TRANSIT", "PENDING", "REJECTED", "CANCELLED", "PART_TRADED", "TRADED", "EXPIRED"]);
+const allowedStatuses = new Set([
+  "TRANSIT",
+  "PENDING",
+  "REJECTED",
+  "CANCELLED",
+  "PART_TRADED",
+  "TRADED",
+  "EXPIRED",
+]);
 
 function equalSecret(a: string, b: string) {
   const left = Buffer.from(a);
@@ -32,9 +40,11 @@ export async function processDhanPostback(url: string, body: string) {
   const correlationId = String(payload.correlationId ?? "");
   const dhanClientId = String(payload.dhanClientId ?? "");
 
-  if (!orderId || !correlationId || !allowedStatuses.has(status)) throw new Error("Invalid Dhan postback payload.");
+  if (!orderId || !correlationId || !allowedStatuses.has(status))
+    throw new Error("Invalid Dhan postback payload.");
   const configuredClient = process.env["DHAN_CLIENT_ID"] ?? "";
-  if (!configuredClient || dhanClientId !== configuredClient) throw new Error("Dhan postback client mismatch.");
+  if (!configuredClient || dhanClientId !== configuredClient)
+    throw new Error("Dhan postback client mismatch.");
 
   const eventKey = createHash("sha256").update(body).digest("hex");
   const intent = await getOrderIntentByCorrelationId(correlationId);
@@ -44,11 +54,17 @@ export async function processDhanPostback(url: string, body: string) {
   const filledQty = Number(payload.filled_qty ?? 0);
   const quantity = Number(payload.quantity ?? 0);
   const mappedStatus =
-    (status === "PART_TRADED" || (status === "TRADED" && filledQty > 0 && filledQty < quantity)) ? "PARTIALLY_FILLED" :
-    status === "TRADED" ? "FILLED" :
-    status === "REJECTED" ? "REJECTED" :
-    status === "CANCELLED" ? "CANCELLED" :
-    status === "EXPIRED" ? "EXPIRED" : "SUBMITTED";
+    status === "PART_TRADED" || (status === "TRADED" && filledQty > 0 && filledQty < quantity)
+      ? "PARTIALLY_FILLED"
+      : status === "TRADED"
+        ? "FILLED"
+        : status === "REJECTED"
+          ? "REJECTED"
+          : status === "CANCELLED"
+            ? "CANCELLED"
+            : status === "EXPIRED"
+              ? "EXPIRED"
+              : "SUBMITTED";
 
   await upsertBrokerOrder({
     order_intent_id: intent?.id ?? null,
@@ -63,7 +79,10 @@ export async function processDhanPostback(url: string, body: string) {
     raw_payload: payload,
     last_seen_at: new Date().toISOString(),
   });
-  const safeNext = transitionOrderStatus(durableState?.status ?? "SUBMITTED", mappedStatus as OrderStatus);
+  const safeNext = transitionOrderStatus(
+    durableState?.status ?? "SUBMITTED",
+    mappedStatus as OrderStatus,
+  );
   await updateOrderIntentByCorrelationId(correlationId, {
     status: safeNext,
     broker_order_id: orderId,

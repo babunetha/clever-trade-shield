@@ -99,7 +99,10 @@ export function verifyCandidate(input: {
     riskReward: round((target1 - entry) / perShareRisk),
   };
 
-  const freshnessSeconds = Math.max(0, Math.round(((input.now ?? Date.now()) - new Date(tick.asOf).getTime()) / 1000));
+  const freshnessSeconds = Math.max(
+    0,
+    Math.round(((input.now ?? Date.now()) - new Date(tick.asOf).getTime()) / 1000),
+  );
   const sector = SECTORS[candidate.symbol] ?? "Unclassified";
 
   const checks: VerificationCheck[] = [
@@ -199,7 +202,11 @@ export function verifyCandidate(input: {
     {
       label: "Risk engine unlocked",
       ok: !risk.locked && settings.tradingEnabled,
-      detail: risk.locked ? risk.lockReasons.join("; ") : settings.tradingEnabled ? "No lock active" : "Trading disabled by the emergency switch",
+      detail: risk.locked
+        ? risk.lockReasons.join("; ")
+        : settings.tradingEnabled
+          ? "No lock active"
+          : "Trading disabled by the emergency switch",
       blocking: true,
     },
   ];
@@ -208,7 +215,11 @@ export function verifyCandidate(input: {
   const passed = checks.filter((c2) => c2.ok).length;
   const nonBlockingFailed = checks.filter((c2) => !c2.blocking && !c2.ok).length;
 
-  const state: CandidateState = blockingFailed ? "AVOID" : nonBlockingFailed <= 1 ? "BUY CANDIDATE" : "WAIT";
+  const state: CandidateState = blockingFailed
+    ? "AVOID"
+    : nonBlockingFailed <= 1
+      ? "BUY CANDIDATE"
+      : "WAIT";
 
   return { state, checks, plan, passed, total: checks.length, sector, freshnessSeconds, metrics };
 }

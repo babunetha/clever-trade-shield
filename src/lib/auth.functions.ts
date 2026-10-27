@@ -8,7 +8,9 @@ import {
   verifyLoginPassword,
 } from "./auth.server";
 
-export const getAuthStatus = createServerFn({ method: "GET" }).handler(async () => currentAuthState());
+export const getAuthStatus = createServerFn({ method: "GET" }).handler(async () =>
+  currentAuthState(),
+);
 
 export const loginApp = createServerFn({ method: "POST" })
   .inputValidator((input: { password: string }) => ({
@@ -16,10 +18,18 @@ export const loginApp = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     if (!authConfiguration().configured) {
-      return { ok: false as const, code: "NOT_CONFIGURED", error: "Set APP_SESSION_SECRET and APP_LOGIN_PASSWORD on the server." };
+      return {
+        ok: false as const,
+        code: "NOT_CONFIGURED",
+        error: "Set APP_SESSION_SECRET and APP_LOGIN_PASSWORD on the server.",
+      };
     }
     if (!loginAllowed()) {
-      return { ok: false as const, code: "RATE_LIMITED", error: "Too many failed login attempts. Try again in 15 minutes." };
+      return {
+        ok: false as const,
+        code: "RATE_LIMITED",
+        error: "Too many failed login attempts. Try again in 15 minutes.",
+      };
     }
     if (!(await verifyLoginPassword(data.password))) {
       return { ok: false as const, code: "INVALID_CREDENTIALS", error: "Invalid password." };

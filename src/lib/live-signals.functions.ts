@@ -17,9 +17,13 @@ function makeBias(changePct: number): Bias {
   return changePct > 0.25 ? "BULLISH" : changePct < -0.25 ? "BEARISH" : "NEUTRAL";
 }
 
-export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware([authMiddleware])
+export const getDhanLiveSignals = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator((input: { symbols?: string[]; maxRiskPerTrade?: number }) => ({
-    symbols: (input?.symbols ?? []).map((s) => String(s).trim().toUpperCase()).filter(Boolean).slice(0, 6),
+    symbols: (input?.symbols ?? [])
+      .map((s) => String(s).trim().toUpperCase())
+      .filter(Boolean)
+      .slice(0, 6),
     maxRiskPerTrade: Math.max(1, Number(input?.maxRiskPerTrade ?? 500)),
   }))
   .handler(async ({ data }) => {
@@ -36,9 +40,17 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware(
 
     const quotes: Record<string, { ltp: number; close: number; netChange: number }> = {};
     for (const [segment, ids] of groups) {
-      const q = await getDhanQuote({ securityIds: ids, exchangeSegment: segment as "NSE_EQ" | "IDX_I" });
+      const q = await getDhanQuote({
+        securityIds: ids,
+        exchangeSegment: segment as "NSE_EQ" | "IDX_I",
+      });
       if (!q.ok) return q;
-      for (const value of Object.values(q.data)) quotes[value.securityId] = { ltp: value.lastPrice, close: value.close, netChange: value.netChange };
+      for (const value of Object.values(q.data))
+        quotes[value.securityId] = {
+          ltp: value.lastPrice,
+          close: value.close,
+          netChange: value.netChange,
+        };
     }
 
     const bySymbol = new Map(instruments.map((x) => [x.tradingSymbol, x]));
@@ -46,8 +58,12 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware(
     const bank = bySymbol.get("BANKNIFTY");
     const niftyQuote = nifty ? quotes[nifty.securityId] : undefined;
     const bankQuote = bank ? quotes[bank.securityId] : undefined;
-    const niftyBias = niftyQuote ? makeBias(niftyQuote.close ? (niftyQuote.netChange / niftyQuote.close) * 100 : 0) : "NEUTRAL";
-    const bankNiftyBias = bankQuote ? makeBias(bankQuote.close ? (bankQuote.netChange / bankQuote.close) * 100 : 0) : "NEUTRAL";
+    const niftyBias = niftyQuote
+      ? makeBias(niftyQuote.close ? (niftyQuote.netChange / niftyQuote.close) * 100 : 0)
+      : "NEUTRAL";
+    const bankNiftyBias = bankQuote
+      ? makeBias(bankQuote.close ? (bankQuote.netChange / bankQuote.close) * 100 : 0)
+      : "NEUTRAL";
 
     const signals: Signal[] = [];
     for (const instrument of equity) {
@@ -68,16 +84,24 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware(
         continue;
       }
 
-      const bullish = indicators.ema9 > indicators.ema20 &&
+      const bullish =
+        indicators.ema9 > indicators.ema20 &&
         indicators.ema20 > indicators.ema50 &&
         q.ltp > indicators.vwap &&
-        indicators.rsi14 >= 50 && indicators.rsi14 <= 75 &&
-        indicators.macdHist > 0 && indicators.adx >= 20 && indicators.relVolume >= 1.2;
-      const bearish = indicators.ema9 < indicators.ema20 &&
+        indicators.rsi14 >= 50 &&
+        indicators.rsi14 <= 75 &&
+        indicators.macdHist > 0 &&
+        indicators.adx >= 20 &&
+        indicators.relVolume >= 1.2;
+      const bearish =
+        indicators.ema9 < indicators.ema20 &&
         indicators.ema20 < indicators.ema50 &&
         q.ltp < indicators.vwap &&
-        indicators.rsi14 <= 50 && indicators.rsi14 >= 25 &&
-        indicators.macdHist < 0 && indicators.adx >= 20 && indicators.relVolume >= 1.2;
+        indicators.rsi14 <= 50 &&
+        indicators.rsi14 >= 25 &&
+        indicators.macdHist < 0 &&
+        indicators.adx >= 20 &&
+        indicators.relVolume >= 1.2;
       if (!bullish && !bearish) {
         await sleep(220);
         continue;
@@ -94,14 +118,17 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" }).middleware(
         continue;
       }
       const riskRupees = round(quantity * riskPerShare);
-      const score = Math.min(100, Math.round(
-        50 +
-        (indicators.ema9 > indicators.ema20 === bullish ? 10 : 0) +
-        (indicators.ema20 > indicators.ema50 === bullish ? 10 : 0) +
-        (indicators.macdHist > 0 === bullish ? 10 : 0) +
-        (indicators.relVolume >= 1.5 ? 10 : 5) +
-        (indicators.adx >= 25 ? 10 : 5),
-      ));
+      const score = Math.min(
+        100,
+        Math.round(
+          50 +
+            (indicators.ema9 > indicators.ema20 === bullish ? 10 : 0) +
+            (indicators.ema20 > indicators.ema50 === bullish ? 10 : 0) +
+            (indicators.macdHist > 0 === bullish ? 10 : 0) +
+            (indicators.relVolume >= 1.5 ? 10 : 5) +
+            (indicators.adx >= 25 ? 10 : 5),
+        ),
+      );
 
       signals.push({
         id: `LIVE-${instrument.tradingSymbol}-${Date.now()}`,

@@ -19,7 +19,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Dashboard — ₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Simulated signals with manual approval, ₹500 risk per trade and a ₹1,000 daily loss lock.",
+        content:
+          "Simulated signals with manual approval, ₹500 risk per trade and a ₹1,000 daily loss lock.",
       },
     ],
   }),
@@ -58,7 +59,11 @@ function Dashboard() {
       subtitle="Today's simulated session at a glance. Every trade needs your explicit approval."
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Equity (simulated)" value={formatINR(risk.equity)} hint={`Capital ${formatINR(settings.capital)}`} />
+        <Stat
+          label="Equity (simulated)"
+          value={formatINR(risk.equity)}
+          hint={`Capital ${formatINR(settings.capital)}`}
+        />
         <Stat
           label="Realised P&L today"
           value={formatSignedINR(risk.realisedPnl)}
@@ -111,7 +116,8 @@ function Dashboard() {
                 <div>
                   <div className="text-sm">{i.symbol}</div>
                   <div className="num text-xs text-muted-foreground">
-                    {formatPrice(i.ltp)} <span className={tone(i.change)}>{formatPct(i.changePct)}</span>
+                    {formatPrice(i.ltp)}{" "}
+                    <span className={tone(i.change)}>{formatPct(i.changePct)}</span>
                   </div>
                 </div>
                 <Badge variant="outline">{i.bias}</Badge>
@@ -123,7 +129,9 @@ function Dashboard() {
 
       <section className="mt-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Pending signals awaiting approval ({pending.length})</h2>
+          <h2 className="text-sm font-semibold">
+            Pending signals awaiting approval ({pending.length})
+          </h2>
           <Button asChild size="sm" variant="outline">
             <Link to="/approvals">Go to approvals</Link>
           </Button>
@@ -148,7 +156,8 @@ function Dashboard() {
               <span className="font-semibold">{t.symbol}</span>
               <Badge variant="outline">{t.side}</Badge>
               <span className="num text-xs text-muted-foreground">
-                {t.quantity} @ {formatPrice(t.entry)} · SL {formatPrice(t.stopLoss)} · T1 {formatPrice(t.target1)}
+                {t.quantity} @ {formatPrice(t.entry)} · SL {formatPrice(t.stopLoss)} · T1{" "}
+                {formatPrice(t.target1)}
               </span>
               <Button asChild size="sm" variant="outline" className="ml-auto">
                 <Link to="/journal">Manage in journal</Link>

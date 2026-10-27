@@ -11,7 +11,10 @@ export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
       { title: "AI Agents — ₹1L Trading Assistant" },
-      { name: "description", content: "Bull, Bear, Risk and Final Validator agents powered by Gemini." },
+      {
+        name: "description",
+        content: "Bull, Bear, Risk and Final Validator agents powered by Gemini.",
+      },
     ],
   }),
   component: AgentsPage,
@@ -42,7 +45,10 @@ function AgentsPage() {
   }
 
   return (
-    <AppShell title="AI Agents" subtitle="Bull + Bear + Risk + Final Validator. Server-side Gemini key; no key is exposed to the browser.">
+    <AppShell
+      title="AI Agents"
+      subtitle="Bull + Bear + Risk + Final Validator. Server-side Gemini key; no key is exposed to the browser."
+    >
       <div className="panel p-4">
         <div className="flex flex-wrap items-center gap-3">
           <Brain className="size-5" />
@@ -58,7 +64,8 @@ function AgentsPage() {
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          This page is the integration test. The scanner will be wired to send real Dhan candidate metrics next.
+          This page is the integration test. The scanner will be wired to send real Dhan candidate
+          metrics next.
         </p>
       </div>
 
@@ -80,10 +87,14 @@ function AgentsPage() {
             <section key={name} className="panel p-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">{name}</h2>
-                <Badge variant="outline">{agent.decision} · {agent.confidence}%</Badge>
+                <Badge variant="outline">
+                  {agent.decision} · {agent.confidence}%
+                </Badge>
               </div>
               <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                {agent.reasons.map((reason) => <li key={reason}>• {reason}</li>)}
+                {agent.reasons.map((reason) => (
+                  <li key={reason}>• {reason}</li>
+                ))}
               </ul>
               {agent.risks.length ? (
                 <div className="mt-3 text-xs text-bear">Risks: {agent.risks.join(" · ")}</div>

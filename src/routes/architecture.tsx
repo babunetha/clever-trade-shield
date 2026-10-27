@@ -32,7 +32,11 @@ export const Route = createFileRoute("/architecture")({
 });
 
 const research = [
-  { title: "Technical Analyst", icon: TrendingUp, detail: "Technical market structure and indicators" },
+  {
+    title: "Technical Analyst",
+    icon: TrendingUp,
+    detail: "Technical market structure and indicators",
+  },
   { title: "News Analyst", icon: Newspaper, detail: "News and event research" },
   { title: "Fundamental Analyst", icon: FileSearch, detail: "Fundamental company research" },
   { title: "Sentiment Analyst", icon: BrainCircuit, detail: "Market and sentiment research" },
@@ -45,7 +49,11 @@ const downstream = [
   { title: "Risk Management", icon: ShieldCheck, detail: "Applies trading risk constraints" },
   { title: "Portfolio Manager", icon: WalletCards, detail: "Checks portfolio-level impact" },
   { title: "RISK ENGINE", icon: LockKeyhole, detail: "Final deterministic risk gate" },
-  { title: "Semi-Automatic Approval", icon: ShoppingCart, detail: "Human approval before execution" },
+  {
+    title: "Semi-Automatic Approval",
+    icon: ShoppingCart,
+    detail: "Human approval before execution",
+  },
   { title: "DHAN API", icon: Database, detail: "Broker integration layer" },
   { title: "Order Execution", icon: Sparkles, detail: "Final order execution boundary" },
 ];
@@ -138,7 +146,9 @@ function ArchitecturePage() {
             </div>
             <div className="rounded-lg border border-border p-3 text-xs">
               <div className="label-caps">Execution path</div>
-              <div className="mt-1">Risk Engine → Semi-Automatic Approval → DHAN API → Order Execution</div>
+              <div className="mt-1">
+                Risk Engine → Semi-Automatic Approval → DHAN API → Order Execution
+              </div>
             </div>
           </div>
         </div>

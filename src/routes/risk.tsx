@@ -19,14 +19,25 @@ export const Route = createFileRoute("/risk")({
       { property: "og:title", content: "Risk Controls — ₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Live view of risk usage, lock reasons and the audit trail of every decision taken.",
+        content:
+          "Live view of risk usage, lock reasons and the audit trail of every decision taken.",
       },
     ],
   }),
   component: RiskControls,
 });
 
-function Rail({ label, used, cap, unit = "₹" }: { label: string; used: number; cap: number; unit?: string }) {
+function Rail({
+  label,
+  used,
+  cap,
+  unit = "₹",
+}: {
+  label: string;
+  used: number;
+  cap: number;
+  unit?: string;
+}) {
   const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
   return (
     <div className="panel p-4">
@@ -41,17 +52,23 @@ function Rail({ label, used, cap, unit = "₹" }: { label: string; used: number;
   );
 }
 
-const sevTone = (s: string) => (s === "CRITICAL" ? "text-bear" : s === "WARN" ? "text-warn" : "text-muted-foreground");
+const sevTone = (s: string) =>
+  s === "CRITICAL" ? "text-bear" : s === "WARN" ? "text-warn" : "text-muted-foreground";
 
 function RiskControls() {
   const { risk, settings, audit, setTradingEnabled, resetDay } = useTrading();
 
   return (
-    <AppShell title="Risk Controls" subtitle="Hard rails that block approvals automatically. These cannot be bypassed.">
+    <AppShell
+      title="Risk Controls"
+      subtitle="Hard rails that block approvals automatically. These cannot be bypassed."
+    >
       <div
         className={`panel p-4 ${risk.locked ? "border-bear/40 bg-bear-muted" : "border-bull/40 bg-bull-muted"}`}
       >
-        <div className={`flex items-center gap-2 text-sm font-semibold ${risk.locked ? "text-bear" : "text-bull"}`}>
+        <div
+          className={`flex items-center gap-2 text-sm font-semibold ${risk.locked ? "text-bear" : "text-bull"}`}
+        >
           {risk.locked ? <ShieldAlert className="size-4" /> : <ShieldCheck className="size-4" />}
           {risk.locked ? "Risk lock active — approvals blocked" : "Armed and within all limits"}
         </div>
@@ -77,9 +94,18 @@ function RiskControls() {
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Rail label="Daily loss used" used={Math.max(0, -risk.realisedPnl)} cap={settings.maxDailyLoss} />
+        <Rail
+          label="Daily loss used"
+          used={Math.max(0, -risk.realisedPnl)}
+          cap={settings.maxDailyLoss}
+        />
         <Rail label="Trades used" used={risk.tradesToday} cap={settings.maxTradesPerDay} unit="#" />
-        <Rail label="Losing trades" used={risk.losingTradesToday} cap={settings.lockAfterLosingTrades} unit="#" />
+        <Rail
+          label="Losing trades"
+          used={risk.losingTradesToday}
+          cap={settings.lockAfterLosingTrades}
+          unit="#"
+        />
         <Rail label="Open risk vs daily cap" used={risk.openRisk} cap={settings.maxDailyLoss} />
       </div>
 
@@ -120,7 +146,9 @@ function RiskControls() {
               <span className={sevTone(a.severity)}>{a.detail}</span>
             </li>
           ))}
-          {!audit.length ? <li className="py-2 text-xs text-muted-foreground">No events recorded yet.</li> : null}
+          {!audit.length ? (
+            <li className="py-2 text-xs text-muted-foreground">No events recorded yet.</li>
+          ) : null}
         </ul>
       </section>
     </AppShell>

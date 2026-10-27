@@ -148,7 +148,8 @@ export const returnOver = (bars: DailyBar[], sessions: number) => {
   return round(((bars.at(-1)!.close - then) / then) * 100);
 };
 
-export const high52w = (bars: DailyBar[]) => round(Math.max(...bars.slice(-250).map((b) => b.high)));
+export const high52w = (bars: DailyBar[]) =>
+  round(Math.max(...bars.slice(-250).map((b) => b.high)));
 
 /** Traded value in crore rupees for the latest session. */
 export const tradedValueCr = (bars: DailyBar[]) => {

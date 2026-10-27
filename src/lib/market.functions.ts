@@ -3,8 +3,18 @@ import { authMiddleware } from "./auth-middleware";
 import { dhanMarketDataEngine } from "./market-data-engine";
 
 const DEFAULT_WATCHLIST = [
-  "RELIANCE", "HDFCBANK", "INFY", "TATAMOTORS", "SBIN", "ICICIBANK",
-  "ITC", "AXISBANK", "TATASTEEL", "LT", "MARUTI", "BHARTIARTL",
+  "RELIANCE",
+  "HDFCBANK",
+  "INFY",
+  "TATAMOTORS",
+  "SBIN",
+  "ICICIBANK",
+  "ITC",
+  "AXISBANK",
+  "TATASTEEL",
+  "LT",
+  "MARUTI",
+  "BHARTIARTL",
 ];
 
 export const getDhanMarketSnapshot = createServerFn({ method: "POST" })

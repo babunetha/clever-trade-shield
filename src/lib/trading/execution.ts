@@ -32,7 +32,8 @@ export class PaperExecutionAdapter implements ExecutionAdapter {
   readonly supportsLiveOrders = false;
 
   async place(request: OrderRequest): Promise<OrderResult> {
-    if (request.quantity <= 0) return { accepted: false, mode: "PAPER", reason: "Quantity must be positive." };
+    if (request.quantity <= 0)
+      return { accepted: false, mode: "PAPER", reason: "Quantity must be positive." };
     return { accepted: true, mode: "PAPER", orderId: "PAPER-" + Date.now().toString(36) };
   }
 
@@ -46,11 +47,20 @@ export class DisabledLiveExecutionAdapter implements ExecutionAdapter {
   readonly supportsLiveOrders = false;
 
   async place(): Promise<OrderResult> {
-    return { accepted: false, mode: "LIVE_AUTO", reason: "Live execution is disabled by the application safety gate." };
+    return {
+      accepted: false,
+      mode: "LIVE_AUTO",
+      reason: "Live execution is disabled by the application safety gate.",
+    };
   }
 
   async cancel(orderId: string): Promise<OrderResult> {
-    return { accepted: false, mode: "LIVE_AUTO", orderId, reason: "Live execution is disabled by the application safety gate." };
+    return {
+      accepted: false,
+      mode: "LIVE_AUTO",
+      orderId,
+      reason: "Live execution is disabled by the application safety gate.",
+    };
   }
 }
 

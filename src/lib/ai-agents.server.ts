@@ -122,7 +122,9 @@ async function askGemini(systemInstruction: string, payload: unknown): Promise<A
   };
 }
 
-export async function runTradingAgents(snapshot: AgentMarketSnapshot): Promise<AgentValidationResult> {
+export async function runTradingAgents(
+  snapshot: AgentMarketSnapshot,
+): Promise<AgentValidationResult> {
   const base = {
     role: "India equity swing/intraday research assistant",
     rule: "Analyze only the supplied market data. Do not invent prices, news, fundamentals, or indicators. This is decision support, not an order instruction.",
@@ -168,6 +170,7 @@ export async function runTradingAgents(snapshot: AgentMarketSnapshot): Promise<A
     bear,
     risk,
     validator,
-    disclaimer: "AI analysis is informational decision support. It does not guarantee returns and does not place broker orders.",
+    disclaimer:
+      "AI analysis is informational decision support. It does not guarantee returns and does not place broker orders.",
   };
 }

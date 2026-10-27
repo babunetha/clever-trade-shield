@@ -83,7 +83,9 @@ function adx(candles: DhanCandle[], period = 14): number | null {
   for (let i = 1; i < candles.length; i += 1) {
     const cur = candles[i]!;
     const prev = candles[i - 1]!;
-    tr.push(Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close)));
+    tr.push(
+      Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close)),
+    );
     const up = cur.high - prev.high;
     const down = prev.low - cur.low;
     plus.push(up > down && up > 0 ? up : 0);
@@ -93,8 +95,10 @@ function adx(candles: DhanCandle[], period = 14): number | null {
   for (let i = period - 1; i < tr.length; i += 1) {
     const atrValue = tr.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
     if (atrValue === 0) continue;
-    const pdi = 100 * (plus.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period) / atrValue;
-    const mdi = 100 * (minus.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period) / atrValue;
+    const pdi =
+      (100 * (plus.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period)) / atrValue;
+    const mdi =
+      (100 * (minus.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period)) / atrValue;
     dx.push(pdi + mdi === 0 ? 0 : (100 * Math.abs(pdi - mdi)) / (pdi + mdi));
   }
   return sma(dx, period);
@@ -119,17 +123,34 @@ export function calculateIndicators(candles: DhanCandle[]): Indicators | null {
   const a = atr(candles);
   const v = vwap(candles);
   const d = adx(candles);
-  const avgVolume = sma(candles.map((c) => c.volume), 20) ?? 0;
+  const avgVolume =
+    sma(
+      candles.map((c) => c.volume),
+      20,
+    ) ?? 0;
   const last = candles.at(-1)!;
   const support = Math.min(...candles.slice(-20).map((c) => c.low));
   const resistance = Math.max(...candles.slice(-20).map((c) => c.high));
-  if ([e9, e20, e50, e200, r, m.line, m.signal, m.hist, a, v, d].some((x) => x === null)) return null;
+  if ([e9, e20, e50, e200, r, m.line, m.signal, m.hist, a, v, d].some((x) => x === null))
+    return null;
   return {
-    ema9: round(e9!), ema20: round(e20!), ema50: round(e50!), ema200: round(e200!),
-    rsi14: round(r!, 1), macdLine: round(m.line!, 3), macdSignal: round(m.signal!, 3), macdHist: round(m.hist!, 3),
-    vwap: round(v!), adx: round(d!, 1), atr14: round(a!), volume: last.volume, avgVolume: round(avgVolume),
+    ema9: round(e9!),
+    ema20: round(e20!),
+    ema50: round(e50!),
+    ema200: round(e200!),
+    rsi14: round(r!, 1),
+    macdLine: round(m.line!, 3),
+    macdSignal: round(m.signal!, 3),
+    macdHist: round(m.hist!, 3),
+    vwap: round(v!),
+    adx: round(d!, 1),
+    atr14: round(a!),
+    volume: last.volume,
+    avgVolume: round(avgVolume),
     relVolume: avgVolume > 0 ? round(last.volume / avgVolume, 2) : 0,
-    support: round(support), resistance: round(resistance),
-    context5m: bias(e9, e20), context15m: bias(e20, e50),
+    support: round(support),
+    resistance: round(resistance),
+    context5m: bias(e9, e20),
+    context15m: bias(e20, e50),
   };
 }

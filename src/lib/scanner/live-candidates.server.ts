@@ -1,15 +1,40 @@
 import { resolveDhanInstruments, type DhanInstrument } from "@/lib/market/instruments";
-import { getDhanDailyHistoricalCandles, getDhanHistoricalCandles, getDhanQuote, type DhanCandle } from "@/lib/dhan.server";
+import {
+  getDhanDailyHistoricalCandles,
+  getDhanHistoricalCandles,
+  getDhanQuote,
+  type DhanCandle,
+} from "@/lib/dhan.server";
 import { SCANNERS, type ScannerConfig } from "./definitions";
-import { high52w, higherCloseStreak, returnOver, tightnessPct, tradedValueCr, type DailyBar } from "./series";
-import { backtestTrendBreakout, researchScore, walkForwardTrendBreakout } from "@/lib/research/backtest";
+import {
+  high52w,
+  higherCloseStreak,
+  returnOver,
+  tightnessPct,
+  tradedValueCr,
+  type DailyBar,
+} from "./series";
+import {
+  backtestTrendBreakout,
+  researchScore,
+  walkForwardTrendBreakout,
+} from "@/lib/research/backtest";
 import type { ScanCandidate } from "./candidates";
 
 const crit = (c: ScannerConfig, id: string, key: string, fallback: number) =>
   c[id as keyof ScannerConfig]?.criteria[key] ?? fallback;
 
 const toBars = (x: DhanCandle[]): DailyBar[] =>
-  x.map((c, i) => ({ i, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume })).filter((b) => b.close > 0);
+  x
+    .map((c, i) => ({
+      i,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+      volume: c.volume,
+    }))
+    .filter((b) => b.close > 0);
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (n: number) => iso(new Date(Date.now() - n * 86400000));
@@ -17,16 +42,94 @@ const daysAgo = (n: number) => iso(new Date(Date.now() - n * 86400000));
 const universe = () => {
   const raw = process.env["CTS_UNIVERSE_SYMBOLS"]?.trim();
   return raw
-    ? raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 500)
+    ? raw
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean)
+        .slice(0, 500)
     : [
-        "RELIANCE","HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK","BAJFINANCE","BAJAJFINSV",
-        "INFY","TCS","HCLTECH","WIPRO","TECHM","LTIM","COFORGE","PERSISTENT","MPHASIS","TATAMOTORS","MARUTI","M&M",
-        "EICHERMOT","HEROMOTOCO","BAJAJ-AUTO","TVSMOTOR","ITC","HINDUNILVR","NESTLEIND","BRITANNIA","TATACONSUM",
-        "ASIANPAINT","TITAN","TRENT","BHARTIARTL","ADANIENT","ADANIPORTS","JIOFIN","LT","BEL","HAL","BHEL","POWERGRID",
-        "NTPC","ONGC","COALINDIA","TATASTEEL","JSWSTEEL","HINDALCO","VEDL","ULTRACEMCO","GRASIM","SHREECEM","SUNPHARMA",
-        "DRREDDY","CIPLA","DIVISLAB","APOLLOHOSP","MAXHEALTH","RECLTD","PFC","IRFC","IREDA","DLF","GODREJPROP","PIDILITIND",
-        "SIEMENS","ABB","HAVELLS","DIXON","VOLTAS","POLYCAB","CUMMINSIND","INDIGO","ETERNAL","ZOMATO","DELHIVERY","DMART",
-        "PAYTM","INDIANHOTEL","SRF","UPL","COROMANDEL",
+        "RELIANCE",
+        "HDFCBANK",
+        "ICICIBANK",
+        "SBIN",
+        "AXISBANK",
+        "KOTAKBANK",
+        "INDUSINDBK",
+        "BAJFINANCE",
+        "BAJAJFINSV",
+        "INFY",
+        "TCS",
+        "HCLTECH",
+        "WIPRO",
+        "TECHM",
+        "LTIM",
+        "COFORGE",
+        "PERSISTENT",
+        "MPHASIS",
+        "TATAMOTORS",
+        "MARUTI",
+        "M&M",
+        "EICHERMOT",
+        "HEROMOTOCO",
+        "BAJAJ-AUTO",
+        "TVSMOTOR",
+        "ITC",
+        "HINDUNILVR",
+        "NESTLEIND",
+        "BRITANNIA",
+        "TATACONSUM",
+        "ASIANPAINT",
+        "TITAN",
+        "TRENT",
+        "BHARTIARTL",
+        "ADANIENT",
+        "ADANIPORTS",
+        "JIOFIN",
+        "LT",
+        "BEL",
+        "HAL",
+        "BHEL",
+        "POWERGRID",
+        "NTPC",
+        "ONGC",
+        "COALINDIA",
+        "TATASTEEL",
+        "JSWSTEEL",
+        "HINDALCO",
+        "VEDL",
+        "ULTRACEMCO",
+        "GRASIM",
+        "SHREECEM",
+        "SUNPHARMA",
+        "DRREDDY",
+        "CIPLA",
+        "DIVISLAB",
+        "APOLLOHOSP",
+        "MAXHEALTH",
+        "RECLTD",
+        "PFC",
+        "IRFC",
+        "IREDA",
+        "DLF",
+        "GODREJPROP",
+        "PIDILITIND",
+        "SIEMENS",
+        "ABB",
+        "HAVELLS",
+        "DIXON",
+        "VOLTAS",
+        "POLYCAB",
+        "CUMMINSIND",
+        "INDIGO",
+        "ETERNAL",
+        "ZOMATO",
+        "DELHIVERY",
+        "DMART",
+        "PAYTM",
+        "INDIANHOTEL",
+        "SRF",
+        "UPL",
+        "COROMANDEL",
       ];
 };
 
@@ -58,7 +161,12 @@ function istDate(ts?: number) {
 function todayBars(c: DhanCandle[]) {
   const day = istDate();
   return c
-    .filter((x) => istDate(x.timestamp) === day && istMinutes(x.timestamp) >= 555 && istMinutes(x.timestamp) <= 930)
+    .filter(
+      (x) =>
+        istDate(x.timestamp) === day &&
+        istMinutes(x.timestamp) >= 555 &&
+        istMinutes(x.timestamp) <= 930,
+    )
     .sort((a, b) => a.timestamp - b.timestamp);
 }
 
@@ -124,7 +232,9 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
   });
 
   const ranked = daily
-    .filter((x): x is { symbol: string; instrument: DhanInstrument; bars: DailyBar[] } => Boolean(x))
+    .filter((x): x is { symbol: string; instrument: DhanInstrument; bars: DailyBar[] } =>
+      Boolean(x),
+    )
     .map((x) => {
       const completed = x.bars.slice(0, -1);
       const last = completed.at(-1);
@@ -133,7 +243,11 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
       const r66 = returnOver(completed, 66) ?? 0;
       const tv = tradedValueCr(completed);
       const h = high52w(completed) || last.close;
-      return { ...x, bars: completed, score: r22 * 0.45 + r66 * 0.25 + (last.close / h) * 20 + Math.min(5, tv / 100) };
+      return {
+        ...x,
+        bars: completed,
+        score: r22 * 0.45 + r66 * 0.25 + (last.close / h) * 20 + Math.min(5, tv / 100),
+      };
     })
     .filter((x): x is NonNullable<typeof x> => Boolean(x))
     .sort((a, b) => b.score - a.score)
@@ -182,10 +296,16 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
         return m.breakout && m.lastPrice > m.vwap && rvol >= 1.1;
       }
       if (def.id === "UP20_1M_30_3M") {
-        return r22 >= crit(config, def.id, "return22", 20) && r66 >= crit(config, def.id, "return66", 30);
+        return (
+          r22 >= crit(config, def.id, "return22", 20) && r66 >= crit(config, def.id, "return66", 30)
+        );
       }
       if (def.id === "STRONG_STOCKS") return streak >= crit(config, def.id, "streak", 5);
-      if (def.id === "UP20_TIGHTNESS") return r22 >= crit(config, def.id, "return22", 20) && tight <= crit(config, def.id, "tightness", 4);
+      if (def.id === "UP20_TIGHTNESS")
+        return (
+          r22 >= crit(config, def.id, "return22", 20) &&
+          tight <= crit(config, def.id, "tightness", 4)
+        );
       if (def.id === "POSSIBLE_BREAKOUT") return pct >= crit(config, def.id, "minPctOf52w", 90);
       return false;
     });
@@ -194,7 +314,14 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
     const price = quoteMap[x.instrument.securityId]?.lastPrice ?? m.lastPrice;
     const marketScore = Math.min(
       100,
-      Number((35 + (m.breakout ? 30 : 0) + (m.lastPrice > m.vwap ? 15 : 0) + Math.min(20, rvol * 8)).toFixed(1)),
+      Number(
+        (
+          35 +
+          (m.breakout ? 30 : 0) +
+          (m.lastPrice > m.vwap ? 15 : 0) +
+          Math.min(20, rvol * 8)
+        ).toFixed(1),
+      ),
     );
 
     out.push({
@@ -211,7 +338,10 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
         "Opening range " + m.openingLow.toFixed(2) + "-" + m.openingHigh.toFixed(2),
         "Time-normalized RVOL " + rvol.toFixed(2) + "x",
         "ORB " + (m.breakout ? "confirmed" : "not confirmed"),
-        "Walk-forward OOS windows " + wf.stability.profitableWindows + "/" + wf.stability.totalWindows,
+        "Walk-forward OOS windows " +
+          wf.stability.profitableWindows +
+          "/" +
+          wf.stability.totalWindows,
       ],
       scannedAt,
       bars: x.bars,
@@ -222,6 +352,11 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
   }
 
   return out
-    .sort((a, b) => 0.55 * (b.marketScore ?? 0) + 0.45 * b.research.score - (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score))
+    .sort(
+      (a, b) =>
+        0.55 * (b.marketScore ?? 0) +
+        0.45 * b.research.score -
+        (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score),
+    )
     .slice(0, 20);
 }

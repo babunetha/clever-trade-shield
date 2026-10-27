@@ -117,7 +117,8 @@ export function buildIndices(seed: number): IndexQuote[] {
       dayHigh: round(ltp * 1.003),
       dayLow: round(ltp * 0.997),
       volume: 0,
-      bias: change > i.base * 0.0012 ? "BULLISH" : change < -i.base * 0.0012 ? "BEARISH" : "NEUTRAL",
+      bias:
+        change > i.base * 0.0012 ? "BULLISH" : change < -i.base * 0.0012 ? "BEARISH" : "NEUTRAL",
     } satisfies IndexQuote;
   });
 }

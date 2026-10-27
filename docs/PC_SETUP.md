@@ -3,6 +3,7 @@
 ## 1. Install prerequisites (Windows)
 
 Install:
+
 - Git
 - Bun (recommended)
 - Node.js 22+ only if a dependency requires it
@@ -34,6 +35,7 @@ Copy `.env.example` to `.env.local` and fill only the server-side credentials yo
 Never put Dhan, Gemini, Supabase service-role, or other private API keys in `VITE_*` or `PUBLIC_*` variables.
 
 Start with:
+
 - `GEMINI_API_KEY`
 - `DHAN_CLIENT_ID`
 - `DHAN_ACCESS_TOKEN`

@@ -9,7 +9,8 @@
  *    refuses before any network call is made.
  */
 
-export const LIVE_EXECUTION_ENABLED = process.env["CTS_LIVE_EXECUTION_ENABLED"] === "true" as const;
+export const LIVE_EXECUTION_ENABLED =
+  process.env["CTS_LIVE_EXECUTION_ENABLED"] === ("true" as const);
 
 const DHAN_BASE = "https://api.dhan.co/v2";
 const TIMEOUT_MS = 10_000;
@@ -37,7 +38,8 @@ export interface DhanOrderResult {
 }
 
 /** Discriminated result so the UI never has to inspect thrown errors. */
-export type DhanResult<T> = { ok: true; data: T } | { ok: false; error: string; code: DhanErrorCode };
+export type DhanResult<T> =
+  { ok: true; data: T } | { ok: false; error: string; code: DhanErrorCode };
 
 export type DhanErrorCode =
   | "NOT_CONFIGURED"
@@ -79,7 +81,9 @@ function scrub(message: string): string {
     out = out.split(creds.clientId).join("[redacted]");
   }
   // Long JWT-ish blobs, just in case.
-  return out.replace(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/g, "[redacted]").slice(0, 300);
+  return out
+    .replace(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/g, "[redacted]")
+    .slice(0, 300);
 }
 
 async function dhanRequest<T>(
@@ -91,7 +95,8 @@ async function dhanRequest<T>(
     return {
       ok: false,
       code: "NOT_CONFIGURED",
-      error: "Dhan credentials are not configured on the server. Add DHAN_CLIENT_ID and DHAN_ACCESS_TOKEN as backend secrets.",
+      error:
+        "Dhan credentials are not configured on the server. Add DHAN_CLIENT_ID and DHAN_ACCESS_TOKEN as backend secrets.",
     };
   }
 
@@ -118,11 +123,16 @@ async function dhanRequest<T>(
         return {
           ok: false,
           code: "UNAUTHORIZED",
-          error: "Dhan rejected the credentials (401/403). The access token is likely expired or lacks data-API permission.",
+          error:
+            "Dhan rejected the credentials (401/403). The access token is likely expired or lacks data-API permission.",
         };
       }
       if (response.status === 429) {
-        return { ok: false, code: "RATE_LIMITED", error: "Dhan rate limit reached. Wait a moment and test again." };
+        return {
+          ok: false,
+          code: "RATE_LIMITED",
+          error: "Dhan rate limit reached. Wait a moment and test again.",
+        };
       }
       return {
         ok: false,
@@ -134,16 +144,26 @@ async function dhanRequest<T>(
     try {
       return { ok: true, data: JSON.parse(text) as T };
     } catch {
-      return { ok: false, code: "BAD_RESPONSE", error: "Dhan returned a response that was not valid JSON." };
+      return {
+        ok: false,
+        code: "BAD_RESPONSE",
+        error: "Dhan returned a response that was not valid JSON.",
+      };
     }
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return { ok: false, code: "TIMEOUT", error: `Dhan did not respond within ${TIMEOUT_MS / 1000}s.` };
+      return {
+        ok: false,
+        code: "TIMEOUT",
+        error: `Dhan did not respond within ${TIMEOUT_MS / 1000}s.`,
+      };
     }
     return {
       ok: false,
       code: "NETWORK",
-      error: scrub(`Could not reach Dhan: ${error instanceof Error ? error.message : "unknown network error"}`),
+      error: scrub(
+        `Could not reach Dhan: ${error instanceof Error ? error.message : "unknown network error"}`,
+      ),
     };
   } finally {
     clearTimeout(timer);
@@ -168,7 +188,9 @@ export async function testDhanConnection(): Promise<DhanResult<DhanProfileSummar
   return {
     ok: true,
     data: {
-      dhanClientIdMasked: id ? `${"•".repeat(Math.max(0, id.length - 4))}${id.slice(-4)}` : "unavailable",
+      dhanClientIdMasked: id
+        ? `${"•".repeat(Math.max(0, id.length - 4))}${id.slice(-4)}`
+        : "unavailable",
       tokenValidity: typeof raw["tokenValidity"] === "string" ? raw["tokenValidity"] : null,
       activeSegments: typeof raw["activeSegment"] === "string" ? raw["activeSegment"] : null,
     },
@@ -291,13 +313,20 @@ export async function getDhanHistoricalCandles(
   if (!result.ok) return result;
 
   const raw = result.data;
-  const open = Array.isArray(raw["open"]) ? raw["open"] as unknown[] : [];
-  const high = Array.isArray(raw["high"]) ? raw["high"] as unknown[] : [];
-  const low = Array.isArray(raw["low"]) ? raw["low"] as unknown[] : [];
-  const close = Array.isArray(raw["close"]) ? raw["close"] as unknown[] : [];
-  const volume = Array.isArray(raw["volume"]) ? raw["volume"] as unknown[] : [];
-  const timestamps = Array.isArray(raw["timestamp"]) ? raw["timestamp"] as unknown[] : [];
-  const length = Math.min(open.length, high.length, low.length, close.length, volume.length, timestamps.length);
+  const open = Array.isArray(raw["open"]) ? (raw["open"] as unknown[]) : [];
+  const high = Array.isArray(raw["high"]) ? (raw["high"] as unknown[]) : [];
+  const low = Array.isArray(raw["low"]) ? (raw["low"] as unknown[]) : [];
+  const close = Array.isArray(raw["close"]) ? (raw["close"] as unknown[]) : [];
+  const volume = Array.isArray(raw["volume"]) ? (raw["volume"] as unknown[]) : [];
+  const timestamps = Array.isArray(raw["timestamp"]) ? (raw["timestamp"] as unknown[]) : [];
+  const length = Math.min(
+    open.length,
+    high.length,
+    low.length,
+    close.length,
+    volume.length,
+    timestamps.length,
+  );
 
   return {
     ok: true,
@@ -337,13 +366,20 @@ export async function getDhanDailyHistoricalCandles(
   });
   if (!result.ok) return result;
   const raw = result.data;
-  const open = Array.isArray(raw["open"]) ? raw["open"] as unknown[] : [];
-  const high = Array.isArray(raw["high"]) ? raw["high"] as unknown[] : [];
-  const low = Array.isArray(raw["low"]) ? raw["low"] as unknown[] : [];
-  const close = Array.isArray(raw["close"]) ? raw["close"] as unknown[] : [];
-  const volume = Array.isArray(raw["volume"]) ? raw["volume"] as unknown[] : [];
-  const timestamps = Array.isArray(raw["timestamp"]) ? raw["timestamp"] as unknown[] : [];
-  const length = Math.min(open.length, high.length, low.length, close.length, volume.length, timestamps.length);
+  const open = Array.isArray(raw["open"]) ? (raw["open"] as unknown[]) : [];
+  const high = Array.isArray(raw["high"]) ? (raw["high"] as unknown[]) : [];
+  const low = Array.isArray(raw["low"]) ? (raw["low"] as unknown[]) : [];
+  const close = Array.isArray(raw["close"]) ? (raw["close"] as unknown[]) : [];
+  const volume = Array.isArray(raw["volume"]) ? (raw["volume"] as unknown[]) : [];
+  const timestamps = Array.isArray(raw["timestamp"]) ? (raw["timestamp"] as unknown[]) : [];
+  const length = Math.min(
+    open.length,
+    high.length,
+    low.length,
+    close.length,
+    volume.length,
+    timestamps.length,
+  );
   return {
     ok: true,
     data: Array.from({ length }, (_, i) => ({
@@ -369,7 +405,9 @@ export interface DhanQuote {
   netChange: number;
 }
 
-export async function getDhanQuote(request: DhanLtpRequest): Promise<DhanResult<Record<string, DhanQuote>>> {
+export async function getDhanQuote(
+  request: DhanLtpRequest,
+): Promise<DhanResult<Record<string, DhanQuote>>> {
   const ids = request.securityIds
     .map((id) => String(id).trim())
     .filter((id) => /^\\d{1,8}$/.test(id))
@@ -411,7 +449,9 @@ export interface DhanLtpRequest {
   exchangeSegment?: "NSE_EQ" | "BSE_EQ" | "IDX_I";
 }
 
-export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Record<string, number>>> {
+export async function getDhanLtp(
+  request: DhanLtpRequest,
+): Promise<DhanResult<Record<string, number>>> {
   const ids = request.securityIds
     .map((id) => String(id).trim())
     .filter((id) => /^\\d{1,8}$/.test(id))
@@ -434,7 +474,6 @@ export async function getDhanLtp(request: DhanLtpRequest): Promise<DhanResult<Re
   }
   return { ok: true, data: map };
 }
-
 
 export interface DhanOrderSummary {
   orderId: string;
@@ -474,11 +513,15 @@ export async function getDhanOrders(): Promise<DhanResult<DhanOrderSummary[]>> {
   };
 }
 
-export async function getDhanOrderByCorrelationId(correlationId: string): Promise<DhanResult<DhanOrderSummary | null>> {
+export async function getDhanOrderByCorrelationId(
+  correlationId: string,
+): Promise<DhanResult<DhanOrderSummary | null>> {
   if (!/^[A-Za-z0-9 _-]{1,30}$/.test(correlationId)) {
     return { ok: false, code: "BAD_RESPONSE", error: "Invalid correlation ID." };
   }
-  const result = await dhanRequest<Record<string, unknown>>("/orders/external/" + encodeURIComponent(correlationId));
+  const result = await dhanRequest<Record<string, unknown>>(
+    "/orders/external/" + encodeURIComponent(correlationId),
+  );
   if (!result.ok) return result;
   if (!result.data || !Object.keys(result.data).length) return { ok: true, data: null };
   const row = result.data;
@@ -531,10 +574,19 @@ export async function getDhanTrades(): Promise<DhanResult<DhanTradeSummary[]>> {
   };
 }
 
-export { liveExecutionGate, placeLiveDhanOrder, getLiveDhanOrderByCorrelationId, cancelLiveDhanOrder } from "./dhan-live-execution.server";
+export {
+  liveExecutionGate,
+  placeLiveDhanOrder,
+  getLiveDhanOrderByCorrelationId,
+  cancelLiveDhanOrder,
+} from "./dhan-live-execution.server";
 
 export async function placeDhanOrder(_order: DhanOrderRequest): Promise<DhanOrderResult> {
-  return { placed: false, reason: "Use the durable approved-trade workflow for execution; direct broker placement is not exposed." };
+  return {
+    placed: false,
+    reason:
+      "Use the durable approved-trade workflow for execution; direct broker placement is not exposed.",
+  };
 }
 
 export function scrubDhanMessage(message: string) {

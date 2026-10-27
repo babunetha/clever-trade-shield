@@ -1,7 +1,19 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getDhanPaperMarks } from "@/lib/paper-market.functions";
-import { persistPaperTrade as persistPaperTradeFn, persistTradeAudit as persistTradeAuditFn } from "@/lib/paper-storage.functions";
+import {
+  persistPaperTrade as persistPaperTradeFn,
+  persistTradeAudit as persistTradeAuditFn,
+} from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
 import type {
@@ -62,7 +74,12 @@ interface Ctx extends Persisted {
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
   publishLiveSignals: (signals: Signal[]) => void;
-  closeTrade: (id: string, exit: number, notes?: string, exitReason?: "STOP" | "TARGET" | "MANUAL") => void;
+  closeTrade: (
+    id: string,
+    exit: number,
+    notes?: string,
+    exitReason?: "STOP" | "TARGET" | "MANUAL",
+  ) => void;
   updateNotes: (id: string, notes: string) => void;
   saveSettings: (patch: Partial<Settings>) => void;
   setTradingEnabled: (enabled: boolean) => void;
@@ -71,7 +88,8 @@ interface Ctx extends Persisted {
 
 const TradingContext = createContext<Ctx | null>(null);
 
-const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+const uid = (p: string) =>
+  `${p}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 
 function isToday(iso: string) {
   const d = new Date(iso);
@@ -93,11 +111,21 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
 
-  const log = useCallback((action: string, detail: string, severity: AuditSeverity = "INFO") => {
-    const entry = { id: uid("AUD"), at: new Date().toISOString(), actor: "operator", action, detail, severity };
-    setAudit((prev) => [entry, ...prev].slice(0, 300));
-    void persistTradeAudit({ data: entry }).catch(() => {});
-  }, [persistTradeAudit]);
+  const log = useCallback(
+    (action: string, detail: string, severity: AuditSeverity = "INFO") => {
+      const entry = {
+        id: uid("AUD"),
+        at: new Date().toISOString(),
+        actor: "operator",
+        action,
+        detail,
+        severity,
+      };
+      setAudit((prev) => [entry, ...prev].slice(0, 300));
+      void persistTradeAudit({ data: entry }).catch(() => {});
+    },
+    [persistTradeAudit],
+  );
 
   // Restore persisted state on the client only.
   useEffect(() => {
@@ -105,7 +133,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Persisted>;
-        if (parsed.settings) setSettings({ ...DEFAULT_SETTINGS, ...parsed.settings, liveExecutionEnabled: false });
+        if (parsed.settings)
+          setSettings({ ...DEFAULT_SETTINGS, ...parsed.settings, liveExecutionEnabled: false });
         if (parsed.trades) setTrades(parsed.trades);
         if (parsed.audit) setAudit(parsed.audit);
         if (parsed.signals) setSignals(parsed.signals);
@@ -119,7 +148,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings, signals, trades, audit }));
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ settings, signals, trades, audit }),
+      );
     } catch {
       /* storage full or unavailable */
     }
@@ -152,16 +184,25 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const open = tradesRef.current.filter((t) => t.status === "OPEN");
       if (!open.length) return;
       try {
-        const securityIds = [...new Set(open.map((t) => t.securityId).filter((id): id is string => Boolean(id)))];
+        const securityIds = [
+          ...new Set(open.map((t) => t.securityId).filter((id): id is string => Boolean(id))),
+        ];
         if (!securityIds.length) return;
         const result = await getDhanPaperMarks({ data: { securityIds } });
         if (!result.ok) return;
         const quotesBySecurityId = result.quotes as Record<string, { lastPrice: number }>;
-        const exits: Array<{ id: string; price: number; notes: string; reason: "STOP" | "TARGET" }> = [];
+        const exits: Array<{
+          id: string;
+          price: number;
+          notes: string;
+          reason: "STOP" | "TARGET";
+        }> = [];
         setTrades((prev) =>
           prev.map((trade) => {
             if (trade.status !== "OPEN") return trade;
-            const price = trade.securityId ? quotesBySecurityId[trade.securityId]?.lastPrice : undefined;
+            const price = trade.securityId
+              ? quotesBySecurityId[trade.securityId]?.lastPrice
+              : undefined;
             if (price === undefined || !Number.isFinite(price)) return trade;
             if (price <= trade.stopLoss) {
               exits.push({
@@ -184,11 +225,16 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             return {
               ...trade,
               markPrice: price,
-              unrealizedPnl: Number(((price - trade.entry) * trade.quantity * (trade.side === "LONG" ? 1 : -1)).toFixed(2)),
+              unrealizedPnl: Number(
+                ((price - trade.entry) * trade.quantity * (trade.side === "LONG" ? 1 : -1)).toFixed(
+                  2,
+                ),
+              ),
             };
           }),
         );
-        for (const exit of exits) closeTradeRef.current(exit.id, exit.price, exit.notes, exit.reason);
+        for (const exit of exits)
+          closeTradeRef.current(exit.id, exit.price, exit.notes, exit.reason);
       } catch {
         /* Dhan is optional; keep paper journal usable without it. */
       }
@@ -216,7 +262,11 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       const riskDecision = validateSignalRisk(signal, settings, risk);
       if (!riskDecision.allowed) {
-        log("APPROVE_BLOCKED", signal.symbol + " blocked: " + riskDecision.reasons.join("; "), "WARN");
+        log(
+          "APPROVE_BLOCKED",
+          signal.symbol + " blocked: " + riskDecision.reasons.join("; "),
+          "WARN",
+        );
         return { ok: false, message: riskDecision.reasons[0] ?? "Risk validation failed" };
       }
 
@@ -237,7 +287,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         notes: "",
         simulated: true,
       };
-      setSignals((prev) => prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)));
+      setSignals((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)),
+      );
       setTrades((prev) => [paperTrade, ...prev]);
       void persistPaperTrade({
         data: {
@@ -252,7 +304,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         "SIGNAL_APPROVED",
         `${signal.side} ${signal.quantity} ${signal.symbol} @ ${signal.entry}, SL ${signal.stopLoss}, risk ₹${signal.riskRupees} — simulated only, no order sent`,
       );
-      return { ok: true, message: "Approved — logged as a simulated trade. No live order was placed." };
+      return {
+        ok: true,
+        message: "Approved — logged as a simulated trade. No live order was placed.",
+      };
     },
     [signals, risk, settings, log, persistPaperTrade],
   );
@@ -260,12 +315,19 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
     (input) => {
       if (risk.locked) {
-        log("PAPER_TRADE_BLOCKED", `${input.symbol} blocked: ${risk.lockReasons.join("; ")}`, "WARN");
+        log(
+          "PAPER_TRADE_BLOCKED",
+          `${input.symbol} blocked: ${risk.lockReasons.join("; ")}`,
+          "WARN",
+        );
         return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
       }
       if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
       if (input.riskRupees > settings.maxRiskPerTrade)
-        return { ok: false, message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap` };
+        return {
+          ok: false,
+          message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap`,
+        };
       const openToday = trades.filter((t) => isToday(t.openedAt) && t.status === "OPEN").length;
       if (openToday >= settings.maxOpenPositions)
         return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
@@ -310,7 +372,14 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     (id: string, reason: string) => {
       setSignals((prev) =>
         prev.map((s) =>
-          s.id === id ? { ...s, status: "REJECTED", decidedAt: new Date().toISOString(), rejectReason: reason } : s,
+          s.id === id
+            ? {
+                ...s,
+                status: "REJECTED",
+                decidedAt: new Date().toISOString(),
+                rejectReason: reason,
+              }
+            : s,
         ),
       );
       const s = signals.find((x) => x.id === id);
@@ -322,7 +391,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const publishLiveSignals = useCallback(
     (liveSignals: Signal[]) => {
       setSignals(liveSignals.slice(0, 40));
-      log("LIVE_SIGNALS_PUBLISHED", `${liveSignals.length} Dhan-derived signals published for manual approval`);
+      log(
+        "LIVE_SIGNALS_PUBLISHED",
+        `${liveSignals.length} Dhan-derived signals published for manual approval`,
+      );
     },
     [log],
   );
@@ -334,15 +406,22 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       indices,
       maxRiskPerTrade: settings.maxRiskPerTrade,
     });
-    setSignals((prev) => [
-      ...fresh,
-      ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
-    ].slice(0, 40));
+    setSignals((prev) =>
+      [
+        ...fresh,
+        ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
+      ].slice(0, 40),
+    );
     log("SIGNALS_REFRESHED", `${fresh.length} simulated signals generated`);
   }, [quotes, indices, settings.maxRiskPerTrade, log]);
 
   const closeTrade = useCallback(
-    (id: string, exit: number, notes?: string, exitReason: "STOP" | "TARGET" | "MANUAL" = "MANUAL") => {
+    (
+      id: string,
+      exit: number,
+      notes?: string,
+      exitReason: "STOP" | "TARGET" | "MANUAL" = "MANUAL",
+    ) => {
       const existing = trades.find((t) => t.id === id);
       if (!existing || existing.status === "CLOSED") return;
       const dir = existing.side === "LONG" ? 1 : -1;
@@ -385,7 +464,13 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const saveSettings = useCallback(
     (patch: Partial<Settings>) => {
       setSettings((prev) => ({ ...prev, ...patch, liveExecutionEnabled: false }));
-      log("SETTINGS_UPDATED", Object.entries(patch).map(([k, v]) => `${k}=${String(v)}`).join(", "), "WARN");
+      log(
+        "SETTINGS_UPDATED",
+        Object.entries(patch)
+          .map(([k, v]) => `${k}=${String(v)}`)
+          .join(", "),
+        "WARN",
+      );
     },
     [log],
   );
@@ -393,7 +478,11 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const setTradingEnabled = useCallback(
     (enabled: boolean) => {
       setSettings((prev) => ({ ...prev, tradingEnabled: enabled }));
-      log(enabled ? "TRADING_ENABLED" : "TRADING_DISABLED", enabled ? "Approvals re-enabled" : "Emergency disable: all approvals blocked", "CRITICAL");
+      log(
+        enabled ? "TRADING_ENABLED" : "TRADING_DISABLED",
+        enabled ? "Approvals re-enabled" : "Emergency disable: all approvals blocked",
+        "CRITICAL",
+      );
     },
     [log],
   );

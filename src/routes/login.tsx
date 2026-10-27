@@ -59,17 +59,34 @@ function LoginPage() {
           <Badge variant="outline">SECURE LOGIN</Badge>
         </div>
         <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          Dhan credentials remain server-side. This login protects the application and every private server function.
+          Dhan credentials remain server-side. This login protects the application and every private
+          server function.
         </div>
         <form className="mt-5 space-y-4" onSubmit={submit}>
           <label className="block space-y-1.5">
             <span className="text-xs font-medium">Application password</span>
             <div className="relative">
               <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required maxLength={256} disabled={busy} />
+              <Input
+                className="pl-9"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                maxLength={256}
+                disabled={busy}
+              />
             </div>
           </label>
-          {error ? <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{error}</p> : null}
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+            >
+              {error}
+            </p>
+          ) : null}
           <Button className="w-full" type="submit" disabled={busy || !password}>
             {busy ? "Authenticating…" : "Unlock terminal"}
           </Button>
