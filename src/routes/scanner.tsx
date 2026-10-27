@@ -23,9 +23,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { SCANNERS, defaultScannerConfig, type ScannerConfig, type ScannerId } from "@/lib/scanner/definitions";
+import {
+  SCANNERS,
+  defaultScannerConfig,
+  type ScannerConfig,
+  type ScannerId,
+} from "@/lib/scanner/definitions";
 import { runScanners, type ScanCandidate } from "@/lib/scanner/candidates";
-import { MAX_TICK_AGE_SECONDS, stateClasses, verifyCandidate, type VerificationResult } from "@/lib/scanner/verify";
+import {
+  MAX_TICK_AGE_SECONDS,
+  stateClasses,
+  verifyCandidate,
+  type VerificationResult,
+} from "@/lib/scanner/verify";
 import { SECTORS } from "@/lib/scanner/series";
 import { useTrading } from "@/lib/trading/store";
 import { formatDateTime, formatINR, formatPrice, formatTime } from "@/lib/trading/format";
@@ -46,7 +56,8 @@ export const Route = createFileRoute("/scanner")({
       { property: "og:title", content: "Scanner — ₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Candidate discovery with second-stage verification, risk caps and manual approval. No live orders.",
+        content:
+          "Candidate discovery with second-stage verification, risk caps and manual approval. No live orders.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -74,7 +85,9 @@ function ScannerPage() {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
-  const [aiResults, setAiResults] = useState<Record<string, Awaited<ReturnType<typeof runAiTradingAgents>>>>({});
+  const [aiResults, setAiResults] = useState<
+    Record<string, Awaited<ReturnType<typeof runAiTradingAgents>>>
+  >({});
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 5000);
@@ -126,7 +139,9 @@ function ScannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scanAgeSeconds = scannedAt ? Math.max(0, Math.round((nowMs - new Date(scannedAt).getTime()) / 1000)) : 0;
+  const scanAgeSeconds = scannedAt
+    ? Math.max(0, Math.round((nowMs - new Date(scannedAt).getTime()) / 1000))
+    : 0;
   const stale = Boolean(scannedAt) && scanAgeSeconds > STALE_AFTER_SECONDS;
   const openPositions = trades.filter((t) => t.status === "OPEN").length;
   const niftyBias = indices[0]?.bias ?? "NEUTRAL";
@@ -136,7 +151,11 @@ function ScannerPage() {
     [candidates],
   );
 
-  const dhanStatus = useQuery({ queryKey: ["dhan-status"], queryFn: () => getDhanStatus(), staleTime: 60_000 });
+  const dhanStatus = useQuery({
+    queryKey: ["dhan-status"],
+    queryFn: () => getDhanStatus(),
+    staleTime: 60_000,
+  });
   const brokerConfigured = Boolean(
     dhanStatus.data?.clientIdConfigured && dhanStatus.data?.accessTokenConfigured,
   );
@@ -169,31 +188,51 @@ function ScannerPage() {
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
     const asOf = new Date(Date.now() - scanAgeSeconds * 1000).toISOString();
-    return [...candidates].sort((a, b) => (0.55 * (b.marketScore ?? 0) + 0.45 * b.research.score) - (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score)).map((candidate) => {
-      const quote = quotes.find((q) => q.symbol === candidate.symbol);
-      const sector = SECTORS[candidate.symbol] ?? "Unclassified";
-      const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
-      const sectorChangePct = peers.length ? peers.reduce((s, q) => s + q.changePct, 0) / peers.length : 0;
-      const livePrice = liveMap.get(candidate.symbol.toUpperCase());
-      const tick =
-        liveOk && livePrice !== undefined && liveResult?.ok
-          ? { price: livePrice, asOf: liveResult.asOf, source: "DHAN_LIVE" as const }
-          : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
-      return {
-        candidate,
-        verification: verifyCandidate({
+    return [...candidates]
+      .sort(
+        (a, b) =>
+          0.55 * (b.marketScore ?? 0) +
+          0.45 * b.research.score -
+          (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score),
+      )
+      .map((candidate) => {
+        const quote = quotes.find((q) => q.symbol === candidate.symbol);
+        const sector = SECTORS[candidate.symbol] ?? "Unclassified";
+        const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
+        const sectorChangePct = peers.length
+          ? peers.reduce((s, q) => s + q.changePct, 0) / peers.length
+          : 0;
+        const livePrice = liveMap.get(candidate.symbol.toUpperCase());
+        const tick =
+          liveOk && livePrice !== undefined && liveResult?.ok
+            ? { price: livePrice, asOf: liveResult.asOf, source: "DHAN_LIVE" as const }
+            : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
+        return {
           candidate,
-          tick,
-          niftyBias,
-          sectorChangePct,
-          settings,
-          risk,
-          openPositions,
-        }),
-      };
-    });
+          verification: verifyCandidate({
+            candidate,
+            tick,
+            niftyBias,
+            sectorChangePct,
+            settings,
+            risk,
+            openPositions,
+          }),
+        };
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidates, quotes, niftyBias, settings, risk, openPositions, scanAgeSeconds, liveMap, liveOk, liveResult]);
+  }, [
+    candidates,
+    quotes,
+    niftyBias,
+    settings,
+    risk,
+    openPositions,
+    scanAgeSeconds,
+    liveMap,
+    liveOk,
+    liveResult,
+  ]);
 
   const counts = {
     buy: rows.filter((r) => r.verification.state === "BUY CANDIDATE").length,
@@ -202,7 +241,10 @@ function ScannerPage() {
   };
 
   const setCriterion = (id: ScannerId, key: string, value: number) =>
-    setConfig((prev) => ({ ...prev, [id]: { ...prev[id], criteria: { ...prev[id].criteria, [key]: value } } }));
+    setConfig((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], criteria: { ...prev[id].criteria, [key]: value } },
+    }));
 
   const runAiValidation = async (row: Row) => {
     setAiLoading(row.candidate.symbol);
@@ -303,27 +345,38 @@ function ScannerPage() {
           onClick={() => void live.refetch()}
           disabled={!brokerConfigured || live.isFetching}
         >
-          {live.isFetching ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <RefreshCw className="mr-1 size-3.5" />}
+          {live.isFetching ? (
+            <Loader2 className="mr-1 size-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-1 size-3.5" />
+          )}
           Reconnect prices
         </Button>
         <Button size="sm" variant="outline" onClick={runScan} disabled={status === "loading"}>
-          {status === "loading" ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <RefreshCw className="mr-1 size-3.5" />}
+          {status === "loading" ? (
+            <Loader2 className="mr-1 size-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-1 size-3.5" />
+          )}
           Re-run scan
         </Button>
       </div>
 
       {!brokerConfigured && !dhanStatus.isLoading ? (
         <div className="mb-3 rounded-md border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
-          Live Dhan prices are off because the broker credentials are not configured on the server. Add
-          <span className="num"> DHAN_CLIENT_ID </span> and <span className="num">DHAN_ACCESS_TOKEN</span> as backend
-          secrets (Settings → Dhan connection). Until then every price here is simulated and paper trading is judged on
+          Live Dhan prices are off because the broker credentials are not configured on the server.
+          Add
+          <span className="num"> DHAN_CLIENT_ID </span> and{" "}
+          <span className="num">DHAN_ACCESS_TOKEN</span> as backend secrets (Settings → Dhan
+          connection). Until then every price here is simulated and paper trading is judged on
           simulated prices only.
         </div>
       ) : null}
 
       {brokerConfigured && liveError ? (
         <div className="mb-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
-          {liveError} Verification falls back to simulated prices, and a stale price blocks paper trading by design.
+          {liveError} Verification falls back to simulated prices, and a stale price blocks paper
+          trading by design.
         </div>
       ) : null}
 
@@ -337,11 +390,14 @@ function ScannerPage() {
             symbol: r.candidate.symbol,
             scanClose: r.candidate.scanClose,
             verification: r.verification,
-            price: isLive ? lp : (quotes.find((q) => q.symbol === r.candidate.symbol)?.ltp ?? r.candidate.scanClose),
+            price: isLive
+              ? lp
+              : (quotes.find((q) => q.symbol === r.candidate.symbol)?.ltp ?? r.candidate.scanClose),
             source: isLive ? "DHAN_LIVE" : "SIMULATED",
-            asOf: isLive && liveResult?.ok
-              ? liveResult.asOf
-              : new Date(nowMs - r.verification.freshnessSeconds * 1000).toISOString(),
+            asOf:
+              isLive && liveResult?.ok
+                ? liveResult.asOf
+                : new Date(nowMs - r.verification.freshnessSeconds * 1000).toISOString(),
             missingFromFeed: Boolean(liveOk && lp === undefined),
           };
         })}
@@ -359,7 +415,9 @@ function ScannerPage() {
                     : "SIMULATED"
         }
         lastSuccessAt={liveOk && live.dataUpdatedAt ? live.dataUpdatedAt : null}
-        lastErrorAt={live.errorUpdatedAt || (liveResult && !liveResult.ok ? live.dataUpdatedAt : null) || null}
+        lastErrorAt={
+          live.errorUpdatedAt || (liveResult && !liveResult.ok ? live.dataUpdatedAt : null) || null
+        }
         errorMessage={liveError}
         failureCount={live.failureCount}
         isFetching={live.isFetching}
@@ -375,7 +433,8 @@ function ScannerPage() {
         <section className="panel p-4">
           <h2 className="text-sm font-semibold">Scanners &amp; criteria</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Thresholds are yours to tune. No accuracy claim from any public scanner is reproduced here.
+            Thresholds are yours to tune. No accuracy claim from any public scanner is reproduced
+            here.
           </p>
           <div className="mt-3 space-y-4">
             {SCANNERS.map((def) => (
@@ -445,8 +504,8 @@ function ScannerPage() {
             <span className="text-warn">WAIT {counts.wait}</span>
             <span className="text-bear">AVOID {counts.avoid}</span>
             <span className="ml-auto text-muted-foreground">
-              Index bias {niftyBias} · open positions {openPositions}/{settings.maxOpenPositions} · trades left{" "}
-              {risk.tradesLeft}
+              Index bias {niftyBias} · open positions {openPositions}/{settings.maxOpenPositions} ·
+              trades left {risk.tradesLeft}
             </span>
           </div>
 
@@ -471,14 +530,15 @@ function ScannerPage() {
           {status === "ready" && rows.length === 0 ? (
             <div className="panel p-8 text-center text-sm text-muted-foreground">
               <Radar className="mx-auto mb-2 size-5" />
-              No symbol met the enabled criteria in this simulated scan. Loosen a threshold or re-run.
+              No symbol met the enabled criteria in this simulated scan. Loosen a threshold or
+              re-run.
             </div>
           ) : null}
 
           {status === "ready" && stale ? (
             <div className="panel border-bear/40 p-3 text-xs text-bear">
-              These results were produced {scanAgeSeconds}s ago and are no longer treated as current. Paper trading is
-              blocked until you re-run the scan.
+              These results were produced {scanAgeSeconds}s ago and are no longer treated as
+              current. Paper trading is blocked until you re-run the scan.
             </div>
           ) : null}
 
@@ -504,11 +564,21 @@ function ScannerPage() {
                       </div>
 
                       <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1 num text-xs sm:grid-cols-4">
-                        <Metric label={liveOk && liveMap.has(cand.symbol.toUpperCase()) ? "Price (Dhan live)" : "Price (sim)"} value={formatPrice(v.plan.entry)} />
+                        <Metric
+                          label={
+                            liveOk && liveMap.has(cand.symbol.toUpperCase())
+                              ? "Price (Dhan live)"
+                              : "Price (sim)"
+                          }
+                          value={formatPrice(v.plan.entry)}
+                        />
                         <Metric label="Scan close" value={formatPrice(cand.scanClose)} />
                         <Metric label="52w proximity" value={`${v.metrics.pctOf52wHigh}%`} />
                         <Metric label="Liquidity" value={`₹${v.metrics.tradedValueCr} Cr`} />
-                        <Metric label="RVOL" value={v.metrics.rvol !== null ? `${v.metrics.rvol}x` : "—"} />
+                        <Metric
+                          label="RVOL"
+                          value={v.metrics.rvol !== null ? `${v.metrics.rvol}x` : "—"}
+                        />
                         <Metric label="RSI 14" value={v.metrics.rsi14 ?? "—"} />
                         <Metric label="ATR 14" value={v.metrics.atr14 ?? "—"} />
                         <Metric label="Checks" value={`${v.passed}/${v.total}`} />
@@ -524,7 +594,8 @@ function ScannerPage() {
                           T1 {formatPrice(v.plan.target1)} · T2 {formatPrice(v.plan.target2)}
                         </div>
                         <div className="text-muted-foreground">
-                          {v.plan.quantity} sh · risk {formatINR(v.plan.riskRupees)} · R:R {v.plan.riskReward}
+                          {v.plan.quantity} sh · risk {formatINR(v.plan.riskRupees)} · R:R{" "}
+                          {v.plan.riskReward}
                         </div>
                       </div>
                     </div>
@@ -537,12 +608,17 @@ function ScannerPage() {
                         <span>PF {cand.research.profitFactor}</span>
                         <span>Max DD {cand.research.maxDrawdownR}R</span>
                       </div>
-                      <div className="mt-1 text-[11px] text-muted-foreground">Historical simulation only; used for ranking, not future-return prediction.</div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        Historical simulation only; used for ranking, not future-return prediction.
+                      </div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setSelected(open ? null : cand.id)}>
-
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelected(open ? null : cand.id)}
+                      >
                         {open ? "Hide checks" : `Why ${v.state}`}
                       </Button>
 
@@ -556,10 +632,11 @@ function ScannerPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Log a simulated paper trade?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)}, stop{" "}
-                              {formatPrice(v.plan.stopLoss)}, target {formatPrice(v.plan.target1)}, risk{" "}
-                              {formatINR(v.plan.riskRupees)}. This is recorded in the journal on simulated data only — no
-                              order is sent to any broker and live execution stays disabled.
+                              LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
+                              stop {formatPrice(v.plan.stopLoss)}, target{" "}
+                              {formatPrice(v.plan.target1)}, risk {formatINR(v.plan.riskRupees)}.
+                              This is recorded in the journal on simulated data only — no order is
+                              sent to any broker and live execution stays disabled.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -577,7 +654,9 @@ function ScannerPage() {
                         onClick={() => void runAiValidation(row)}
                         disabled={aiLoading === cand.symbol || rowIndex >= 3}
                       >
-                        {aiLoading === cand.symbol ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
+                        {aiLoading === cand.symbol ? (
+                          <Loader2 className="mr-1 size-3.5 animate-spin" />
+                        ) : null}
                         {rowIndex < 3 ? "Gemini validate (Top 3)" : "AI limited to Top 3"}
                       </Button>
 
@@ -599,10 +678,19 @@ function ScannerPage() {
                             </Badge>
                           </div>
                           <div className="mt-2 grid gap-2 text-xs md:grid-cols-4">
-                            <div><span className="label-caps">Bull</span> {ai.result.bull.decision}</div>
-                            <div><span className="label-caps">Bear</span> {ai.result.bear.decision}</div>
-                            <div><span className="label-caps">Risk</span> {ai.result.risk.decision}</div>
-                            <div><span className="label-caps">Validator</span> {ai.result.validator.decision}</div>
+                            <div>
+                              <span className="label-caps">Bull</span> {ai.result.bull.decision}
+                            </div>
+                            <div>
+                              <span className="label-caps">Bear</span> {ai.result.bear.decision}
+                            </div>
+                            <div>
+                              <span className="label-caps">Risk</span> {ai.result.risk.decision}
+                            </div>
+                            <div>
+                              <span className="label-caps">Validator</span>{" "}
+                              {ai.result.validator.decision}
+                            </div>
                           </div>
                           <p className="mt-2 text-xs text-muted-foreground">
                             {ai.result.validator.notes}
@@ -622,17 +710,27 @@ function ScannerPage() {
                           </ul>
                           <div className="label-caps mt-3 mb-1">Invalidation</div>
                           <p className="text-xs text-muted-foreground">
-                            A close below {formatPrice(v.plan.stopLoss)} invalidates the setup. It is also void if the
-                            price loses the last completed daily close, the index bias turns bearish, or the scan goes
-                            stale.
+                            A close below {formatPrice(v.plan.stopLoss)} invalidates the setup. It
+                            is also void if the price loses the last completed daily close, the
+                            index bias turns bearish, or the scan goes stale.
                           </p>
                         </div>
                         <div>
                           <div className="label-caps mb-1">Verification checks</div>
                           <ul className="space-y-1 text-xs">
                             {v.checks.map((c) => (
-                              <li key={c.label} className={c.ok ? "text-muted-foreground" : c.blocking ? "text-bear" : "text-warn"}>
-                                {c.ok ? "PASS" : c.blocking ? "FAIL (blocking)" : "FAIL"} · {c.label} — {c.detail}
+                              <li
+                                key={c.label}
+                                className={
+                                  c.ok
+                                    ? "text-muted-foreground"
+                                    : c.blocking
+                                      ? "text-bear"
+                                      : "text-warn"
+                                }
+                              >
+                                {c.ok ? "PASS" : c.blocking ? "FAIL (blocking)" : "FAIL"} ·{" "}
+                                {c.label} — {c.detail}
                               </li>
                             ))}
                           </ul>

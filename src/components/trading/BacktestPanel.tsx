@@ -18,8 +18,9 @@ export function BacktestPanel({ config }: { config: ScannerConfig }) {
         </span>
       </div>
       <p className="mb-2 text-[11px] text-muted-foreground">
-        Risk {formatINR(a.riskPerTrade)}/trade, stop {a.atrStopMultiple}×ATR, target {a.targetR}R, time stop {a.timeStopSessions} sessions,
-        costs {a.costPerTradePct}% + slippage {a.slippagePerSidePct}%/side. Uses your current scanner criteria.
+        Risk {formatINR(a.riskPerTrade)}/trade, stop {a.atrStopMultiple}×ATR, target {a.targetR}R,
+        time stop {a.timeStopSessions} sessions, costs {a.costPerTradePct}% + slippage{" "}
+        {a.slippagePerSidePct}%/side. Uses your current scanner criteria.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
@@ -45,10 +46,16 @@ export function BacktestPanel({ config }: { config: ScannerConfig }) {
                 <td className="pr-2 text-right">{m.trades ? m.winRate + "%" : "—"}</td>
                 <td className="pr-2 text-right">{formatINR(m.avgWin)}</td>
                 <td className="pr-2 text-right">{formatINR(m.avgLoss)}</td>
-                <td className={"pr-2 text-right " + (m.expectancy >= 0 ? "text-bull" : "text-bear")}>{formatINR(m.expectancy)}</td>
+                <td
+                  className={"pr-2 text-right " + (m.expectancy >= 0 ? "text-bull" : "text-bear")}
+                >
+                  {formatINR(m.expectancy)}
+                </td>
                 <td className="pr-2 text-right">{m.profitFactor || "—"}</td>
                 <td className="pr-2 text-right text-bear">{formatINR(m.maxDrawdown)}</td>
-                <td className={"pr-2 text-right " + (m.netPnl >= 0 ? "text-bull" : "text-bear")}>{formatINR(m.netPnl)}</td>
+                <td className={"pr-2 text-right " + (m.netPnl >= 0 ? "text-bull" : "text-bear")}>
+                  {formatINR(m.netPnl)}
+                </td>
                 <td className="text-right">{formatINR(m.costsPaid + m.slippagePaid)}</td>
               </tr>
             ))}
@@ -56,7 +63,9 @@ export function BacktestPanel({ config }: { config: ScannerConfig }) {
         </table>
       </div>
       {results.every((r) => r.m.trades < 30) ? (
-        <p className="mt-2 text-[11px] text-muted-foreground">Fewer than 30 trades per scanner — too small a sample to trust.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Fewer than 30 trades per scanner — too small a sample to trust.
+        </p>
       ) : null}
     </section>
   );

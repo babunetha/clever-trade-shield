@@ -60,11 +60,18 @@ export default {
       headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
       headers.set("Cross-Origin-Opener-Policy", "same-origin");
       headers.set("Cross-Origin-Resource-Policy", "same-origin");
-      headers.set("Content-Security-Policy", "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'");
+      headers.set(
+        "Content-Security-Policy",
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'",
+      );
       if (process.env["NODE_ENV"] === "production") {
         headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       }
-      return new Response(secured.body, { status: secured.status, statusText: secured.statusText, headers });
+      return new Response(secured.body, {
+        status: secured.status,
+        statusText: secured.statusText,
+        headers,
+      });
     } catch (error) {
       const correlationId = crypto.randomUUID();
       console.error({ correlationId, error });

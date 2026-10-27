@@ -17,7 +17,8 @@ export const Route = createFileRoute("/approvals")({
       { property: "og:title", content: "Trade Approval — ₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Every simulated trade requires an explicit confirmation. Live broker execution stays disabled.",
+        content:
+          "Every simulated trade requires an explicit confirmation. Live broker execution stays disabled.",
       },
     ],
   }),
@@ -27,7 +28,9 @@ export const Route = createFileRoute("/approvals")({
 function Approvals() {
   const { signals, risk, settings, trades } = useTrading();
   const pending = signals.filter((s) => s.status === "PENDING");
-  const decided = signals.filter((s) => s.status === "APPROVED" || s.status === "REJECTED").slice(0, 6);
+  const decided = signals
+    .filter((s) => s.status === "APPROVED" || s.status === "REJECTED")
+    .slice(0, 6);
 
   return (
     <AppShell
@@ -48,8 +51,8 @@ function Approvals() {
       ) : (
         <div className="panel mb-4 p-4 text-xs text-muted-foreground">
           Room left today: {risk.tradesLeft} of {settings.maxTradesPerDay} trades ·{" "}
-          {formatINR(risk.lossBudgetLeft)} loss budget · {formatINR(settings.maxRiskPerTrade)} max risk per trade ·{" "}
-          {trades.length} simulated trades logged in total.
+          {formatINR(risk.lossBudgetLeft)} loss budget · {formatINR(settings.maxRiskPerTrade)} max
+          risk per trade · {trades.length} simulated trades logged in total.
         </div>
       )}
 

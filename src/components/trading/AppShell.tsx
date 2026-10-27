@@ -53,8 +53,8 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <div className="border-b border-border bg-warn-muted px-4 py-1.5 text-center text-[11px] tracking-wide text-warn">
-        SIMULATED DATA · NO LIVE ORDERS · Live execution is disabled by feature flag. Educational use only — not
-        investment advice.
+        SIMULATED DATA · NO LIVE ORDERS · Live execution is disabled by feature flag. Educational
+        use only — not investment advice.
       </div>
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
@@ -80,8 +80,12 @@ export function AppShell({
             <Badge variant={risk.locked ? "destructive" : "secondary"} className="num">
               {risk.locked ? "RISK LOCK" : "ARMED"}
             </Badge>
-            <span className={`num text-xs ${tone(risk.realisedPnl)}`}>{formatSignedINR(risk.realisedPnl)}</span>
-            <Badge variant="outline" className="hidden sm:inline-flex">SECURE SESSION</Badge>
+            <span className={`num text-xs ${tone(risk.realisedPnl)}`}>
+              {formatSignedINR(risk.realisedPnl)}
+            </span>
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              SECURE SESSION
+            </Badge>
             <Button
               size="sm"
               variant={settings.tradingEnabled ? "outline" : "destructive"}
@@ -153,8 +157,9 @@ export function AppShell({
       </nav>
 
       <footer className="border-t border-border px-4 py-6 text-xs text-muted-foreground">
-        Simulated market data for education and workflow testing. This dashboard never places live orders; broker
-        integration stays server-side behind a disabled flag. Trading in Indian equities carries risk of capital loss.
+        Simulated market data for education and workflow testing. This dashboard never places live
+        orders; broker integration stays server-side behind a disabled flag. Trading in Indian
+        equities carries risk of capital loss.
       </footer>
     </div>
   );

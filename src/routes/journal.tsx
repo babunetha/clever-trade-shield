@@ -4,7 +4,13 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/trading/AppShell";
 import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { useTrading } from "@/lib/trading/store";
-import { formatDateTime, formatINR, formatPrice, formatSignedINR, tone } from "@/lib/trading/format";
+import {
+  formatDateTime,
+  formatINR,
+  formatPrice,
+  formatSignedINR,
+  tone,
+} from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,14 +45,24 @@ function Journal() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const symbols = useMemo(() => [...new Set(trades.filter((t) => t.status === "OPEN").map((t) => t.symbol))], [trades]);
+  const symbols = useMemo(
+    () => [...new Set(trades.filter((t) => t.status === "OPEN").map((t) => t.symbol))],
+    [trades],
+  );
 
   const refreshLive = useCallback(async () => {
-    if (!symbols.length) { setLiveMode(false); return; }
+    if (!symbols.length) {
+      setLiveMode(false);
+      return;
+    }
     setRefreshing(true);
     try {
       const result = await getDhanMarketSnapshot({ data: { symbols } });
-      if (!result.ok) { setLiveMode(false); setLiveError(result.error); return; }
+      if (!result.ok) {
+        setLiveMode(false);
+        setLiveError(result.error);
+        return;
+      }
       const prices: Record<string, number> = {};
       for (const [symbol, quote] of Object.entries(result.data.quotes)) prices[symbol] = quote.ltp;
       if (Object.keys(prices).length) {
@@ -78,24 +94,53 @@ function Journal() {
   const avgR = closed.length
     ? Number((closed.reduce((s, t) => s + (t.rMultiple ?? 0), 0) / closed.length).toFixed(2))
     : 0;
-  const unrealisedPnl = trades.filter((t) => t.status === "OPEN").reduce((sum, t) => {
-    const current = livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
-    return sum + (current - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1);
-  }, 0);
+  const unrealisedPnl = trades
+    .filter((t) => t.status === "OPEN")
+    .reduce((sum, t) => {
+      const current =
+        livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
+      return sum + (current - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1);
+    }, 0);
   const grossProfit = closed.filter((t) => (t.pnl ?? 0) > 0).reduce((s, t) => s + (t.pnl ?? 0), 0);
-  const grossLoss = Math.abs(closed.filter((t) => (t.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0));
-  const profitFactor = grossLoss ? Number((grossProfit / grossLoss).toFixed(2)) : closed.length ? "∞" : "—";
+  const grossLoss = Math.abs(
+    closed.filter((t) => (t.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0),
+  );
+  const profitFactor = grossLoss
+    ? Number((grossProfit / grossLoss).toFixed(2))
+    : closed.length
+      ? "∞"
+      : "—";
 
   return (
-    <AppShell title="Trade Journal" subtitle="Paper trades can be marked against live Dhan prices; no broker order is required.">
+    <AppShell
+      title="Trade Journal"
+      subtitle="Paper trades can be marked against live Dhan prices; no broker order is required."
+    >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant={liveMode ? "default" : "outline"}>{liveMode ? "DHAN LIVE MARKING" : "SIMULATED FALLBACK"}</Badge>
-        {liveAsOf ? <span className="num text-xs text-muted-foreground">Updated {new Date(liveAsOf).toLocaleTimeString()}</span> : null}
-        <Button size="sm" variant="outline" className="ml-auto" onClick={() => void refreshLive()} disabled={refreshing || !symbols.length}>
-          <RefreshCw className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh live prices
+        <Badge variant={liveMode ? "default" : "outline"}>
+          {liveMode ? "DHAN LIVE MARKING" : "SIMULATED FALLBACK"}
+        </Badge>
+        {liveAsOf ? (
+          <span className="num text-xs text-muted-foreground">
+            Updated {new Date(liveAsOf).toLocaleTimeString()}
+          </span>
+        ) : null}
+        <Button
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() => void refreshLive()}
+          disabled={refreshing || !symbols.length}
+        >
+          <RefreshCw className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh live
+          prices
         </Button>
       </div>
-      {liveError ? <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">{liveError}</div> : null}
+      {liveError ? (
+        <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
+          {liveError}
+        </div>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="panel p-4">
           <div className="label-caps">Trades logged</div>
@@ -109,7 +154,9 @@ function Journal() {
         </div>
         <div className="panel p-4">
           <div className="label-caps">Net P&L (closed)</div>
-          <div className={`num text-lg font-semibold ${tone(totalPnl)}`}>{formatSignedINR(totalPnl)}</div>
+          <div className={`num text-lg font-semibold ${tone(totalPnl)}`}>
+            {formatSignedINR(totalPnl)}
+          </div>
         </div>
         <div className="panel p-4">
           <div className="label-caps">Average R</div>
@@ -119,7 +166,8 @@ function Journal() {
 
       <div className="mt-4 space-y-3">
         {trades.map((t) => {
-          const live = livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
+          const live =
+            livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
           return (
             <div key={t.id} className="panel p-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -132,12 +180,15 @@ function Journal() {
                     {t.outcome} {formatSignedINR(t.pnl ?? 0)} · {t.rMultiple}R
                   </span>
                 ) : null}
-                <span className="ml-auto num text-xs text-muted-foreground">{formatDateTime(t.openedAt)}</span>
+                <span className="ml-auto num text-xs text-muted-foreground">
+                  {formatDateTime(t.openedAt)}
+                </span>
               </div>
 
               <div className="mt-2 num text-xs text-muted-foreground">
                 {t.quantity} qty · entry {formatPrice(t.entry)} · SL {formatPrice(t.stopLoss)} · T1{" "}
-                {formatPrice(t.target1)} · risk {formatINR(Math.abs(t.entry - t.stopLoss) * t.quantity)}
+                {formatPrice(t.target1)} · risk{" "}
+                {formatINR(Math.abs(t.entry - t.stopLoss) * t.quantity)}
                 {t.exit ? ` · exit ${formatPrice(t.exit)}` : ` · live mark ${formatPrice(live)}`}
               </div>
 

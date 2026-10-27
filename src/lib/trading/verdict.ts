@@ -28,7 +28,9 @@ export function evaluateSignal(signal: Signal, settings: Settings, risk: RiskSta
   if (risk.locked) hardStops.push(`Risk lock active: ${risk.lockReasons[0] ?? "limits reached"}`);
   if (signal.quantity <= 0) hardStops.push("Position size computes to zero at the ₹ risk cap");
   if (signal.riskRupees > settings.maxRiskPerTrade)
-    hardStops.push(`Risk ₹${signal.riskRupees} exceeds the ₹${settings.maxRiskPerTrade} per-trade cap`);
+    hardStops.push(
+      `Risk ₹${signal.riskRupees} exceeds the ₹${settings.maxRiskPerTrade} per-trade cap`,
+    );
   if (signal.riskReward < settings.minRiskReward)
     hardStops.push(`R:R ${signal.riskReward} is below the ${settings.minRiskReward} minimum`);
   if (indexConflict(signal)) hardStops.push("Both Nifty and Bank Nifty bias oppose this direction");
@@ -54,12 +56,16 @@ export function evaluateSignal(signal: Signal, settings: Settings, risk: RiskSta
       );
     } else {
       verdict = "WAIT";
-      if (signal.score < 70) reasons.push(`Score ${signal.score}/100 below the 70 conviction threshold`);
-      if (!aligned(signal)) reasons.push("5m and 15m context are not both aligned with the direction");
-      if (signal.indicators.adx < 22) reasons.push(`ADX ${signal.indicators.adx} shows a weak trend`);
+      if (signal.score < 70)
+        reasons.push(`Score ${signal.score}/100 below the 70 conviction threshold`);
+      if (!aligned(signal))
+        reasons.push("5m and 15m context are not both aligned with the direction");
+      if (signal.indicators.adx < 22)
+        reasons.push(`ADX ${signal.indicators.adx} shows a weak trend`);
       if (signal.indicators.relVolume < 1.3)
         reasons.push(`Relative volume ${signal.indicators.relVolume}x is thin`);
-      if (!reasons.length) reasons.push("Setup is acceptable but not high conviction — wait for confirmation");
+      if (!reasons.length)
+        reasons.push("Setup is acceptable but not high conviction — wait for confirmation");
     }
   }
 

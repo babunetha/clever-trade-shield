@@ -93,6 +93,8 @@ export async function resolveDhanInstruments(symbols: string[]): Promise<DhanIns
   const rows = await loadDhanInstruments();
   const exact = rows.filter((row) => wanted.has(row.tradingSymbol.toUpperCase()));
   return symbols
-    .map((symbol) => exact.find((row) => row.tradingSymbol.toUpperCase() === symbol.trim().toUpperCase()))
+    .map((symbol) =>
+      exact.find((row) => row.tradingSymbol.toUpperCase() === symbol.trim().toUpperCase()),
+    )
     .filter((row): row is DhanInstrument => Boolean(row));
 }

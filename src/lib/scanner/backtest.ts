@@ -62,7 +62,12 @@ export const BACKTEST_ASSUMPTIONS: BacktestAssumptions = {
 
 const round = (v: number, dp = 2) => Number(v.toFixed(dp));
 
-function matches(scannerId: ScannerId, bars: DailyBar[], upto: number, config: ScannerConfig): boolean {
+function matches(
+  scannerId: ScannerId,
+  bars: DailyBar[],
+  upto: number,
+  config: ScannerConfig,
+): boolean {
   const slice = bars.slice(0, upto + 1);
   if (slice.length < 210) return false;
   const c = closes(slice);
@@ -79,29 +84,54 @@ function matches(scannerId: ScannerId, bars: DailyBar[], upto: number, config: S
         higherCloseStreak(slice) >= crit("strongCloses", 2) &&
         last.close > last.open &&
         last.volume >= crit("minVolume", 500000) &&
-        (crit("smaStack", 1) < 1 || (s20 !== null && s50 !== null && s200 !== null && s20 > s50 && s50 > s200))
+        (crit("smaStack", 1) < 1 ||
+          (s20 !== null && s50 !== null && s200 !== null && s20 > s50 && s50 > s200))
       );
     }
     case "UP20_1M_30_3M": {
       const r22 = returnOver(slice, 22);
       const r66 = returnOver(slice, 66);
-      return r22 !== null && r66 !== null && r22 >= crit("return22", 20) && r66 >= crit("return66", 30) && tradedValueCr(slice) >= crit("minTradedValue", 10);
+      return (
+        r22 !== null &&
+        r66 !== null &&
+        r22 >= crit("return22", 20) &&
+        r66 >= crit("return66", 30) &&
+        tradedValueCr(slice) >= crit("minTradedValue", 10)
+      );
     }
     case "STRONG_STOCKS":
-      return higherCloseStreak(slice) >= crit("streak", 5) && tradedValueCr(slice) >= crit("minTradedValue", 5);
+      return (
+        higherCloseStreak(slice) >= crit("streak", 5) &&
+        tradedValueCr(slice) >= crit("minTradedValue", 5)
+      );
     case "UP20_TIGHTNESS": {
       const r22 = returnOver(slice, 22);
       const t = tightnessPct(slice);
-      return r22 !== null && t !== null && r22 >= crit("return22", 20) && t <= crit("tightness", 4) && last.close >= crit("minPrice", 50);
+      return (
+        r22 !== null &&
+        t !== null &&
+        r22 >= crit("return22", 20) &&
+        t <= crit("tightness", 4) &&
+        last.close >= crit("minPrice", 50)
+      );
     }
     case "POSSIBLE_BREAKOUT": {
       const pct = (last.close / high52w(slice)) * 100;
-      return pct >= crit("minPctOf52w", 90) && pct <= crit("maxPctOf52w", 95) && last.close >= crit("minPrice", 100) && last.close <= crit("maxPrice", 1000);
+      return (
+        pct >= crit("minPctOf52w", 90) &&
+        pct <= crit("maxPctOf52w", 95) &&
+        last.close >= crit("minPrice", 100) &&
+        last.close <= crit("maxPrice", 1000)
+      );
     }
   }
 }
 
-export function backtestScanner(scannerId: ScannerId, config: ScannerConfig, seed = 20240101): BacktestMetrics {
+export function backtestScanner(
+  scannerId: ScannerId,
+  config: ScannerConfig,
+  seed = 20240101,
+): BacktestMetrics {
   const a = BACKTEST_ASSUMPTIONS;
   const results: number[] = [];
   let costsPaid = 0;

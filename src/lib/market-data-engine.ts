@@ -28,11 +28,10 @@ export interface MarketDataSnapshot {
 export type MarketDataEngineResult = DhanResult<MarketDataSnapshot>;
 
 function normalizeSymbols(symbols: string[]): string[] {
-  return [...new Set(
-    symbols
-      .map((symbol) => symbol.trim().toUpperCase())
-      .filter(Boolean),
-  )].slice(0, 1000);
+  return [...new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))].slice(
+    0,
+    1000,
+  );
 }
 
 function toPoint(instrument: DhanInstrument, quote: DhanQuote): MarketDataPoint {
@@ -74,7 +73,9 @@ export class DhanMarketDataEngine {
     }
 
     const instruments = await resolveDhanInstruments(requestedSymbols);
-    const resolvedSet = new Set(instruments.map((instrument) => instrument.tradingSymbol.toUpperCase()));
+    const resolvedSet = new Set(
+      instruments.map((instrument) => instrument.tradingSymbol.toUpperCase()),
+    );
     const missingSymbols = requestedSymbols.filter((symbol) => !resolvedSet.has(symbol));
 
     const grouped = new Map<DhanInstrument["exchangeSegment"], DhanInstrument[]>();

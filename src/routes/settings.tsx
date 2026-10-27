@@ -15,9 +15,15 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Settings — Clever Trade Shield" },
-      { name: "description", content: "Risk controls, Dhan read-only connection status and disabled live execution." },
+      {
+        name: "description",
+        content: "Risk controls, Dhan read-only connection status and disabled live execution.",
+      },
       { property: "og:title", content: "Settings — Clever Trade Shield" },
-      { property: "og:description", content: "Professional risk controls with server-side Dhan market-data integration." },
+      {
+        property: "og:description",
+        content: "Professional risk controls with server-side Dhan market-data integration.",
+      },
     ],
   }),
   component: SettingsPage,
@@ -37,7 +43,10 @@ function SettingsPage() {
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(NUMERIC.map((n) => [n.key, String(settings[n.key])])),
   );
-  const [session, setSession] = useState({ start: settings.sessionStart, end: settings.sessionEnd });
+  const [session, setSession] = useState({
+    start: settings.sessionStart,
+    end: settings.sessionEnd,
+  });
 
   const save = () => {
     const patch: Record<string, number> = {};
@@ -61,35 +70,75 @@ function SettingsPage() {
     toast.success("Risk settings saved");
   };
 
-
   return (
-    <AppShell title="Settings" subtitle="Risk controls, broker connectivity and execution safeguards.">
+    <AppShell
+      title="Settings"
+      subtitle="Risk controls, broker connectivity and execution safeguards."
+    >
       <div className="grid gap-3 lg:grid-cols-2">
         <section className="panel p-4">
           <h2 className="text-sm font-semibold">Risk parameters</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {NUMERIC.map((n) => (
               <div key={n.key} className="space-y-1">
-                <Label htmlFor={n.key} className="text-xs">{n.label}</Label>
-                <Input id={n.key} className="num" inputMode="decimal" step={n.step} value={draft[n.key] ?? ""} onChange={(e) => setDraft((p) => ({ ...p, [n.key]: e.target.value }))} />
+                <Label htmlFor={n.key} className="text-xs">
+                  {n.label}
+                </Label>
+                <Input
+                  id={n.key}
+                  className="num"
+                  inputMode="decimal"
+                  step={n.step}
+                  value={draft[n.key] ?? ""}
+                  onChange={(e) => setDraft((p) => ({ ...p, [n.key]: e.target.value }))}
+                />
               </div>
             ))}
             <div className="space-y-1">
-              <Label htmlFor="start" className="text-xs">Session start</Label>
-              <Input id="start" type="time" className="num" value={session.start} onChange={(e) => setSession((p) => ({ ...p, start: e.target.value }))} />
+              <Label htmlFor="start" className="text-xs">
+                Session start
+              </Label>
+              <Input
+                id="start"
+                type="time"
+                className="num"
+                value={session.start}
+                onChange={(e) => setSession((p) => ({ ...p, start: e.target.value }))}
+              />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="end" className="text-xs">Session end</Label>
-              <Input id="end" type="time" className="num" value={session.end} onChange={(e) => setSession((p) => ({ ...p, end: e.target.value }))} />
+              <Label htmlFor="end" className="text-xs">
+                Session end
+              </Label>
+              <Input
+                id="end"
+                type="time"
+                className="num"
+                value={session.end}
+                onChange={(e) => setSession((p) => ({ ...p, end: e.target.value }))}
+              />
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" onClick={save}>Save settings</Button>
-            <Button size="sm" variant="outline" onClick={() => {
-              setDraft(Object.fromEntries(NUMERIC.map((n) => [n.key, String(DEFAULT_SETTINGS[n.key])])));
-              setSession({ start: DEFAULT_SETTINGS.sessionStart, end: DEFAULT_SETTINGS.sessionEnd });
-              toast.info("Reverted to the default ₹1L profile — press Save to apply");
-            }}>Restore ₹1L defaults</Button>
+            <Button size="sm" onClick={save}>
+              Save settings
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDraft(
+                  Object.fromEntries(NUMERIC.map((n) => [n.key, String(DEFAULT_SETTINGS[n.key])])),
+                );
+                setSession({
+                  start: DEFAULT_SETTINGS.sessionStart,
+                  end: DEFAULT_SETTINGS.sessionEnd,
+                });
+                toast.info("Reverted to the default ₹1L profile — press Save to apply");
+              }}
+            >
+              Restore ₹1L defaults
+            </Button>
           </div>
         </section>
 
@@ -98,22 +147,38 @@ function SettingsPage() {
             <h2 className="text-sm font-semibold">Guardrails</h2>
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <div><div className="text-sm">Trading enabled</div><p className="text-xs text-muted-foreground">Emergency switch — blocks every approval instantly.</p></div>
+                <div>
+                  <div className="text-sm">Trading enabled</div>
+                  <p className="text-xs text-muted-foreground">
+                    Emergency switch — blocks every approval instantly.
+                  </p>
+                </div>
                 <Switch checked={settings.tradingEnabled} onCheckedChange={setTradingEnabled} />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <div><div className="text-sm">Equity intraday only</div><p className="text-xs text-muted-foreground">F&O and options are off by design in this version.</p></div>
+                <div>
+                  <div className="text-sm">Equity intraday only</div>
+                  <p className="text-xs text-muted-foreground">
+                    F&O and options are off by design in this version.
+                  </p>
+                </div>
                 <Switch checked disabled />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <div><div className="text-sm">Live order execution</div><p className="text-xs text-muted-foreground">Hard-disabled. No order endpoint is called by this build.</p></div>
-                <Badge variant="destructive" className="num"><Lock className="mr-1 size-3" /> DISABLED</Badge>
+                <div>
+                  <div className="text-sm">Live order execution</div>
+                  <p className="text-xs text-muted-foreground">
+                    Hard-disabled. No order endpoint is called by this build.
+                  </p>
+                </div>
+                <Badge variant="destructive" className="num">
+                  <Lock className="mr-1 size-3" /> DISABLED
+                </Badge>
               </div>
             </div>
           </section>
 
           <DhanConnection />
-
         </div>
       </div>
     </AppShell>

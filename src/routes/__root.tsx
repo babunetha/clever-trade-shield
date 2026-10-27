@@ -89,12 +89,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Clever Trade Shield" },
       {
         name: "description",
-        content: "Professional, risk-controlled trading terminal with server-side Dhan integration.",
+        content:
+          "Professional, risk-controlled trading terminal with server-side Dhan integration.",
       },
       { property: "og:title", content: "₹1L Trading Assistant" },
       {
         property: "og:description",
-        content: "Server-authenticated market data, explicit manual approval and hard risk limits. Live execution disabled.",
+        content:
+          "Server-authenticated market data, explicit manual approval and hard risk limits. Live execution disabled.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

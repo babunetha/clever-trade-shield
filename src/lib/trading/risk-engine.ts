@@ -38,7 +38,11 @@ function inSession(now: Date, settings: Settings) {
   return current >= start && current <= end;
 }
 
-export function calculateRiskState(trades: Trade[], settings: Settings, now = new Date()): RiskState {
+export function calculateRiskState(
+  trades: Trade[],
+  settings: Settings,
+  now = new Date(),
+): RiskState {
   const todayKey = indiaDateKey(now);
   const isToday = (iso: string) => indiaDateKey(new Date(iso)) === todayKey;
   const weekStart = now.getTime() - 7 * 86_400_000;
@@ -56,12 +60,26 @@ export function calculateRiskState(trades: Trade[], settings: Settings, now = ne
   const lockReasons: string[] = [];
 
   if (!settings.tradingEnabled) lockReasons.push("Trading manually disabled (emergency switch).");
-  if (!inSession(now, settings)) lockReasons.push("Outside configured trading session " + settings.sessionStart + "–" + settings.sessionEnd + ".");
-  if (realisedPnl <= -settings.maxDailyLoss) lockReasons.push("Daily loss limit hit (₹" + settings.maxDailyLoss + ").");
-  if (weeklyRealisedPnl <= -settings.weeklyLossLimit) lockReasons.push("7-day loss limit hit (₹" + settings.weeklyLossLimit + ").");
-  if (losingTradesToday >= settings.lockAfterLosingTrades) lockReasons.push(losingTradesToday + " losing trades today (limit " + settings.lockAfterLosingTrades + ").");
-  if (todays.length >= settings.maxTradesPerDay) lockReasons.push("Maximum " + settings.maxTradesPerDay + " trades/day reached.");
-  if (open.length >= settings.maxOpenPositions) lockReasons.push("Maximum " + settings.maxOpenPositions + " open positions reached.");
+  if (!inSession(now, settings))
+    lockReasons.push(
+      "Outside configured trading session " +
+        settings.sessionStart +
+        "–" +
+        settings.sessionEnd +
+        ".",
+    );
+  if (realisedPnl <= -settings.maxDailyLoss)
+    lockReasons.push("Daily loss limit hit (₹" + settings.maxDailyLoss + ").");
+  if (weeklyRealisedPnl <= -settings.weeklyLossLimit)
+    lockReasons.push("7-day loss limit hit (₹" + settings.weeklyLossLimit + ").");
+  if (losingTradesToday >= settings.lockAfterLosingTrades)
+    lockReasons.push(
+      losingTradesToday + " losing trades today (limit " + settings.lockAfterLosingTrades + ").",
+    );
+  if (todays.length >= settings.maxTradesPerDay)
+    lockReasons.push("Maximum " + settings.maxTradesPerDay + " trades/day reached.");
+  if (open.length >= settings.maxOpenPositions)
+    lockReasons.push("Maximum " + settings.maxOpenPositions + " open positions reached.");
 
   return {
     realisedPnl,
@@ -81,24 +99,53 @@ export function calculateRiskState(trades: Trade[], settings: Settings, now = ne
   };
 }
 
-export function validateSignalRisk(signal: Signal, settings: Settings, risk: RiskState, now = new Date()): RiskDecision {
+export function validateSignalRisk(
+  signal: Signal,
+  settings: Settings,
+  risk: RiskState,
+  now = new Date(),
+): RiskDecision {
   const reasons: string[] = [];
   if (!settings.tradingEnabled) reasons.push("Trading is disabled.");
   if (!inSession(now, settings)) reasons.push("Outside configured trading session.");
   if (risk.locked) reasons.push(...risk.lockReasons);
-  if (risk.openPositions >= settings.maxOpenPositions) reasons.push("Maximum open-position cap reached.");
+  if (risk.openPositions >= settings.maxOpenPositions)
+    reasons.push("Maximum open-position cap reached.");
   if (risk.tradesToday >= settings.maxTradesPerDay) reasons.push("Maximum trades/day cap reached.");
-  if (risk.weeklyRealisedPnl <= -settings.weeklyLossLimit) reasons.push("Weekly loss limit reached.");
+  if (risk.weeklyRealisedPnl <= -settings.weeklyLossLimit)
+    reasons.push("Weekly loss limit reached.");
   if (signal.quantity <= 0) reasons.push("Position size is zero.");
-  if (!Number.isFinite(signal.riskRupees) || signal.riskRupees <= 0) reasons.push("Invalid trade risk.");
-  if (signal.riskRupees > settings.maxRiskPerTrade) reasons.push("Risk ₹" + signal.riskRupees + " exceeds the ₹" + settings.maxRiskPerTrade + " per-trade cap.");
-  if (!Number.isFinite(signal.riskReward) || signal.riskReward < settings.minRiskReward) reasons.push("R:R " + signal.riskReward + " is below the minimum " + settings.minRiskReward + ".");
-  if (!Number.isFinite(signal.entry) || !Number.isFinite(signal.stopLoss) || signal.entry <= 0 || signal.stopLoss <= 0) reasons.push("Invalid entry or stop.");
-  if (signal.side === "LONG" && signal.stopLoss >= signal.entry) reasons.push("LONG stop-loss must be below entry.");
-  if (signal.side === "SHORT" && signal.stopLoss <= signal.entry) reasons.push("SHORT stop-loss must be above entry.");
-  const calculatedRisk = Number.isFinite(signal.entry) && Number.isFinite(signal.stopLoss) && Number.isInteger(signal.quantity)
-    ? Math.abs(signal.entry - signal.stopLoss) * signal.quantity
-    : Number.NaN;
+  if (!Number.isFinite(signal.riskRupees) || signal.riskRupees <= 0)
+    reasons.push("Invalid trade risk.");
+  if (signal.riskRupees > settings.maxRiskPerTrade)
+    reasons.push(
+      "Risk ₹" +
+        signal.riskRupees +
+        " exceeds the ₹" +
+        settings.maxRiskPerTrade +
+        " per-trade cap.",
+    );
+  if (!Number.isFinite(signal.riskReward) || signal.riskReward < settings.minRiskReward)
+    reasons.push(
+      "R:R " + signal.riskReward + " is below the minimum " + settings.minRiskReward + ".",
+    );
+  if (
+    !Number.isFinite(signal.entry) ||
+    !Number.isFinite(signal.stopLoss) ||
+    signal.entry <= 0 ||
+    signal.stopLoss <= 0
+  )
+    reasons.push("Invalid entry or stop.");
+  if (signal.side === "LONG" && signal.stopLoss >= signal.entry)
+    reasons.push("LONG stop-loss must be below entry.");
+  if (signal.side === "SHORT" && signal.stopLoss <= signal.entry)
+    reasons.push("SHORT stop-loss must be above entry.");
+  const calculatedRisk =
+    Number.isFinite(signal.entry) &&
+    Number.isFinite(signal.stopLoss) &&
+    Number.isInteger(signal.quantity)
+      ? Math.abs(signal.entry - signal.stopLoss) * signal.quantity
+      : Number.NaN;
   if (!Number.isFinite(calculatedRisk) || Math.abs(signal.riskRupees - calculatedRisk) > 0.01) {
     reasons.push("Declared trade risk does not match entry, stop-loss and quantity.");
   }

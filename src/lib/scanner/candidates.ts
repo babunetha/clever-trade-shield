@@ -90,13 +90,20 @@ export function runScanners(config: ScannerConfig, seed: number): ScanCandidate[
           r22 >= crit(config, def.id, "return22", 20) &&
           r66 >= crit(config, def.id, "return66", 30) &&
           tv >= crit(config, def.id, "minTradedValue", 10);
-        if (pass) matched.push(`22-session return ${r22}%`, `66-session return ${r66}%`, `Traded value ₹${tv} Cr`);
+        if (pass)
+          matched.push(
+            `22-session return ${r22}%`,
+            `66-session return ${r66}%`,
+            `Traded value ₹${tv} Cr`,
+          );
       }
 
       if (def.id === "STRONG_STOCKS") {
         const streak = higherCloseStreak(bars);
         const tv = tradedValueCr(bars);
-        pass = streak >= crit(config, def.id, "streak", 5) && tv >= crit(config, def.id, "minTradedValue", 5);
+        pass =
+          streak >= crit(config, def.id, "streak", 5) &&
+          tv >= crit(config, def.id, "minTradedValue", 5);
         if (pass) matched.push(`${streak} consecutive higher closes`, `Traded value ₹${tv} Cr`);
       }
 
@@ -111,7 +118,12 @@ export function runScanners(config: ScannerConfig, seed: number): ScanCandidate[
           tight <= crit(config, def.id, "tightness", 4) &&
           last.close >= crit(config, def.id, "minPrice", 50) &&
           tv >= crit(config, def.id, "minTradedValue", 5);
-        if (pass) matched.push(`22-session return ${r22}%`, `Tightness ${tight}% of price`, `Traded value ₹${tv} Cr`);
+        if (pass)
+          matched.push(
+            `22-session return ${r22}%`,
+            `Tightness ${tight}% of price`,
+            `Traded value ₹${tv} Cr`,
+          );
       }
 
       if (def.id === "POSSIBLE_BREAKOUT") {
@@ -122,7 +134,11 @@ export function runScanners(config: ScannerConfig, seed: number): ScanCandidate[
           pct <= crit(config, def.id, "maxPctOf52w", 95) &&
           last.close >= crit(config, def.id, "minPrice", 100) &&
           last.close <= crit(config, def.id, "maxPrice", 1000);
-        if (pass) matched.push(`At ${pct}% of the 52-week high ${h52}`, `Price ${last.close} inside the configured band`);
+        if (pass)
+          matched.push(
+            `At ${pct}% of the 52-week high ${h52}`,
+            `Price ${last.close} inside the configured band`,
+          );
       }
 
       if (pass) {

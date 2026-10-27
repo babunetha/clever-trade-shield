@@ -15,7 +15,8 @@ export type ScannerLiveQuotesResult =
  * Live LTP for the scanner's candidate symbols only (never the whole universe).
  * Server-only: credentials are read inside the handler and never returned.
  */
-export const getScannerLiveQuotes = createServerFn({ method: "POST" }).middleware([authMiddleware])
+export const getScannerLiveQuotes = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
   .inputValidator((input: { symbols: string[] }) => ({
     symbols: (Array.isArray(input?.symbols) ? input.symbols : [])
       .map((s) => String(s).trim().toUpperCase())
@@ -33,7 +34,13 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" }).middlewar
       };
     }
     if (!data.symbols.length) {
-      return { ok: true, source: "DHAN_LIVE", asOf: new Date().toISOString(), quotes: [], missing: [] };
+      return {
+        ok: true,
+        source: "DHAN_LIVE",
+        asOf: new Date().toISOString(),
+        quotes: [],
+        missing: [],
+      };
     }
 
     const { resolveDhanInstruments } = await import("./market/instruments");
@@ -41,12 +48,20 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" }).middlewar
     try {
       instruments = await resolveDhanInstruments(data.symbols);
     } catch {
-      return { ok: false, code: "INSTRUMENTS", error: "Could not load the Dhan instrument list. Try again shortly." };
+      return {
+        ok: false,
+        code: "INSTRUMENTS",
+        error: "Could not load the Dhan instrument list. Try again shortly.",
+      };
     }
 
     const equity = instruments.filter((i) => i.exchangeSegment === "NSE_EQ");
     if (!equity.length) {
-      return { ok: false, code: "NO_INSTRUMENTS", error: "None of the candidate symbols resolved to an NSE equity." };
+      return {
+        ok: false,
+        code: "NO_INSTRUMENTS",
+        error: "None of the candidate symbols resolved to an NSE equity.",
+      };
     }
 
     const result = await getDhanLtp({
@@ -59,7 +74,11 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" }).middlewar
     for (const instrument of equity) {
       const price = result.data[instrument.securityId];
       if (typeof price === "number" && price > 0) {
-        quotes.push({ symbol: instrument.tradingSymbol.toUpperCase(), price, securityId: instrument.securityId });
+        quotes.push({
+          symbol: instrument.tradingSymbol.toUpperCase(),
+          price,
+          securityId: instrument.securityId,
+        });
       }
     }
     const found = new Set(quotes.map((q) => q.symbol));

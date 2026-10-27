@@ -2,8 +2,8 @@ import { scrypt as scryptCallback, randomBytes, timingSafeEqual } from "node:cry
 import { getRequest } from "@tanstack/react-start/server";
 import { useSession } from "@tanstack/react-start/server";
 
-
-const SESSION_NAME = process.env["NODE_ENV"] === "production" ? "__Host-cts-session" : "cts-session";
+const SESSION_NAME =
+  process.env["NODE_ENV"] === "production" ? "__Host-cts-session" : "cts-session";
 const SESSION_MAX_AGE = 8 * 60 * 60;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -18,8 +18,7 @@ const loginFailures = new Map<string, { count: number; resetAt: number }>();
 export function authConfiguration() {
   return {
     configured: Boolean(
-      process.env["APP_SESSION_SECRET"] &&
-      process.env["APP_LOGIN_PASSWORD_HASH"],
+      process.env["APP_SESSION_SECRET"] && process.env["APP_LOGIN_PASSWORD_HASH"],
     ),
   };
 }
@@ -74,7 +73,12 @@ export function clearLoginFailures(ip = clientIp()) {
   loginFailures.delete(ip);
 }
 
-function deriveScryptKey(password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number; maxmem: number }): Promise<Buffer> {
+function deriveScryptKey(
+  password: string,
+  salt: Buffer,
+  keylen: number,
+  options: { N: number; r: number; p: number; maxmem: number },
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     scryptCallback(password, salt, keylen, options, (error, derivedKey) => {
       if (error) reject(error);
@@ -91,7 +95,14 @@ function parsePasswordHash(encoded: string) {
   const R = Number(r);
   const P = Number(p);
   if (!Number.isInteger(N) || !Number.isInteger(R) || !Number.isInteger(P)) return null;
-  if (N < 16_384 || R < 1 || P < 1 || !/^[0-9a-f]+$/i.test(saltHex) || !/^[0-9a-f]+$/i.test(hashHex)) return null;
+  if (
+    N < 16_384 ||
+    R < 1 ||
+    P < 1 ||
+    !/^[0-9a-f]+$/i.test(saltHex) ||
+    !/^[0-9a-f]+$/i.test(hashHex)
+  )
+    return null;
   return { N, R, P, salt: Buffer.from(saltHex, "hex"), expected: Buffer.from(hashHex, "hex") };
 }
 

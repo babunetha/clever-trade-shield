@@ -41,7 +41,7 @@ bun run dev
 ```
 
 Security checks:
- 
+
 ```sh
 bun run security:check
 bun run build

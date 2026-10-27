@@ -33,21 +33,31 @@ interface Props {
 }
 
 /** Every reason paper trading is blocked for one candidate, most important first. */
-export function paperBlockReasons(row: QuoteHealthRow, scanAgeSeconds: number, scanStaleAfter: number): string[] {
+export function paperBlockReasons(
+  row: QuoteHealthRow,
+  scanAgeSeconds: number,
+  scanStaleAfter: number,
+): string[] {
   const reasons: string[] = [];
   const v = row.verification;
   if (scanAgeSeconds > scanStaleAfter)
-    reasons.push(`Scan results are ${scanAgeSeconds}s old (limit ${scanStaleAfter}s). Re-run the scan.`);
+    reasons.push(
+      `Scan results are ${scanAgeSeconds}s old (limit ${scanStaleAfter}s). Re-run the scan.`,
+    );
   if (v.freshnessSeconds > MAX_TICK_AGE_SECONDS)
     reasons.push(
       `${row.source === "DHAN_LIVE" ? "Dhan live" : "Simulated"} price is ${v.freshnessSeconds}s old (limit ${MAX_TICK_AGE_SECONDS}s). Reconnect prices.`,
     );
-  if (row.missingFromFeed) reasons.push("Dhan returned no price for this symbol; using a simulated fallback.");
+  if (row.missingFromFeed)
+    reasons.push("Dhan returned no price for this symbol; using a simulated fallback.");
   for (const c of v.checks) {
-    if (!c.ok && c.blocking && c.label !== "Price freshness") reasons.push(`${c.label}: ${c.detail}`);
+    if (!c.ok && c.blocking && c.label !== "Price freshness")
+      reasons.push(`${c.label}: ${c.detail}`);
   }
   if (reasons.length === 0 && v.state !== "BUY CANDIDATE")
-    reasons.push(`Verification is ${v.state} — too few non-blocking checks passed (${v.passed}/${v.total}).`);
+    reasons.push(
+      `Verification is ${v.state} — too few non-blocking checks passed (${v.passed}/${v.total}).`,
+    );
   return reasons;
 }
 
@@ -55,7 +65,10 @@ const connectionBadge: Record<ConnectionState, { label: string; cls: string }> =
   LIVE: { label: "CONNECTED · DHAN LIVE", cls: "border-bull/40 bg-bull-muted text-bull" },
   CONNECTING: { label: "CONNECTING", cls: "border-warn/40 bg-warn-muted text-warn" },
   ERROR: { label: "ERROR · FAIL-CLOSED", cls: "border-bear/40 bg-bear-muted text-bear" },
-  NOT_CONFIGURED: { label: "NOT CONFIGURED · SIMULATED", cls: "border-warn/40 bg-warn-muted text-warn" },
+  NOT_CONFIGURED: {
+    label: "NOT CONFIGURED · SIMULATED",
+    cls: "border-warn/40 bg-warn-muted text-warn",
+  },
   SIMULATED: { label: "SIMULATED FEED", cls: "border-warn/40 bg-warn-muted text-warn" },
 };
 
@@ -78,8 +91,17 @@ export function QuoteHealthPanel(p: Props) {
         </Badge>
         {p.isFetching ? <span className="text-xs text-muted-foreground">refreshing…</span> : null}
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant="outline" onClick={p.onReconnect} disabled={!p.canReconnect || p.isFetching}>
-            {p.isFetching ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : <RefreshCw className="mr-1 size-3.5" />}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={p.onReconnect}
+            disabled={!p.canReconnect || p.isFetching}
+          >
+            {p.isFetching ? (
+              <Loader2 className="mr-1 size-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-1 size-3.5" />
+            )}
             Reconnect
           </Button>
           <Button size="sm" variant="outline" onClick={p.onRescan}>
@@ -92,12 +114,16 @@ export function QuoteHealthPanel(p: Props) {
         <div>
           <dt className="text-muted-foreground">Last good refresh</dt>
           <dd className="num">
-            {p.lastSuccessAt ? `${formatTime(new Date(p.lastSuccessAt).toISOString())} · ${sinceSuccess}s ago` : "—"}
+            {p.lastSuccessAt
+              ? `${formatTime(new Date(p.lastSuccessAt).toISOString())} · ${sinceSuccess}s ago`
+              : "—"}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Last error</dt>
-          <dd className="num">{p.lastErrorAt ? formatTime(new Date(p.lastErrorAt).toISOString()) : "none"}</dd>
+          <dd className="num">
+            {p.lastErrorAt ? formatTime(new Date(p.lastErrorAt).toISOString()) : "none"}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Consecutive failures</dt>

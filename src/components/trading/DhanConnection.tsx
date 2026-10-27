@@ -16,7 +16,9 @@ type TestState =
 type AccountState = Awaited<ReturnType<typeof getDhanAccount>> | null;
 
 const inr = (v: number | null) =>
-  v === null ? "—" : `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  v === null
+    ? "—"
+    : `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function DhanConnection() {
   const status = useQuery({ queryKey: ["dhan-status"], queryFn: () => getDhanStatus() });
@@ -80,21 +82,27 @@ export function DhanConnection() {
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        The broker connection runs entirely on the server. Your Dhan client ID and access token are read from backend
-        secrets inside server code only — they are never sent to this page, never written to logs, and never stored in
-        the app. Do not type them into chat.
+        The broker connection runs entirely on the server. Your Dhan client ID and access token are
+        read from backend secrets inside server code only — they are never sent to this page, never
+        written to logs, and never stored in the app. Do not type them into chat.
       </p>
 
       <dl className="mt-3 grid gap-1 text-xs sm:grid-cols-2">
         <div className="flex items-center gap-2">
           <dt className="label-caps">DHAN_CLIENT_ID</dt>
-          <dd className={status.data?.clientIdConfigured ? "text-success" : "text-muted-foreground"}>
+          <dd
+            className={status.data?.clientIdConfigured ? "text-success" : "text-muted-foreground"}
+          >
             {status.data?.clientIdConfigured ? "configured" : "missing"}
           </dd>
         </div>
         <div className="flex items-center gap-2">
           <dt className="label-caps">DHAN_ACCESS_TOKEN</dt>
-          <dd className={status.data?.accessTokenConfigured ? "text-success" : "text-muted-foreground"}>
+          <dd
+            className={
+              status.data?.accessTokenConfigured ? "text-success" : "text-muted-foreground"
+            }
+          >
             {status.data?.accessTokenConfigured ? "configured" : "missing"}
           </dd>
         </div>
@@ -106,12 +114,19 @@ export function DhanConnection() {
             <AlertTriangle className="size-3.5" /> Credentials must be added as backend secrets
           </p>
           <ol className="mt-2 list-decimal space-y-1 pl-4 text-warn/90">
-            <li>Generate an access token in the Dhan web console under My Profile → DhanHQ Trading APIs.</li>
             <li>
-              In this project open Settings → Secrets and add <span className="num">DHAN_CLIENT_ID</span> and{" "}
+              Generate an access token in the Dhan web console under My Profile → DhanHQ Trading
+              APIs.
+            </li>
+            <li>
+              In this project open Settings → Secrets and add{" "}
+              <span className="num">DHAN_CLIENT_ID</span> and{" "}
               <span className="num">DHAN_ACCESS_TOKEN</span>.
             </li>
-            <li>Return here and press “Test connection”. Until then every screen keeps using simulated data.</li>
+            <li>
+              Return here and press “Test connection”. Until then every screen keeps using simulated
+              data.
+            </li>
           </ol>
         </div>
       ) : null}
@@ -125,7 +140,12 @@ export function DhanConnection() {
           )}
           Test connection
         </Button>
-        <Button size="sm" variant="outline" onClick={onLoadAccount} disabled={!configured || loadingAccount}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onLoadAccount}
+          disabled={!configured || loadingAccount}
+        >
           {loadingAccount ? (
             <Loader2 className="mr-1 size-3.5 animate-spin" />
           ) : (
@@ -152,7 +172,9 @@ export function DhanConnection() {
       ) : null}
 
       {test.kind === "error" ? (
-        <p className="mt-3 rounded-md border border-danger/40 bg-danger-muted p-3 text-xs text-danger">{test.message}</p>
+        <p className="mt-3 rounded-md border border-danger/40 bg-danger-muted p-3 text-xs text-danger">
+          {test.message}
+        </p>
       ) : null}
 
       {account ? (
@@ -201,7 +223,8 @@ export function DhanConnection() {
               <ul className="num mt-1 space-y-0.5">
                 {account.positions.data.map((p) => (
                   <li key={`${p.symbol}-${p.productType}`}>
-                    {p.symbol} · {p.productType} · net {p.netQuantity} · unrealised {inr(p.unrealisedProfit)}
+                    {p.symbol} · {p.productType} · net {p.netQuantity} · unrealised{" "}
+                    {inr(p.unrealisedProfit)}
                   </li>
                 ))}
               </ul>
@@ -214,10 +237,12 @@ export function DhanConnection() {
 
       <p className="mt-3 text-[11px] text-muted-foreground">
         Wired Dhan endpoints (all read-only): <span className="num">GET /v2/profile</span>,{" "}
-        <span className="num">GET /v2/fundlimit</span>, <span className="num">GET /v2/holdings</span>,{" "}
-        <span className="num">GET /v2/positions</span>, <span className="num">POST /v2/marketfeed/ltp</span>. Order
-        endpoints are not called by this build under any circumstance; approvals and risk limits will still gate them
-        when live execution is eventually reviewed and enabled.
+        <span className="num">GET /v2/fundlimit</span>,{" "}
+        <span className="num">GET /v2/holdings</span>,{" "}
+        <span className="num">GET /v2/positions</span>,{" "}
+        <span className="num">POST /v2/marketfeed/ltp</span>. Order endpoints are not called by this
+        build under any circumstance; approvals and risk limits will still gate them when live
+        execution is eventually reviewed and enabled.
       </p>
     </section>
   );
