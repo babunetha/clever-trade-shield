@@ -113,7 +113,7 @@ export interface Settings {
   maxRiskPerTrade: number;
   maxDailyLoss: number;
   maxTradesPerDay: number;
-  /** Rolling 7-day realised-loss cap. */
+  /** Calendar-week (Monday-Sunday, Asia/Kolkata) realised-loss cap. */
   weeklyLossLimit: number;
   /** Simultaneous open positions allowed. */
   maxOpenPositions: number;
