@@ -75,6 +75,7 @@ function Bullets({ text }: { text: string | null }) {
  * Analysis only — it cannot approve trades or override the risk engine.
  */
 export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }: Props) {
+  const { log } = useTrading();
   const [open, setOpen] = useState(false);
   const [news, setNews] = useState("");
   const [loading, setLoading] = useState(false);
@@ -86,15 +87,18 @@ export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }
     setLoading(true);
     setError(null);
     setResult(null);
+    log("AI_EVIDENCE_REQUEST", `${symbol}: operator requested candidate evidence analysis`);
     try {
       const response = await analyze({
         data: { symbol, name, indicators: metrics, newsContext: news, verdict, plan },
       });
       if (!response.ok) {
         setError(response.error);
+        log("AI_EVIDENCE_ERROR", `${symbol}: ${response.error}`, "WARN");
         toast.error(response.error);
       } else {
         setResult(parseAnalysis(response.analysis));
+        log("AI_EVIDENCE_RESULT", `${symbol}: analysis generated; approval remains manual`);
         toast.success(`AI evidence summary ready for ${symbol}`);
       }
     } catch (e) {

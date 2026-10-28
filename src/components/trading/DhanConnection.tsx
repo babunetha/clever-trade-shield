@@ -29,10 +29,11 @@ export function DhanConnection() {
   const [loadingAccount, setLoadingAccount] = useState(false);
 
   const configured = Boolean(status.data?.clientIdConfigured && status.data?.accessTokenConfigured);
-  const live = status.data?.mode === "LIVE_READ_ONLY";
+  const live = test.kind === "ok";
 
   const onTest = async () => {
     setTest({ kind: "running" });
+    try {
     const result = await runTest({});
     if (result.ok) {
       setTest({
@@ -46,6 +47,10 @@ export function DhanConnection() {
       setTest({ kind: "error", message: result.error });
       toast.error(result.error);
     }
+    } catch {
+      setTest({ kind: "error", message: "Connection test failed. Recheck server configuration and retry." });
+      toast.error("Connection test failed. Please retry.");
+    }
   };
 
   const onLoadAccount = async () => {
@@ -56,6 +61,8 @@ export function DhanConnection() {
       const failed = [result.funds, result.holdings, result.positions].find((r) => !r.ok);
       if (failed && !failed.ok) toast.error(failed.error);
       else toast.success("Live account snapshot loaded");
+    } catch {
+      toast.error("Account data is unavailable. Test the connection and try again.");
     } finally {
       setLoadingAccount(false);
     }
@@ -71,6 +78,8 @@ export function DhanConnection() {
           </Badge>
         ) : live ? (
           <Badge className="num bg-success text-success-foreground">LIVE DATA · READ-ONLY</Badge>
+        ) : configured ? (
+          <Badge variant="outline" className="num border-warn/40 text-warn">CONFIGURED · NOT VERIFIED</Badge>
         ) : (
           <Badge variant="secondary" className="num">
             SIMULATED — NOT CONNECTED

@@ -46,11 +46,11 @@ export function calculateRiskState(
   const todayKey = indiaDateKey(now);
   const isToday = (iso: string) => indiaDateKey(new Date(iso)) === todayKey;
   const weekStart = now.getTime() - 7 * 86_400_000;
-  const recent = trades.filter((t) => new Date(t.openedAt).getTime() >= weekStart);
+  const recent = trades.filter((t) => new Date(t.closedAt ?? t.openedAt).getTime() >= weekStart);
   const todays = trades.filter((t) => isToday(t.openedAt));
-  const closed = todays.filter((t) => t.status === "CLOSED");
+  const closed = trades.filter((t) => t.status === "CLOSED" && isToday(t.closedAt ?? t.openedAt));
   const weeklyClosed = recent.filter((t) => t.status === "CLOSED");
-  const open = todays.filter((t) => t.status === "OPEN");
+  const open = trades.filter((t) => t.status === "OPEN");
   const realisedPnl = closed.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
   const weeklyRealisedPnl = weeklyClosed.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
   const openRisk = open.reduce((sum, t) => sum + Math.abs(t.entry - t.stopLoss) * t.quantity, 0);
@@ -125,6 +125,10 @@ export function validateSignalRisk(
         settings.maxRiskPerTrade +
         " per-trade cap.",
     );
+  if (signal.riskRupees > risk.riskBudgetLeft)
+    reasons.push("Planned risk exceeds the remaining daily loss budget.");
+  if (signal.entry * signal.quantity > settings.capital)
+    reasons.push("Position value exceeds capital; leverage is disabled.");
   if (!Number.isFinite(signal.riskReward) || signal.riskReward < settings.minRiskReward)
     reasons.push(
       "R:R " + signal.riskReward + " is below the minimum " + settings.minRiskReward + ".",

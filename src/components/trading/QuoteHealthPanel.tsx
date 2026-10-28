@@ -44,12 +44,10 @@ export function paperBlockReasons(
     reasons.push(
       `Scan results are ${scanAgeSeconds}s old (limit ${scanStaleAfter}s). Re-run the scan.`,
     );
-  if (v.freshnessSeconds > MAX_TICK_AGE_SECONDS)
-    reasons.push(
-      `${row.source === "DHAN_LIVE" ? "Dhan live" : "Simulated"} price is ${v.freshnessSeconds}s old (limit ${MAX_TICK_AGE_SECONDS}s). Reconnect prices.`,
-    );
+  const freshness = v.checks.find((check) => check.label === "Price freshness");
+  if (freshness && !freshness.ok) reasons.push(freshness.detail);
   if (row.missingFromFeed)
-    reasons.push("Dhan returned no price for this symbol; using a simulated fallback.");
+    reasons.push("Live quote unavailable or connection failed. Paper approval is blocked; simulated fallback is display-only.");
   for (const c of v.checks) {
     if (!c.ok && c.blocking && c.label !== "Price freshness")
       reasons.push(`${c.label}: ${c.detail}`);
