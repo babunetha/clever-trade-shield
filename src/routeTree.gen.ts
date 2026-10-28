@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as ArchitectureRouteImport } from './routes/architecture'
+import { Route as ChecklistRouteImport } from './routes/checklist'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketRouteImport } from './routes/market'
@@ -41,6 +42,11 @@ const ApprovalsRoute = ApprovalsRouteImport.update({
 const ArchitectureRoute = ArchitectureRouteImport.update({
   id: '/architecture',
   path: '/architecture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChecklistRoute = ChecklistRouteImport.update({
+  id: '/checklist',
+  path: '/checklist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
   '/architecture': typeof ArchitectureRoute
+  '/checklist': typeof ChecklistRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/market': typeof MarketRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
   '/architecture': typeof ArchitectureRoute
+  '/checklist': typeof ChecklistRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/market': typeof MarketRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/agents': typeof AgentsRoute
   '/approvals': typeof ApprovalsRoute
   '/architecture': typeof ArchitectureRoute
+  '/checklist': typeof ChecklistRoute
   '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
   '/market': typeof MarketRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/approvals'
     | '/architecture'
+    | '/checklist'
     | '/journal'
     | '/login'
     | '/market'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/approvals'
     | '/architecture'
+    | '/checklist'
     | '/journal'
     | '/login'
     | '/market'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/approvals'
     | '/architecture'
+    | '/checklist'
     | '/journal'
     | '/login'
     | '/market'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   AgentsRoute: typeof AgentsRoute
   ApprovalsRoute: typeof ApprovalsRoute
   ArchitectureRoute: typeof ArchitectureRoute
+  ChecklistRoute: typeof ChecklistRoute
   JournalRoute: typeof JournalRoute
   LoginRoute: typeof LoginRoute
   MarketRoute: typeof MarketRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/architecture'
       fullPath: '/architecture'
       preLoaderRoute: typeof ArchitectureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checklist': {
+      id: '/checklist'
+      path: '/checklist'
+      fullPath: '/checklist'
+      preLoaderRoute: typeof ChecklistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentsRoute: AgentsRoute,
   ApprovalsRoute: ApprovalsRoute,
   ArchitectureRoute: ArchitectureRoute,
+  ChecklistRoute: ChecklistRoute,
   JournalRoute: JournalRoute,
   LoginRoute: LoginRoute,
   MarketRoute: MarketRoute,

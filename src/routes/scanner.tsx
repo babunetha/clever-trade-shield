@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
 import { QuoteHealthPanel } from "@/components/trading/QuoteHealthPanel";
+import { CandidateEvidenceDialog } from "@/components/trading/CandidateEvidenceDialog";
 import { BacktestPanel } from "@/components/trading/BacktestPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ interface Row {
 }
 
 function ScannerPage() {
-  const { quotes, indices, settings, risk, trades, openPaperTrade } = useTrading();
+  const { quotes, indices, settings, risk, trades, openPaperTrade, log } = useTrading();
   const [config, setConfig] = useState<ScannerConfig>(() => defaultScannerConfig());
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -105,13 +106,16 @@ function ScannerPage() {
         setScannedAt(new Date().toISOString());
         setNowMs(Date.now());
         setStatus("ready");
+        log("SCANNER_RUN", `${found.length} simulated candidates matched the enabled scanners`);
       } catch (e) {
         setCandidates(null);
-        setError(e instanceof Error ? e.message : "The scan could not be completed.");
+        const message = e instanceof Error ? e.message : "The scan could not be completed.";
+        setError(message);
         setStatus("error");
+        log("SCANNER_ERROR", message, "WARN");
       }
     }, 30);
-  }, [config]);
+  }, [config, log]);
 
   const runLiveScan = useCallback(async () => {
     setStatus("loading");
@@ -124,14 +128,20 @@ function ScannerPage() {
       setScannedAt(new Date().toISOString());
       setNowMs(Date.now());
       setStatus("ready");
+      log(
+        "SCANNER_RUN",
+        `Dhan live research scan complete: ${result.candidates.length} candidates`,
+      );
       toast.success("Dhan live research scan complete.");
     } catch (e) {
       setCandidates(null);
-      setError(e instanceof Error ? e.message : "Dhan live scan failed.");
+      const message = e instanceof Error ? e.message : "Dhan live scan failed.";
+      setError(message);
       setStatus("error");
-      toast.error(e instanceof Error ? e.message : "Dhan live scan failed.");
+      log("SCANNER_ERROR", message, "WARN");
+      toast.error(message);
     }
-  }, [config]);
+  }, [config, log]);
 
   // Client-only first scan (the engine is heavy and must not run during SSR).
   useEffect(() => {
@@ -184,6 +194,11 @@ function ScannerPage() {
     : liveResult && !liveResult.ok
       ? liveResult.error
       : null;
+
+  // Connection/quote errors are part of the audit trail, fail-closed by design.
+  useEffect(() => {
+    if (liveError) log("QUOTE_ERROR", liveError, "WARN");
+  }, [liveError, log]);
 
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
