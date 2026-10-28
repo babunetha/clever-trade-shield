@@ -16,7 +16,7 @@ MARKET DATA ENGINE → DHAN
 
 AI RESEARCH → Technical / News / Fundamental / Sentiment → Bull/Bear Debate → Research Manager → Trader → Risk Management → Portfolio Manager → RISK ENGINE → Semi-Automatic Approval → DHAN API → Order Execution
 
-The final order-execution layer is present behind a multi-condition server gate and remains OFF by default. Phase 1 live-data/paper-trading is supported; Phase 2 semi-automatic execution requires explicit production configuration and user approval. See [docs/MASTER_TRADING_SPEC.md](docs/MASTER_TRADING_SPEC.md) for the complete requirements.
+The final order-execution layer is hard-disabled in this release, including when environment flags are supplied. Future real-money execution requires a separate security review, durable account-level risk enforcement and bound approvals. See [docs/FINAL_STATUS.md](docs/FINAL_STATUS.md) for implementation status and verification limitations.
 
 ## Security configuration
 
