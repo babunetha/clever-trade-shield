@@ -15,7 +15,9 @@ export function enforceProfile(settings: Settings): Settings {
     maxTradesPerDay: cap(settings.maxTradesPerDay, 3, true),
     maxOpenPositions: cap(settings.maxOpenPositions, 2, true),
     lockAfterLosingTrades: cap(settings.lockAfterLosingTrades, 2, true),
-    minRiskReward: Number.isFinite(settings.minRiskReward) ? Math.max(1.5, settings.minRiskReward) : 1.5,
+    minRiskReward: Number.isFinite(settings.minRiskReward)
+      ? Math.max(1.5, settings.minRiskReward)
+      : 1.5,
     intradayOnly: true,
     allowFno: false,
     liveExecutionEnabled: false,

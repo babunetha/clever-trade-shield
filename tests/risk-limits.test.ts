@@ -25,7 +25,9 @@ const trade = (id: string, pnl?: number, openedAt = now.toISOString()): Trade =>
 
 describe("capital-preservation limits", () => {
   test("saved configuration cannot raise the ₹500 risk ceiling", () => {
-    expect(enforceProfile({ ...DEFAULT_SETTINGS, maxRiskPerTrade: 9999 }).maxRiskPerTrade).toBe(500);
+    expect(enforceProfile({ ...DEFAULT_SETTINGS, maxRiskPerTrade: 9999 }).maxRiskPerTrade).toBe(
+      500,
+    );
   });
   test("saved configuration cannot raise the ₹1,000 daily ceiling", () => {
     expect(enforceProfile({ ...DEFAULT_SETTINGS, maxDailyLoss: 9999 }).maxDailyLoss).toBe(1000);
@@ -34,7 +36,9 @@ describe("capital-preservation limits", () => {
     expect(enforceProfile({ ...DEFAULT_SETTINGS, maxTradesPerDay: 10 }).maxTradesPerDay).toBe(3);
   });
   test("saved configuration cannot remove the two-loss lock", () => {
-    expect(enforceProfile({ ...DEFAULT_SETTINGS, lockAfterLosingTrades: 10 }).lockAfterLosingTrades).toBe(2);
+    expect(
+      enforceProfile({ ...DEFAULT_SETTINGS, lockAfterLosingTrades: 10 }).lockAfterLosingTrades,
+    ).toBe(2);
   });
   test("starting profile has ₹1,00,000 capital and ₹500 risk cap", () => {
     expect(DEFAULT_SETTINGS.capital).toBe(100000);

@@ -55,8 +55,8 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <div className="border-b border-border bg-warn-muted px-4 py-1.5 text-center text-[11px] tracking-wide text-warn">
-        SIMULATED TICKER · NO LIVE ORDERS · Live execution is hard-disabled. Educational
-        use only — not investment advice.
+        SIMULATED TICKER · NO LIVE ORDERS · Live execution is hard-disabled. Educational use only —
+        not investment advice.
       </div>
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
@@ -143,7 +143,10 @@ export function AppShell({
         </main>
       </div>
 
-      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-border bg-background/95 px-2 py-1 backdrop-blur md:hidden">
+      <nav
+        aria-label="Mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-30 flex overflow-x-auto border-t border-border bg-background/95 px-2 py-1 backdrop-blur md:hidden"
+      >
         {NAV.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
