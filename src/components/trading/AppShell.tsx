@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import { useTrading } from "@/lib/trading/store";
 import { formatPct, formatSignedINR, formatPrice, tone } from "@/lib/trading/format";
 import { Button } from "@/components/ui/button";
-import { logoutApp } from "@/lib/auth.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 const NAV = [
@@ -47,8 +47,7 @@ export function AppShell({
   const router = useRouter();
 
   const logout = async () => {
-    await logoutApp();
-    await router.invalidate();
+    await supabase.auth.signOut();
     await router.navigate({ to: "/login" });
   };
 
