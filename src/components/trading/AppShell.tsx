@@ -10,6 +10,7 @@ import {
   Settings as SettingsIcon,
   ShieldAlert,
   ShieldCheck,
+  Sunrise,
   Workflow,
   LogOut,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/checklist", label: "Pre-Market", icon: Sunrise },
   { to: "/market", label: "Market Overview", icon: LineChart },
   { to: "/scanner", label: "Scanner", icon: Radar },
   { to: "/architecture", label: "System Architecture", icon: Workflow },

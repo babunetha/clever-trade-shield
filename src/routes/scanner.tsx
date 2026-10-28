@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
 import { QuoteHealthPanel } from "@/components/trading/QuoteHealthPanel";
+import { CandidateEvidenceDialog } from "@/components/trading/CandidateEvidenceDialog";
 import { BacktestPanel } from "@/components/trading/BacktestPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ interface Row {
 }
 
 function ScannerPage() {
-  const { quotes, indices, settings, risk, trades, openPaperTrade } = useTrading();
+  const { quotes, indices, settings, risk, trades, openPaperTrade, log } = useTrading();
   const [config, setConfig] = useState<ScannerConfig>(() => defaultScannerConfig());
   const [candidates, setCandidates] = useState<ScanCandidate[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -105,13 +106,16 @@ function ScannerPage() {
         setScannedAt(new Date().toISOString());
         setNowMs(Date.now());
         setStatus("ready");
+        log("SCANNER_RUN", `${found.length} simulated candidates matched the enabled scanners`);
       } catch (e) {
         setCandidates(null);
-        setError(e instanceof Error ? e.message : "The scan could not be completed.");
+        const message = e instanceof Error ? e.message : "The scan could not be completed.";
+        setError(message);
         setStatus("error");
+        log("SCANNER_ERROR", message, "WARN");
       }
     }, 30);
-  }, [config]);
+  }, [config, log]);
 
   const runLiveScan = useCallback(async () => {
     setStatus("loading");
@@ -124,14 +128,20 @@ function ScannerPage() {
       setScannedAt(new Date().toISOString());
       setNowMs(Date.now());
       setStatus("ready");
+      log(
+        "SCANNER_RUN",
+        `Dhan live research scan complete: ${result.candidates.length} candidates`,
+      );
       toast.success("Dhan live research scan complete.");
     } catch (e) {
       setCandidates(null);
-      setError(e instanceof Error ? e.message : "Dhan live scan failed.");
+      const message = e instanceof Error ? e.message : "Dhan live scan failed.";
+      setError(message);
       setStatus("error");
-      toast.error(e instanceof Error ? e.message : "Dhan live scan failed.");
+      log("SCANNER_ERROR", message, "WARN");
+      toast.error(message);
     }
-  }, [config]);
+  }, [config, log]);
 
   // Client-only first scan (the engine is heavy and must not run during SSR).
   useEffect(() => {
@@ -184,6 +194,11 @@ function ScannerPage() {
     : liveResult && !liveResult.ok
       ? liveResult.error
       : null;
+
+  // Connection/quote errors are part of the audit trail, fail-closed by design.
+  useEffect(() => {
+    if (liveError) log("QUOTE_ERROR", liveError, "WARN");
+  }, [liveError, log]);
 
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
@@ -272,6 +287,11 @@ function ScannerPage() {
         },
       });
       setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
+      log(
+        "AI_VALIDATION",
+        `${row.candidate.symbol}: ${response.ok ? `${response.result.finalDecision} (${response.result.confidence}% confidence)` : response.error}`,
+        response.ok ? "INFO" : "WARN",
+      );
       if (!response.ok) toast.error(response.error);
       else toast.success(`Gemini validation complete for ${row.candidate.symbol}`);
     } catch (e) {
@@ -284,10 +304,16 @@ function ScannerPage() {
   const takePaperTrade = (row: Row) => {
     if (stale) {
       toast.error("These results are stale. Re-run the scan first.");
+      log("PAPER_TRADE_BLOCKED", `${row.candidate.symbol}: scan results are stale`, "WARN");
       return;
     }
     if (row.verification.state !== "BUY CANDIDATE") {
       toast.error("Verification has not passed for this candidate.");
+      log(
+        "PAPER_TRADE_BLOCKED",
+        `${row.candidate.symbol}: verification state ${row.verification.state}`,
+        "WARN",
+      );
       return;
     }
     const res = openPaperTrade({
@@ -301,8 +327,16 @@ function ScannerPage() {
       riskRupees: row.verification.plan.riskRupees,
       source: row.candidate.scannerName,
     });
-    if (res.ok) toast.success(res.message);
-    else toast.error(res.message);
+    if (res.ok) {
+      toast.success(res.message);
+      log(
+        "PAPER_TRADE_OPENED",
+        `${row.candidate.symbol} paper trade logged on simulated data (${row.candidate.scannerName})`,
+      );
+    } else {
+      toast.error(res.message);
+      log("PAPER_TRADE_BLOCKED", `${row.candidate.symbol}: ${res.message}`, "WARN");
+    }
   };
 
   return (
@@ -621,6 +655,22 @@ function ScannerPage() {
                       >
                         {open ? "Hide checks" : `Why ${v.state}`}
                       </Button>
+
+                      <CandidateEvidenceDialog
+                        symbol={cand.symbol}
+                        name={cand.name}
+                        metrics={{
+                          price: Number(v.plan.entry.toFixed(2)),
+                          "RSI 14": v.metrics.rsi14 ?? null,
+                          "ATR 14": v.metrics.atr14 ?? null,
+                          RVOL: v.metrics.rvol ?? null,
+                          "52w proximity %": v.metrics.pctOf52wHigh,
+                          "Liquidity (Cr)": v.metrics.tradedValueCr,
+                          "Nifty bias": niftyBias,
+                        }}
+                        verdict={v.state}
+                        plan={`Entry ${formatPrice(v.plan.entry)} · SL ${formatPrice(v.plan.stopLoss)} · T1 ${formatPrice(v.plan.target1)} · ${v.plan.quantity} sh · risk ${formatINR(v.plan.riskRupees)} · R:R ${v.plan.riskReward}`}
+                      />
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
