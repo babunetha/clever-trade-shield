@@ -12,6 +12,13 @@ export const Route = createFileRoute("/login")({
     meta: [
       { title: "Secure Login — Clever Trade Shield" },
       { name: "description", content: "Authenticated access to Clever Trade Shield." },
+      { property: "og:title", content: "Secure Login — Clever Trade Shield" },
+      {
+        property: "og:description",
+        content: "Private authenticated access to the risk-controlled trading terminal.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LoginPage,

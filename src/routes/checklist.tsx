@@ -12,6 +12,8 @@ export const Route = createFileRoute("/checklist")({
   head: () => ({
     meta: [
       { title: "Pre-Market Checklist — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
@@ -66,7 +68,9 @@ function Checklist() {
       detail:
         risk.lossBudgetLeft > 0
           ? `${formatINR(risk.lossBudgetLeft)} of ${formatINR(settings.maxDailyLoss)} still available today`
-          : "Daily loss cap of " + formatINR(settings.maxDailyLoss) + " reached — trading stays locked until the next session",
+          : "Daily loss cap of " +
+            formatINR(settings.maxDailyLoss) +
+            " reached — trading stays locked until the next session",
     },
     {
       label: "Weekly loss budget intact",
@@ -82,7 +86,7 @@ function Checklist() {
       detail:
         losingToday < settings.lockAfterLosingTrades
           ? `${losingToday} losing trade${losingToday === 1 ? "" : "s"} today (lock at ${settings.lockAfterLosingTrades})`
-          : `${losingToday} consecutive losses — the terminal stays locked for the rest of the day`,
+          : `${losingToday} losing trades today — the terminal stays locked for the rest of the day`,
     },
     {
       label: "Trading master switch on",
@@ -113,7 +117,7 @@ function Checklist() {
       detail: dhanStatus.isLoading
         ? "Checking server-side credential status…"
         : brokerConfigured
-          ? `Dhan connection ready — client id ${dhanStatus.data?.clientIdMasked ?? "configured"}; read-only data access`
+          ? "Dhan credentials configured — test the read-only connection in Settings"
           : "DHAN_CLIENT_ID / DHAN_ACCESS_TOKEN are not configured on the server — add them as backend secrets in Settings → Dhan connection. Simulated data stays the source of truth until then",
     },
     {
@@ -134,9 +138,7 @@ function Checklist() {
       subtitle="Run this before 09:20 IST each session. Nothing here places orders — it only confirms the risk state before you take the first trade."
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant="outline">
-          {brokerConfigured ? "LIVE DATA · READ-ONLY" : "SIMULATED / MOCK DATA"}
-        </Badge>
+        <Badge variant="outline">SIMULATED / MOCK CHECKLIST DATA</Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         <Badge variant={allClear ? "default" : "secondary"} className="ml-auto num">
           {items.length - blocking.length}/{items.length} CLEAR
@@ -205,8 +207,11 @@ function Checklist() {
       </div>
 
       <p className="mt-4 text-[11px] text-muted-foreground">
-        {quotes.length} instruments tracked on simulated ticks{liveOnlyItems.length ? " · live-only checks are skipped until broker data is configured" : ""}. The
-        checklist re-checks everything each time you open this page.
+        {quotes.length} instruments tracked on simulated ticks
+        {liveOnlyItems.length
+          ? " · live-only checks are skipped until broker data is configured"
+          : ""}
+        . The checklist re-checks everything each time you open this page.
       </p>
 
       {!settings.tradingEnabled ? (

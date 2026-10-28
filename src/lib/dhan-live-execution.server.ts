@@ -41,7 +41,9 @@ function credentials() {
   return clientId && accessToken ? { clientId, accessToken } : null;
 }
 export function liveExecutionGate(): LiveExecutionGate {
-  const reasons: string[] = [];
+  const reasons: string[] = [
+    "Live order execution is hard-disabled in this release pending a separate security review.",
+  ];
   if (process.env["CTS_LIVE_EXECUTION_ENABLED"] !== "true")
     reasons.push("CTS_LIVE_EXECUTION_ENABLED is not true.");
   if (process.env["CTS_LIVE_EXECUTION_CONFIRMATION"] !== "ENABLE_LIVE_TRADING")

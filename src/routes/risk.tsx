@@ -11,6 +11,8 @@ export const Route = createFileRoute("/risk")({
   head: () => ({
     meta: [
       { title: "Risk Controls — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:

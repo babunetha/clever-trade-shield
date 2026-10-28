@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Brain, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
@@ -11,6 +11,14 @@ export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
       { title: "AI Agents — ₹1L Trading Assistant" },
+      { property: "og:title", content: "AI Agents — Clever Trade Shield" },
+      {
+        property: "og:description",
+        content:
+          "Bull, Bear, Risk and Validator opinions for decision support, never broker execution.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Bull, Bear, Risk and Final Validator agents powered by Gemini.",
@@ -23,25 +31,36 @@ export const Route = createFileRoute("/agents")({
 function AgentsPage() {
   const runAgents = useServerFn(runAiTradingAgents);
   const [symbol, setSymbol] = useState("RELIANCE");
-  const [result, setResult] = useState<Awaited<ReturnType<typeof runAiTradingAgents>> | null>(null);
+  const [result, setResult] = useState<
+    Awaited<ReturnType<typeof runAiTradingAgents>> | { ok: false; error: string } | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   async function run() {
     setLoading(true);
     setResult(null);
-    const response = await runAgents({
-      data: {
-        symbol: symbol.trim().toUpperCase(),
-        name: symbol.trim().toUpperCase(),
-        price: 0,
-        entry: 0,
-        stopLoss: 0,
-        target1: 0,
-        riskReward: 0,
-      },
-    });
-    setResult(response);
-    setLoading(false);
+    try {
+      const response = await runAgents({
+        data: {
+          symbol: symbol.trim().toUpperCase(),
+          name: symbol.trim().toUpperCase(),
+          price: 0,
+          entry: 0,
+          stopLoss: 0,
+          target1: 0,
+          riskReward: 0,
+        },
+      });
+      setResult(response);
+    } catch {
+      setResult({
+        ok: false,
+        error:
+          "Choose a verified candidate in Scanner for committee analysis; empty market snapshots cannot be analyzed.",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -50,6 +69,9 @@ function AgentsPage() {
       subtitle="Bull + Bear + Risk + Final Validator. Server-side Gemini key; no key is exposed to the browser."
     >
       <div className="panel p-4">
+        <Button asChild size="sm" variant="outline" className="mb-3">
+          <Link to="/scanner">Analyze Scanner candidates</Link>
+        </Button>
         <div className="flex flex-wrap items-center gap-3">
           <Brain className="size-5" />
           <input

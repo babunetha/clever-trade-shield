@@ -21,7 +21,7 @@ export const loginApp = createServerFn({ method: "POST" })
       return {
         ok: false as const,
         code: "NOT_CONFIGURED",
-        error: "Set APP_SESSION_SECRET and APP_LOGIN_PASSWORD on the server.",
+        error: "Set APP_SESSION_SECRET and APP_LOGIN_PASSWORD_HASH on the server.",
       };
     }
     if (!loginAllowed()) {

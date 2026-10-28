@@ -34,10 +34,7 @@ interface Parsed {
 }
 
 function grabSection(text: string, heading: string) {
-  const re = new RegExp(
-    `##?\\s*${heading}[\\s\\S]*?(?=\\n##?\\s|\\nVerdict:\\s|$)`,
-    "i",
-  );
+  const re = new RegExp(`##?\\s*${heading}[\\s\\S]*?(?=\\n##?\\s|\\nVerdict:\\s|$)`, "i");
   const match = text.match(re);
   if (!match) return null;
   return match[0]
@@ -75,6 +72,7 @@ function Bullets({ text }: { text: string | null }) {
  * Analysis only — it cannot approve trades or override the risk engine.
  */
 export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }: Props) {
+  const { log } = useTrading();
   const [open, setOpen] = useState(false);
   const [news, setNews] = useState("");
   const [loading, setLoading] = useState(false);
@@ -86,15 +84,18 @@ export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }
     setLoading(true);
     setError(null);
     setResult(null);
+    log("AI_EVIDENCE_REQUEST", `${symbol}: operator requested candidate evidence analysis`);
     try {
       const response = await analyze({
         data: { symbol, name, indicators: metrics, newsContext: news, verdict, plan },
       });
       if (!response.ok) {
         setError(response.error);
+        log("AI_EVIDENCE_ERROR", `${symbol}: ${response.error}`, "WARN");
         toast.error(response.error);
       } else {
         setResult(parseAnalysis(response.analysis));
+        log("AI_EVIDENCE_RESULT", `${symbol}: analysis generated; approval remains manual`);
         toast.success(`AI evidence summary ready for ${symbol}`);
       }
     } catch (e) {
@@ -190,7 +191,9 @@ export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }
                 <Bullets text={result.risks} />
               </div>
               {!result.bullish && !result.bearish && !result.risks ? (
-                <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{result.raw}</pre>
+                <pre className="whitespace-pre-wrap text-xs text-muted-foreground">
+                  {result.raw}
+                </pre>
               ) : null}
             </div>
           ) : null}

@@ -53,7 +53,6 @@ export interface AgentValidationResult {
   disclaimer: string;
 }
 
-const MODEL = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
 const AI_TIMEOUT_MS = 15_000;
 
 function getApiKey(): string {
@@ -69,9 +68,10 @@ async function askGemini(systemInstruction: string, payload: unknown): Promise<A
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(process.env["GEMINI_MODEL"] || "gemini-2.5-flash")}:generateContent`,
       {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "x-goog-api-key": getApiKey(),
@@ -98,8 +98,9 @@ async function askGemini(systemInstruction: string, payload: unknown): Promise<A
     );
 
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Gemini request failed (${response.status}): ${body.slice(0, 500)}`);
+      throw new Error(
+        `Gemini request failed (${response.status}). Check server configuration or retry.`,
+      );
     }
 
     const json = (await response.json()) as {

@@ -16,6 +16,7 @@ import {
 } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
+import { enforceProfile } from "./safe-settings";
 import type {
   AuditEntry,
   AuditSeverity,
@@ -70,6 +71,7 @@ interface Ctx extends Persisted {
     quantity: number;
     riskRupees: number;
     source: string;
+    approvalId: string;
   }) => { ok: boolean; message: string };
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
@@ -110,6 +112,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const approvedIds = useRef(new Set<string>());
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
 
@@ -136,8 +139,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Persisted>;
         if (parsed.settings)
-          setSettings({ ...DEFAULT_SETTINGS, ...parsed.settings, liveExecutionEnabled: false });
-        if (parsed.trades) setTrades(parsed.trades);
+          setSettings(enforceProfile({ ...DEFAULT_SETTINGS, ...parsed.settings }));
+        if (Array.isArray(parsed.trades)) {
+          setTrades(parsed.trades);
+          tradesRef.current = parsed.trades;
+          for (const trade of parsed.trades) approvedIds.current.add(trade.signalId);
+        }
         if (parsed.audit) setAudit(parsed.audit);
         if (parsed.signals) setSignals(parsed.signals);
       }
@@ -262,7 +269,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
-      const riskDecision = validateSignalRisk(signal, settings, risk);
+      if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
+      const riskDecision = validateSignalRisk(
+        signal,
+        settings,
+        calculateRiskState(tradesRef.current, settings),
+      );
       if (!riskDecision.allowed) {
         log(
           "APPROVE_BLOCKED",
@@ -273,6 +285,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       }
 
       const now = new Date().toISOString();
+      approvedIds.current.add(id);
       const paperTrade: Trade = {
         id: uid("TRD"),
         signalId: signal.id,
@@ -293,6 +306,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)),
       );
       setTrades((prev) => [paperTrade, ...prev]);
+      tradesRef.current = [paperTrade, ...tradesRef.current];
       void persistPaperTrade({
         data: {
           id: paperTrade.id,
@@ -311,18 +325,41 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         message: "Approved — logged as a simulated trade. No live order was placed.",
       };
     },
-    [signals, risk, settings, log, persistPaperTrade],
+    [signals, settings, log, persistPaperTrade],
   );
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
     (input) => {
-      if (risk.locked) {
+      if (approvedIds.current.has(input.approvalId))
+        return { ok: false, message: "This paper approval was already recorded." };
+      const currentRisk = calculateRiskState(tradesRef.current, settings);
+      if (currentRisk.locked) {
         log(
           "PAPER_TRADE_BLOCKED",
-          `${input.symbol} blocked: ${risk.lockReasons.join("; ")}`,
+          `${input.symbol} blocked: ${currentRisk.lockReasons.join("; ")}`,
           "WARN",
         );
-        return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
+        return { ok: false, message: currentRisk.lockReasons[0] ?? "Risk lock active" };
+      }
+      const calculated = Math.abs(input.entry - input.stopLoss) * input.quantity;
+      if (
+        ![input.entry, input.stopLoss, input.target1, input.quantity, input.riskRupees].every(
+          Number.isFinite,
+        ) ||
+        !Number.isInteger(input.quantity) ||
+        input.entry <= 0 ||
+        input.stopLoss <= 0 ||
+        input.stopLoss >= input.entry ||
+        input.target1 <= input.entry ||
+        Math.abs(calculated - input.riskRupees) > 0.01 ||
+        calculated > currentRisk.riskBudgetLeft ||
+        input.entry * input.quantity > settings.capital ||
+        (input.target1 - input.entry) / (input.entry - input.stopLoss) < settings.minRiskReward
+      ) {
+        return {
+          ok: false,
+          message: "Paper plan fails price, sizing, reward-to-risk or remaining-budget validation.",
+        };
       }
       if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
       if (input.riskRupees > settings.maxRiskPerTrade)
@@ -330,14 +367,15 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           ok: false,
           message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap`,
         };
-      const openToday = trades.filter((t) => isToday(t.openedAt) && t.status === "OPEN").length;
+      const openToday = tradesRef.current.filter((t) => t.status === "OPEN").length;
       if (openToday >= settings.maxOpenPositions)
         return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
 
       const now = new Date().toISOString();
+      approvedIds.current.add(input.approvalId);
       const paperTrade: Trade = {
         id: uid("TRD"),
-        signalId: `SCAN-${input.source}`,
+        signalId: input.approvalId,
         securityId: input.securityId,
         symbol: input.symbol,
         name: input.name,
@@ -352,6 +390,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         simulated: true,
       };
       setTrades((prev) => [paperTrade, ...prev]);
+      tradesRef.current = [paperTrade, ...tradesRef.current];
       void persistPaperTrade({
         data: {
           id: paperTrade.id,
@@ -367,7 +406,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       );
       return { ok: true, message: "Logged as a simulated paper trade. No live order was placed." };
     },
-    [risk, settings, trades, log, persistPaperTrade],
+    [settings, log, persistPaperTrade],
   );
 
   const rejectSignal = useCallback(
@@ -465,7 +504,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const saveSettings = useCallback(
     (patch: Partial<Settings>) => {
-      setSettings((prev) => ({ ...prev, ...patch, liveExecutionEnabled: false }));
+      setSettings((prev) => enforceProfile({ ...prev, ...patch }));
       log(
         "SETTINGS_UPDATED",
         Object.entries(patch)
@@ -491,6 +530,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const resetDay = useCallback(() => {
     setTrades([]);
+    tradesRef.current = [];
+    approvedIds.current.clear();
     setSignals([]);
     log("DAY_RESET", "Simulated day reset: trades and signals cleared", "WARN");
   }, [log]);

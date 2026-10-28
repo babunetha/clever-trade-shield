@@ -5,10 +5,18 @@
 - Weekly-loss + open-position caps enforced in `risk-engine.ts` and `server-risk.ts`.
 - Backtest panel on Scanner.
 
-## Open tasks
-- [ ] Audit logging: scanner run events, verification results, quote/connection errors (extend store `log` exposure + wire in `scanner.tsx`).
-- [ ] AI candidate evidence analysis (NEW user request): submit a scanner candidate's indicators + news context; AI Gateway model summarizes bullish/bearish evidence and flags risk factors. UI on Scanner + server fn via `/v1/responses` (openai/gpt-6-astra).
-- [ ] Pre-market checklist screen (09:00 IST: Dhan credential status, risk budgets reset, session config, open positions, pending approvals).
-- [ ] Journal AI coach ("Analyze my session") via AI Gateway, graceful "not configured" fallback.
-- [ ] Lint clean, `bun run security:check`, `bun run build`, browser verification of all routes.
-- [ ] (Blocked on user) Real Dhan data + WebSocket streaming: needs `DHAN_CLIENT_ID` + `DHAN_ACCESS_TOKEN` backend secrets and Dhan data subscription.
+## Completed in this phase
+- [x] Audit logging for scanner runs, verification, quote errors, AI evidence and paper approvals.
+- [x] Direct server-only OpenAI candidate evidence with operator-supplied news context; Gemini committee preserved.
+- [x] Pre-market checklist and navigation.
+- [x] Journal AI session review with safe unavailable-configuration response.
+- [x] Resolve compile/runtime errors, run security/risk/research tests and lint; latest harness build OK.
+- [x] Browser UI checks for all eleven content screens with explicitly mocked services; actual login/missing-configuration checks.
+
+## External blockers / remaining verification
+- [ ] Real authenticated end-to-end tests: application session secret and password hash are not configured.
+- [ ] Real Dhan connection/quotes/reconnect and server-side streaming: Dhan secrets, data entitlement and a tested secure relay required; current scanner uses foreground HTTP polling.
+- [ ] Real AI/news-service results: server provider keys and external TradingAgents/news service configuration required.
+- [ ] Durable cross-device records: existing server storage credentials and reviewed migrations required.
+
+See `docs/FINAL_STATUS.md` for the delivered scope and verification limitations. Live orders remain hard-disabled.

@@ -1,6 +1,8 @@
 import type { RiskState, Settings } from "@/lib/trading/types";
 import type { ScanCandidate } from "./candidates";
 import { atr, closes, ema, high52w, macd, rsi, rvol, SECTORS, tradedValueCr, vwap } from "./series";
+import { quoteHealth } from "./quote-health";
+export { MAX_TICK_AGE_SECONDS } from "./quote-health";
 
 /** Where the price used for verification came from, and how fresh it is. */
 export interface LiveTick {
@@ -51,7 +53,6 @@ export interface VerificationResult {
 }
 
 /** Max age of a price before we refuse to act on it. */
-export const MAX_TICK_AGE_SECONDS = 20;
 
 const round = (v: number, dp = 2) => Number(v.toFixed(dp));
 
@@ -68,7 +69,8 @@ export function verifyCandidate(input: {
   const { candidate, tick, niftyBias, sectorChangePct, settings, risk, openPositions } = input;
   const bars = candidate.bars;
   const c = closes(bars);
-  const lastCompleted = bars.at(-1)!;
+  const lastCompleted = bars.at(-1);
+  if (!lastCompleted) throw new Error("Completed candle history is unavailable.");
 
   const metrics = {
     ema10: ema(c, 10),
@@ -86,7 +88,13 @@ export function verifyCandidate(input: {
   const entry = round(Math.max(tick.price, lastCompleted.close));
   const stopLoss = round(Math.max(0.05, entry - 1.2 * atrValue));
   const perShareRisk = Math.max(0.05, round(entry - stopLoss));
-  const quantity = Math.max(0, Math.floor(settings.maxRiskPerTrade / perShareRisk));
+  const quantity = Math.max(
+    0,
+    Math.min(
+      Math.floor(Math.min(500, settings.maxRiskPerTrade, risk.riskBudgetLeft) / perShareRisk),
+      Math.floor(Math.max(0, settings.capital - risk.openRisk) / entry),
+    ),
+  );
   const target1 = round(entry + 1.5 * perShareRisk);
   const target2 = round(entry + 2.5 * perShareRisk);
   const plan: TradePlan = {
@@ -99,17 +107,15 @@ export function verifyCandidate(input: {
     riskReward: round((target1 - entry) / perShareRisk),
   };
 
-  const freshnessSeconds = Math.max(
-    0,
-    Math.round(((input.now ?? Date.now()) - new Date(tick.asOf).getTime()) / 1000),
-  );
+  const health = quoteHealth(tick.price, tick.asOf, input.now ?? Date.now());
+  const freshnessSeconds = Math.ceil(health.ageSeconds);
   const sector = SECTORS[candidate.symbol] ?? "Unclassified";
 
   const checks: VerificationCheck[] = [
     {
       label: "Price freshness",
-      ok: freshnessSeconds <= MAX_TICK_AGE_SECONDS,
-      detail: `${tick.source === "DHAN_LIVE" ? "Dhan live" : "Simulated"} price ${freshnessSeconds}s old (limit ${MAX_TICK_AGE_SECONDS}s)`,
+      ok: health.fresh,
+      detail: `${tick.source === "DHAN_LIVE" ? "Dhan live" : "Simulated"}: ${health.fresh ? `price ${freshnessSeconds}s old` : health.reason}`,
       blocking: true,
     },
     {

@@ -14,7 +14,7 @@ import {
   tone,
 } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,8 @@ export const Route = createFileRoute("/journal")({
   head: () => ({
     meta: [
       { title: "Trade Journal — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
