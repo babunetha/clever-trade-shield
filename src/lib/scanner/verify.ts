@@ -88,10 +88,13 @@ export function verifyCandidate(input: {
   const entry = round(Math.max(tick.price, lastCompleted.close));
   const stopLoss = round(Math.max(0.05, entry - 1.2 * atrValue));
   const perShareRisk = Math.max(0.05, round(entry - stopLoss));
-  const quantity = Math.max(0, Math.min(
-    Math.floor(Math.min(500, settings.maxRiskPerTrade, risk.riskBudgetLeft) / perShareRisk),
-    Math.floor(Math.max(0, settings.capital - risk.openRisk) / entry),
-  ));
+  const quantity = Math.max(
+    0,
+    Math.min(
+      Math.floor(Math.min(500, settings.maxRiskPerTrade, risk.riskBudgetLeft) / perShareRisk),
+      Math.floor(Math.max(0, settings.capital - risk.openRisk) / entry),
+    ),
+  );
   const target1 = round(entry + 1.5 * perShareRisk);
   const target2 = round(entry + 2.5 * perShareRisk);
   const plan: TradePlan = {

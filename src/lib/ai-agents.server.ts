@@ -98,7 +98,9 @@ async function askGemini(systemInstruction: string, payload: unknown): Promise<A
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini request failed (${response.status}). Check server configuration or retry.`);
+      throw new Error(
+        `Gemini request failed (${response.status}). Check server configuration or retry.`,
+      );
     }
 
     const json = (await response.json()) as {

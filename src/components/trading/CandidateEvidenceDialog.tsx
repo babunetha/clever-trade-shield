@@ -34,10 +34,7 @@ interface Parsed {
 }
 
 function grabSection(text: string, heading: string) {
-  const re = new RegExp(
-    `##?\\s*${heading}[\\s\\S]*?(?=\\n##?\\s|\\nVerdict:\\s|$)`,
-    "i",
-  );
+  const re = new RegExp(`##?\\s*${heading}[\\s\\S]*?(?=\\n##?\\s|\\nVerdict:\\s|$)`, "i");
   const match = text.match(re);
   if (!match) return null;
   return match[0]
@@ -194,7 +191,9 @@ export function CandidateEvidenceDialog({ symbol, name, metrics, verdict, plan }
                 <Bullets text={result.risks} />
               </div>
               {!result.bullish && !result.bearish && !result.risks ? (
-                <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{result.raw}</pre>
+                <pre className="whitespace-pre-wrap text-xs text-muted-foreground">
+                  {result.raw}
+                </pre>
               ) : null}
             </div>
           ) : null}

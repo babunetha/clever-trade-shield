@@ -66,7 +66,9 @@ function Checklist() {
       detail:
         risk.lossBudgetLeft > 0
           ? `${formatINR(risk.lossBudgetLeft)} of ${formatINR(settings.maxDailyLoss)} still available today`
-          : "Daily loss cap of " + formatINR(settings.maxDailyLoss) + " reached — trading stays locked until the next session",
+          : "Daily loss cap of " +
+            formatINR(settings.maxDailyLoss) +
+            " reached — trading stays locked until the next session",
     },
     {
       label: "Weekly loss budget intact",
@@ -134,9 +136,7 @@ function Checklist() {
       subtitle="Run this before 09:20 IST each session. Nothing here places orders — it only confirms the risk state before you take the first trade."
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant="outline">
-          SIMULATED / MOCK CHECKLIST DATA
-        </Badge>
+        <Badge variant="outline">SIMULATED / MOCK CHECKLIST DATA</Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         <Badge variant={allClear ? "default" : "secondary"} className="ml-auto num">
           {items.length - blocking.length}/{items.length} CLEAR
@@ -205,8 +205,11 @@ function Checklist() {
       </div>
 
       <p className="mt-4 text-[11px] text-muted-foreground">
-        {quotes.length} instruments tracked on simulated ticks{liveOnlyItems.length ? " · live-only checks are skipped until broker data is configured" : ""}. The
-        checklist re-checks everything each time you open this page.
+        {quotes.length} instruments tracked on simulated ticks
+        {liveOnlyItems.length
+          ? " · live-only checks are skipped until broker data is configured"
+          : ""}
+        . The checklist re-checks everything each time you open this page.
       </p>
 
       {!settings.tradingEnabled ? (

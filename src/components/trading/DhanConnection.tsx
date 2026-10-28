@@ -34,21 +34,24 @@ export function DhanConnection() {
   const onTest = async () => {
     setTest({ kind: "running" });
     try {
-    const result = await runTest({});
-    if (result.ok) {
-      setTest({
-        kind: "ok",
-        clientId: result.data.dhanClientIdMasked,
-        validity: result.data.tokenValidity,
-        segments: result.data.activeSegments,
-      });
-      toast.success("Dhan connection verified (read-only)");
-    } else {
-      setTest({ kind: "error", message: result.error });
-      toast.error(result.error);
-    }
+      const result = await runTest({});
+      if (result.ok) {
+        setTest({
+          kind: "ok",
+          clientId: result.data.dhanClientIdMasked,
+          validity: result.data.tokenValidity,
+          segments: result.data.activeSegments,
+        });
+        toast.success("Dhan connection verified (read-only)");
+      } else {
+        setTest({ kind: "error", message: result.error });
+        toast.error(result.error);
+      }
     } catch {
-      setTest({ kind: "error", message: "Connection test failed. Recheck server configuration and retry." });
+      setTest({
+        kind: "error",
+        message: "Connection test failed. Recheck server configuration and retry.",
+      });
       toast.error("Connection test failed. Please retry.");
     }
   };
@@ -79,7 +82,9 @@ export function DhanConnection() {
         ) : live ? (
           <Badge className="num bg-success text-success-foreground">LIVE DATA · READ-ONLY</Badge>
         ) : configured ? (
-          <Badge variant="outline" className="num border-warn/40 text-warn">CONFIGURED · NOT VERIFIED</Badge>
+          <Badge variant="outline" className="num border-warn/40 text-warn">
+            CONFIGURED · NOT VERIFIED
+          </Badge>
         ) : (
           <Badge variant="secondary" className="num">
             SIMULATED — NOT CONNECTED

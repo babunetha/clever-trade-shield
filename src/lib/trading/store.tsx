@@ -265,7 +265,11 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
-      const riskDecision = validateSignalRisk(signal, settings, calculateRiskState(tradesRef.current, settings));
+      const riskDecision = validateSignalRisk(
+        signal,
+        settings,
+        calculateRiskState(tradesRef.current, settings),
+      );
       if (!riskDecision.allowed) {
         log(
           "APPROVE_BLOCKED",
@@ -321,7 +325,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
     (input) => {
-      if (approvedIds.current.has(input.approvalId)) return { ok: false, message: "This paper approval was already recorded." };
+      if (approvedIds.current.has(input.approvalId))
+        return { ok: false, message: "This paper approval was already recorded." };
       const currentRisk = calculateRiskState(tradesRef.current, settings);
       if (currentRisk.locked) {
         log(
@@ -332,13 +337,24 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         return { ok: false, message: currentRisk.lockReasons[0] ?? "Risk lock active" };
       }
       const calculated = Math.abs(input.entry - input.stopLoss) * input.quantity;
-      if (![input.entry, input.stopLoss, input.target1, input.quantity, input.riskRupees].every(Number.isFinite) ||
-          !Number.isInteger(input.quantity) || input.entry <= 0 || input.stopLoss <= 0 ||
-          input.stopLoss >= input.entry || input.target1 <= input.entry ||
-          Math.abs(calculated - input.riskRupees) > 0.01 || calculated > currentRisk.riskBudgetLeft ||
-          input.entry * input.quantity > settings.capital ||
-          (input.target1 - input.entry) / (input.entry - input.stopLoss) < settings.minRiskReward) {
-        return { ok: false, message: "Paper plan fails price, sizing, reward-to-risk or remaining-budget validation." };
+      if (
+        ![input.entry, input.stopLoss, input.target1, input.quantity, input.riskRupees].every(
+          Number.isFinite,
+        ) ||
+        !Number.isInteger(input.quantity) ||
+        input.entry <= 0 ||
+        input.stopLoss <= 0 ||
+        input.stopLoss >= input.entry ||
+        input.target1 <= input.entry ||
+        Math.abs(calculated - input.riskRupees) > 0.01 ||
+        calculated > currentRisk.riskBudgetLeft ||
+        input.entry * input.quantity > settings.capital ||
+        (input.target1 - input.entry) / (input.entry - input.stopLoss) < settings.minRiskReward
+      ) {
+        return {
+          ok: false,
+          message: "Paper plan fails price, sizing, reward-to-risk or remaining-budget validation.",
+        };
       }
       if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
       if (input.riskRupees > settings.maxRiskPerTrade)

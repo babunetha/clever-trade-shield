@@ -60,7 +60,8 @@ export const analyzeCandidateEvidence = createServerFn({ method: "POST" })
     if (raw && typeof raw === "object") {
       for (const [key, value] of Object.entries(raw).slice(0, 40)) {
         if (value === null) indicators[asString(key, 40)] = null;
-        else if (typeof value === "number" && Number.isFinite(value)) indicators[asString(key, 40)] = value;
+        else if (typeof value === "number" && Number.isFinite(value))
+          indicators[asString(key, 40)] = value;
         else if (typeof value === "boolean") indicators[asString(key, 40)] = value;
         else if (typeof value === "string") indicators[asString(key, 40)] = value.slice(0, 120);
       }
@@ -122,12 +123,15 @@ export const coachJournalSession = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .inputValidator((input: Partial<JournalCoachInput>) => {
     const trades = (Array.isArray(input?.trades) ? input.trades : []).slice(0, 30).map((t) => ({
-      symbol: String(t?.symbol ?? "").slice(0, 20).toUpperCase(),
+      symbol: String(t?.symbol ?? "")
+        .slice(0, 20)
+        .toUpperCase(),
       side: String(t?.side ?? "LONG").slice(0, 10),
       entry: Number(t?.entry) || 0,
       exit: t?.exit != null && Number.isFinite(Number(t.exit)) ? Number(t.exit) : null,
       pnl: t?.pnl != null && Number.isFinite(Number(t.pnl)) ? Number(t.pnl) : null,
-      rMultiple: t?.rMultiple != null && Number.isFinite(Number(t.rMultiple)) ? Number(t.rMultiple) : null,
+      rMultiple:
+        t?.rMultiple != null && Number.isFinite(Number(t.rMultiple)) ? Number(t.rMultiple) : null,
       exitReason: String(t?.exitReason ?? "").slice(0, 12),
       notes: String(t?.notes ?? "").slice(0, 500),
       openedAt: String(t?.openedAt ?? "").slice(0, 32),

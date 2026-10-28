@@ -47,7 +47,9 @@ export function paperBlockReasons(
   const freshness = v.checks.find((check) => check.label === "Price freshness");
   if (freshness && !freshness.ok) reasons.push(freshness.detail);
   if (row.missingFromFeed)
-    reasons.push("Live quote unavailable or connection failed. Paper approval is blocked; simulated fallback is display-only.");
+    reasons.push(
+      "Live quote unavailable or connection failed. Paper approval is blocked; simulated fallback is display-only.",
+    );
   for (const c of v.checks) {
     if (!c.ok && c.blocking && c.label !== "Price freshness")
       reasons.push(`${c.label}: ${c.detail}`);
