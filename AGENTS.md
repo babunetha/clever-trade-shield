@@ -8,3 +8,4 @@
 - Treat client-side state as untrusted for any future real-money mutation.
 - Prefer durable server-side state for order intent, idempotency and reconciliation.
 - Run `bun run security:check`, `bun run lint` and `bun run build` before merging.
+- Candidate evidence and journal coaching use direct server-side OpenAI requests; Gemini remains the existing committee provider, avoiding platform-specific runtime dependencies.

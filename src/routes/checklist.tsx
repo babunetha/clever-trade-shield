@@ -82,7 +82,7 @@ function Checklist() {
       detail:
         losingToday < settings.lockAfterLosingTrades
           ? `${losingToday} losing trade${losingToday === 1 ? "" : "s"} today (lock at ${settings.lockAfterLosingTrades})`
-          : `${losingToday} consecutive losses — the terminal stays locked for the rest of the day`,
+          : `${losingToday} losing trades today — the terminal stays locked for the rest of the day`,
     },
     {
       label: "Trading master switch on",
@@ -113,7 +113,7 @@ function Checklist() {
       detail: dhanStatus.isLoading
         ? "Checking server-side credential status…"
         : brokerConfigured
-          ? `Dhan connection ready — client id ${dhanStatus.data?.clientIdMasked ?? "configured"}; read-only data access`
+          ? "Dhan credentials configured — test the read-only connection in Settings"
           : "DHAN_CLIENT_ID / DHAN_ACCESS_TOKEN are not configured on the server — add them as backend secrets in Settings → Dhan connection. Simulated data stays the source of truth until then",
     },
     {
@@ -135,7 +135,7 @@ function Checklist() {
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Badge variant="outline">
-          {brokerConfigured ? "LIVE DATA · READ-ONLY" : "SIMULATED / MOCK DATA"}
+          SIMULATED / MOCK CHECKLIST DATA
         </Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         <Badge variant={allClear ? "default" : "secondary"} className="ml-auto num">
