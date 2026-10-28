@@ -14,7 +14,9 @@
 - [x] Browser UI checks for all eleven content screens with explicitly mocked services; actual login/missing-configuration checks.
 
 ## External blockers / remaining verification
-- [ ] Real authenticated end-to-end tests: application session secret and password hash are not configured.
+- [x] Sign-in moved to the app's own account system (email + password); first account becomes the only owner; verified end-to-end in the browser.
+- [x] Preview was blocked by frame/connection security headers — fixed.
+- [x] Paper-trade and audit records now have server-only storage tables.
 - [ ] Real Dhan connection/quotes/reconnect and server-side streaming: Dhan secrets, data entitlement and a tested secure relay required; current scanner uses foreground HTTP polling.
 - [ ] Real AI/news-service results: server provider keys and external TradingAgents/news service configuration required.
 - [ ] Durable cross-device records: existing server storage credentials and reviewed migrations required.
