@@ -8,9 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    denied: search.denied === "1" ? ("1" as const) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { denied?: "1" } =>
+    search.denied === "1" ? { denied: "1" } : {},
   head: () => ({
     meta: [
       { title: "Secure Login — Clever Trade Shield" },
