@@ -8,6 +8,13 @@
       "when": 1793203304145,
       "tag": "0000_durable_trade_execution_state",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793203329553,
+      "tag": "0001_owner_access_and_paper_records",
+      "breakpoints": true
     }
   ]
 }
