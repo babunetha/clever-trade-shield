@@ -1,49 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
-import {
-  authConfiguration,
-  clearLoginFailures,
-  currentAuthState,
-  loginAllowed,
-  getAppSession,
-  verifyLoginPassword,
-} from "./auth.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const getAuthStatus = createServerFn({ method: "GET" }).handler(async () =>
-  currentAuthState(),
-);
-
-export const loginApp = createServerFn({ method: "POST" })
-  .inputValidator((input: { password: string }) => ({
-    password: typeof input?.password === "string" ? input.password.slice(0, 256) : "",
-  }))
-  .handler(async ({ data }) => {
-    if (!authConfiguration().configured) {
-      return {
-        ok: false as const,
-        code: "NOT_CONFIGURED",
-        error: "Set APP_SESSION_SECRET and APP_LOGIN_PASSWORD_HASH on the server.",
-      };
-    }
-    if (!loginAllowed()) {
-      return {
-        ok: false as const,
-        code: "RATE_LIMITED",
-        error: "Too many failed login attempts. Try again in 15 minutes.",
-      };
-    }
-    if (!(await verifyLoginPassword(data.password))) {
-      return { ok: false as const, code: "INVALID_CREDENTIALS", error: "Invalid password." };
-    }
-    const session = await getAppSession();
-    await session.update({ authenticated: true, issuedAt: Date.now() });
-    clearLoginFailures();
-    return { ok: true as const };
+/** Server-verified access check for the signed-in account (owner role required). */
+export const getAccessStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "owner",
+    });
+    return { authenticated: true as const, owner: !error && data === true };
   });
-
-export const logoutApp = createServerFn({ method: "POST" }).handler(async () => {
-  if (authConfiguration().configured) {
-    const session = await getAppSession();
-    await session.clear();
-  }
-  return { ok: true as const };
-});
