@@ -287,6 +287,11 @@ function ScannerPage() {
         },
       });
       setAiResults((prev) => ({ ...prev, [row.candidate.symbol]: response }));
+      log(
+        "AI_VALIDATION",
+        `${row.candidate.symbol}: ${response.ok ? `${response.result.finalDecision} (${response.result.confidence}% confidence)` : response.error}`,
+        response.ok ? "INFO" : "WARN",
+      );
       if (!response.ok) toast.error(response.error);
       else toast.success(`Gemini validation complete for ${row.candidate.symbol}`);
     } catch (e) {
@@ -299,10 +304,16 @@ function ScannerPage() {
   const takePaperTrade = (row: Row) => {
     if (stale) {
       toast.error("These results are stale. Re-run the scan first.");
+      log("PAPER_TRADE_BLOCKED", `${row.candidate.symbol}: scan results are stale`, "WARN");
       return;
     }
     if (row.verification.state !== "BUY CANDIDATE") {
       toast.error("Verification has not passed for this candidate.");
+      log(
+        "PAPER_TRADE_BLOCKED",
+        `${row.candidate.symbol}: verification state ${row.verification.state}`,
+        "WARN",
+      );
       return;
     }
     const res = openPaperTrade({
@@ -316,8 +327,16 @@ function ScannerPage() {
       riskRupees: row.verification.plan.riskRupees,
       source: row.candidate.scannerName,
     });
-    if (res.ok) toast.success(res.message);
-    else toast.error(res.message);
+    if (res.ok) {
+      toast.success(res.message);
+      log(
+        "PAPER_TRADE_OPENED",
+        `${row.candidate.symbol} paper trade logged on simulated data (${row.candidate.scannerName})`,
+      );
+    } else {
+      toast.error(res.message);
+      log("PAPER_TRADE_BLOCKED", `${row.candidate.symbol}: ${res.message}`, "WARN");
+    }
   };
 
   return (
@@ -636,6 +655,22 @@ function ScannerPage() {
                       >
                         {open ? "Hide checks" : `Why ${v.state}`}
                       </Button>
+
+                      <CandidateEvidenceDialog
+                        symbol={cand.symbol}
+                        name={cand.name}
+                        metrics={{
+                          price: Number(v.plan.entry.toFixed(2)),
+                          "RSI 14": v.metrics.rsi14 ?? null,
+                          "ATR 14": v.metrics.atr14 ?? null,
+                          RVOL: v.metrics.rvol ?? null,
+                          "52w proximity %": v.metrics.pctOf52wHigh,
+                          "Liquidity (Cr)": v.metrics.tradedValueCr,
+                          "Nifty bias": niftyBias,
+                        }}
+                        verdict={v.state}
+                        plan={`Entry ${formatPrice(v.plan.entry)} · SL ${formatPrice(v.plan.stopLoss)} · T1 ${formatPrice(v.plan.target1)} · ${v.plan.quantity} sh · risk ${formatINR(v.plan.riskRupees)} · R:R ${v.plan.riskReward}`}
+                      />
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
