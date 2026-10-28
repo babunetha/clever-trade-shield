@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/trading/AppShell";
 import { getDhanMarketSnapshot } from "@/lib/market.functions";
+import { coachJournalSession } from "@/lib/ai-analysis.functions";
 import { useTrading } from "@/lib/trading/store";
 import {
   formatDateTime,
@@ -12,7 +14,7 @@ import {
   tone,
 } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,7 +39,7 @@ export const Route = createFileRoute("/journal")({
 });
 
 function Journal() {
-  const { trades, closeTrade, updateNotes, quotes } = useTrading();
+  const { trades, closeTrade, updateNotes, quotes, log } = useTrading();
   const [exits, setExits] = useState<Record<string, string>>({});
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const [liveMode, setLiveMode] = useState(false);
@@ -111,6 +113,67 @@ function Journal() {
       ? "∞"
       : "—";
 
+  // AI discipline coach: analysis only — it reads closed simulated trades and
+  // stats, never places orders and cannot change the risk rules.
+  const coach = useServerFn(coachJournalSession);
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachResult, setCoachResult] = useState<string | null>(null);
+  const [coachError, setCoachError] = useState<string | null>(null);
+
+  const runCoach = async () => {
+    setCoachLoading(true);
+    setCoachError(null);
+    log("AI_COACH_RUN", `Session review requested over ${closed.length} closed trades`);
+    try {
+      const result = await coach({
+        data: {
+          stats: {
+            totalTrades: trades.length,
+            closedTrades: closed.length,
+            openPositions: trades.length - closed.length,
+            winRatePct: closed.length ? Math.round((wins / closed.length) * 100) : 0,
+            netPnl: Number(totalPnl.toFixed(2)),
+            avgR,
+            profitFactor: typeof profitFactor === "number" ? profitFactor : String(profitFactor),
+            grossProfit: Number(grossProfit.toFixed(2)),
+            grossLoss: Number(grossLoss.toFixed(2)),
+            maxRiskPerTrade: 500,
+            maxDailyLoss: 1000,
+            maxTradesPerDay: 3,
+          },
+          trades: closed.slice(0, 30).map((t) => ({
+            symbol: t.symbol,
+            side: t.side,
+            entry: t.entry,
+            exit: t.exit ?? null,
+            pnl: t.pnl ?? null,
+            rMultiple: t.rMultiple ?? null,
+            exitReason: t.exitReason ?? null,
+            notes: t.notes,
+            openedAt: t.openedAt,
+            closedAt: t.closedAt ?? null,
+          })),
+        },
+      });
+      if (!result.ok) {
+        setCoachError(result.error);
+        log("AI_COACH_BLOCKED", result.error, "WARN");
+        toast.error(result.error);
+      } else {
+        setCoachResult(result.review);
+        log("AI_COACH_RESULT", "Session review generated");
+        toast.success("Session review ready");
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "AI review failed.";
+      setCoachError(message);
+      log("AI_COACH_BLOCKED", message, "WARN");
+      toast.error(message);
+    } finally {
+      setCoachLoading(false);
+    }
+  };
+
   return (
     <AppShell
       title="Trade Journal"
@@ -162,6 +225,37 @@ function Journal() {
           <div className="label-caps">Average R</div>
           <div className={`num text-lg font-semibold ${tone(avgR)}`}>{avgR}</div>
         </div>
+      </div>
+
+      <div className="panel mt-4 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <h2 className="text-sm font-semibold">AI session review</h2>
+          <Badge variant="outline">ANALYSIS ONLY</Badge>
+          <Button
+            size="sm"
+            className="ml-auto"
+            onClick={() => void runCoach()}
+            disabled={coachLoading || !closed.length}
+          >
+            {coachLoading ? <Loader2 className="mr-1 size-3.5 animate-spin" /> : null}
+            {coachLoading ? "Reviewing…" : "Analyze my session"}
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Reviews your closed simulated trades and stats against your hard risk rules. The coach
+          never places orders and cannot change the risk limits.
+        </p>
+        {coachError ? (
+          <div className="mt-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
+            {coachError}
+          </div>
+        ) : null}
+        {coachResult ? (
+          <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">
+            {coachResult}
+          </pre>
+        ) : null}
       </div>
 
       <div className="mt-4 space-y-3">
