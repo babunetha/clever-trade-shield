@@ -23,6 +23,8 @@ export const Route = createFileRoute("/journal")({
   head: () => ({
     meta: [
       { title: "Trade Journal — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:

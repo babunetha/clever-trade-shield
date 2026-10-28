@@ -15,6 +15,8 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Settings — Clever Trade Shield" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Risk controls, Dhan read-only connection status and disabled live execution.",

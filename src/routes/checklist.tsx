@@ -12,6 +12,8 @@ export const Route = createFileRoute("/checklist")({
   head: () => ({
     meta: [
       { title: "Pre-Market Checklist — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:

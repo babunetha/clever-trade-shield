@@ -11,6 +11,10 @@ export const Route = createFileRoute("/agents")({
   head: () => ({
     meta: [
       { title: "AI Agents — ₹1L Trading Assistant" },
+      { property: "og:title", content: "AI Agents — Clever Trade Shield" },
+      { property: "og:description", content: "Bull, Bear, Risk and Validator opinions for decision support, never broker execution." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Bull, Bear, Risk and Final Validator agents powered by Gemini.",

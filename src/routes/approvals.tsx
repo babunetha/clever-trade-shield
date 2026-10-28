@@ -9,6 +9,8 @@ export const Route = createFileRoute("/approvals")({
   head: () => ({
     meta: [
       { title: "Trade Approval — ₹1L Trading Assistant" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:

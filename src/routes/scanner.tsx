@@ -196,9 +196,7 @@ function ScannerPage() {
   }, [liveResult]);
   const liveError = live.isError
     ? "The live price request failed. Reconnect to retry."
-    : liveResult && !liveResult.ok
-      ? liveResult.error
-      : null;
+    : null;
 
   // Connection/quote errors are part of the audit trail, fail-closed by design.
   useEffect(() => {

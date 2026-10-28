@@ -21,6 +21,10 @@ export const Route = createFileRoute("/market")({
   head: () => ({
     meta: [
       { title: "Market Overview — Clever Trade Shield" },
+      { property: "og:title", content: "Market Overview — Clever Trade Shield" },
+      { property: "og:description", content: "Read-only market snapshots with clearly labelled simulated fallback." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content: "Live Dhan market snapshot with a clearly labelled simulated fallback.",
