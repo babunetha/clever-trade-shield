@@ -190,7 +190,15 @@ describe("risk guardrails", () => {
 
 describe("production execution gate", () => {
   test("environment flags alone cannot enable live orders", async () => {
-    const keys = ["CTS_LIVE_EXECUTION_ENABLED", "CTS_LIVE_EXECUTION_CONFIRMATION", "RISK_TRADING_ENABLED", "DHAN_POSTBACK_SECRET", "DHAN_STATIC_IP", "DHAN_CLIENT_ID", "DHAN_ACCESS_TOKEN"];
+    const keys = [
+      "CTS_LIVE_EXECUTION_ENABLED",
+      "CTS_LIVE_EXECUTION_CONFIRMATION",
+      "RISK_TRADING_ENABLED",
+      "DHAN_POSTBACK_SECRET",
+      "DHAN_STATIC_IP",
+      "DHAN_CLIENT_ID",
+      "DHAN_ACCESS_TOKEN",
+    ];
     const previous = keys.map((key) => process.env[key]);
     try {
       for (const key of keys) process.env[key] = "test-placeholder";

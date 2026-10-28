@@ -194,9 +194,7 @@ function ScannerPage() {
     if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q.price);
     return map;
   }, [liveResult]);
-  const liveError = live.isError
-    ? "The live price request failed. Reconnect to retry."
-    : null;
+  const liveError = live.isError ? "The live price request failed. Reconnect to retry." : null;
 
   // Connection/quote errors are part of the audit trail, fail-closed by design.
   useEffect(() => {

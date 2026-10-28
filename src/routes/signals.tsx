@@ -16,7 +16,11 @@ export const Route = createFileRoute("/signals")({
     meta: [
       { title: "Signals — Clever Trade Shield" },
       { property: "og:title", content: "Signals — Clever Trade Shield" },
-      { property: "og:description", content: "Dhan technical signals and clearly labelled simulations with manual paper approval." },
+      {
+        property: "og:description",
+        content:
+          "Dhan technical signals and clearly labelled simulations with manual paper approval.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {

@@ -22,7 +22,10 @@ export const Route = createFileRoute("/market")({
     meta: [
       { title: "Market Overview — Clever Trade Shield" },
       { property: "og:title", content: "Market Overview — Clever Trade Shield" },
-      { property: "og:description", content: "Read-only market snapshots with clearly labelled simulated fallback." },
+      {
+        property: "og:description",
+        content: "Read-only market snapshots with clearly labelled simulated fallback.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {

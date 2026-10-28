@@ -23,7 +23,11 @@ export const Route = createFileRoute("/architecture")({
     meta: [
       { title: "System Architecture — Clever Trade Shield" },
       { property: "og:title", content: "System Architecture — Clever Trade Shield" },
-      { property: "og:description", content: "Separated research, deterministic risk controls and hard-disabled live execution." },
+      {
+        property: "og:description",
+        content:
+          "Separated research, deterministic risk controls and hard-disabled live execution.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
