@@ -59,10 +59,7 @@ export default {
       headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
       headers.set("Cross-Origin-Opener-Policy", "same-origin");
       headers.set("Cross-Origin-Resource-Policy", "same-origin");
-      headers.set(
-        "Content-Security-Policy",
-        contentSecurityPolicy(),
-      );
+      headers.set("Content-Security-Policy", contentSecurityPolicy());
       if (process.env["NODE_ENV"] === "production") {
         headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       }

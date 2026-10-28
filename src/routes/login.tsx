@@ -98,8 +98,8 @@ function LoginPage() {
           <Badge variant="outline">SECURE LOGIN</Badge>
         </div>
         <div className="mt-6 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-          The first account created becomes the terminal owner. Any later account is refused
-          access. Dhan credentials stay on the server and are never requested here.
+          The first account created becomes the terminal owner. Any later account is refused access.
+          Dhan credentials stay on the server and are never requested here.
         </div>
         {denied ? (
           <p
@@ -166,7 +166,9 @@ function LoginPage() {
             setError("");
           }}
         >
-          {mode === "signin" ? "First time here? Create the owner account" : "Already have an account? Sign in"}
+          {mode === "signin"
+            ? "First time here? Create the owner account"
+            : "Already have an account? Sign in"}
         </button>
       </section>
     </main>
