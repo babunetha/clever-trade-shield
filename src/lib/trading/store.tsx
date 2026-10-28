@@ -70,6 +70,7 @@ interface Ctx extends Persisted {
     quantity: number;
     riskRupees: number;
     source: string;
+    approvalId: string;
   }) => { ok: boolean; message: string };
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
@@ -110,6 +111,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const approvedIds = useRef(new Set<string>());
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
 
@@ -262,7 +264,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
-      const riskDecision = validateSignalRisk(signal, settings, risk);
+      if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
+      const riskDecision = validateSignalRisk(signal, settings, calculateRiskState(tradesRef.current, settings));
       if (!riskDecision.allowed) {
         log(
           "APPROVE_BLOCKED",
@@ -273,6 +276,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       }
 
       const now = new Date().toISOString();
+      approvedIds.current.add(id);
       const paperTrade: Trade = {
         id: uid("TRD"),
         signalId: signal.id,
@@ -293,6 +297,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)),
       );
       setTrades((prev) => [paperTrade, ...prev]);
+      tradesRef.current = [paperTrade, ...tradesRef.current];
       void persistPaperTrade({
         data: {
           id: paperTrade.id,
@@ -316,13 +321,24 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
     (input) => {
-      if (risk.locked) {
+      if (approvedIds.current.has(input.approvalId)) return { ok: false, message: "This paper approval was already recorded." };
+      const currentRisk = calculateRiskState(tradesRef.current, settings);
+      if (currentRisk.locked) {
         log(
           "PAPER_TRADE_BLOCKED",
-          `${input.symbol} blocked: ${risk.lockReasons.join("; ")}`,
+          `${input.symbol} blocked: ${currentRisk.lockReasons.join("; ")}`,
           "WARN",
         );
-        return { ok: false, message: risk.lockReasons[0] ?? "Risk lock active" };
+        return { ok: false, message: currentRisk.lockReasons[0] ?? "Risk lock active" };
+      }
+      const calculated = Math.abs(input.entry - input.stopLoss) * input.quantity;
+      if (![input.entry, input.stopLoss, input.target1, input.quantity, input.riskRupees].every(Number.isFinite) ||
+          !Number.isInteger(input.quantity) || input.entry <= 0 || input.stopLoss <= 0 ||
+          input.stopLoss >= input.entry || input.target1 <= input.entry ||
+          Math.abs(calculated - input.riskRupees) > 0.01 || calculated > currentRisk.riskBudgetLeft ||
+          input.entry * input.quantity > settings.capital ||
+          (input.target1 - input.entry) / (input.entry - input.stopLoss) < settings.minRiskReward) {
+        return { ok: false, message: "Paper plan fails price, sizing, reward-to-risk or remaining-budget validation." };
       }
       if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
       if (input.riskRupees > settings.maxRiskPerTrade)
@@ -330,14 +346,15 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           ok: false,
           message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap`,
         };
-      const openToday = trades.filter((t) => isToday(t.openedAt) && t.status === "OPEN").length;
+      const openToday = tradesRef.current.filter((t) => t.status === "OPEN").length;
       if (openToday >= settings.maxOpenPositions)
         return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
 
       const now = new Date().toISOString();
+      approvedIds.current.add(input.approvalId);
       const paperTrade: Trade = {
         id: uid("TRD"),
-        signalId: `SCAN-${input.source}`,
+        signalId: input.approvalId,
         securityId: input.securityId,
         symbol: input.symbol,
         name: input.name,
@@ -352,6 +369,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         simulated: true,
       };
       setTrades((prev) => [paperTrade, ...prev]);
+      tradesRef.current = [paperTrade, ...tradesRef.current];
       void persistPaperTrade({
         data: {
           id: paperTrade.id,
