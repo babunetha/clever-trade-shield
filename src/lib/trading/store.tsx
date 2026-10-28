@@ -84,6 +84,8 @@ interface Ctx extends Persisted {
   saveSettings: (patch: Partial<Settings>) => void;
   setTradingEnabled: (enabled: boolean) => void;
   resetDay: () => void;
+  /** Appends an audit entry (and persists it server-side) from any screen. */
+  log: (action: string, detail: string, severity?: AuditSeverity) => void;
 }
 
 const TradingContext = createContext<Ctx | null>(null);
