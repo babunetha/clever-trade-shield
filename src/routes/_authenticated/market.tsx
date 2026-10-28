@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export const Route = createFileRoute("/market")({
+export const Route = createFileRoute("/_authenticated/market")({
   head: () => ({
     meta: [
       { title: "Market Overview — Clever Trade Shield" },

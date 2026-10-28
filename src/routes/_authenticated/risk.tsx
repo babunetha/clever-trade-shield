@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
-export const Route = createFileRoute("/risk")({
+export const Route = createFileRoute("/_authenticated/risk")({
   head: () => ({
     meta: [
       { title: "Risk Controls — ₹1L Trading Assistant" },

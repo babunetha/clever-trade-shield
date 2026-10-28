@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { runAiTradingAgents } from "@/lib/ai-agents.functions";
 
-export const Route = createFileRoute("/agents")({
+export const Route = createFileRoute("/_authenticated/agents")({
   head: () => ({
     meta: [
       { title: "AI Agents — ₹1L Trading Assistant" },

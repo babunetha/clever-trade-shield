@@ -18,7 +18,7 @@ import {
 import { AppShell } from "@/components/trading/AppShell";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/architecture")({
+export const Route = createFileRoute("/_authenticated/architecture")({
   head: () => ({
     meta: [
       { title: "System Architecture — Clever Trade Shield" },
