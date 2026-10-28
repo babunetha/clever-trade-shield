@@ -31,7 +31,7 @@ export const Route = createFileRoute("/agents")({
 function AgentsPage() {
   const runAgents = useServerFn(runAiTradingAgents);
   const [symbol, setSymbol] = useState("RELIANCE");
-  const [result, setResult] = useState<Awaited<ReturnType<typeof runAiTradingAgents>> | null>(null);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof runAiTradingAgents>> | { ok: false; error: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function run() {
