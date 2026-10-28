@@ -256,7 +256,6 @@ function ScannerPage() {
     settings,
     risk,
     openPositions,
-    scanAgeSeconds,
     liveMap,
     liveOk,
     liveResult,

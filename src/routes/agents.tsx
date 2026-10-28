@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Brain, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
@@ -37,6 +37,7 @@ function AgentsPage() {
   async function run() {
     setLoading(true);
     setResult(null);
+    try {
     const response = await runAgents({
       data: {
         symbol: symbol.trim().toUpperCase(),
@@ -49,7 +50,11 @@ function AgentsPage() {
       },
     });
     setResult(response);
+    } catch {
+      setResult({ ok: false, error: "Choose a verified candidate in Scanner for committee analysis; empty market snapshots cannot be analyzed." });
+    } finally {
     setLoading(false);
+    }
   }
 
   return (
@@ -58,6 +63,7 @@ function AgentsPage() {
       subtitle="Bull + Bear + Risk + Final Validator. Server-side Gemini key; no key is exposed to the browser."
     >
       <div className="panel p-4">
+        <Button asChild size="sm" variant="outline" className="mb-3"><Link to="/scanner">Analyze Scanner candidates</Link></Button>
         <div className="flex flex-wrap items-center gap-3">
           <Brain className="size-5" />
           <input

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { calculateRiskState } from "../src/lib/trading/risk-engine";
 import { DEFAULT_SETTINGS } from "../src/lib/trading/store";
 import type { Trade } from "../src/lib/trading/types";
+import { enforceProfile } from "../src/lib/trading/safe-settings";
 
 const now = new Date("2026-10-28T04:30:00Z");
 const trade = (id: string, pnl?: number, openedAt = now.toISOString()): Trade => ({
@@ -23,6 +24,18 @@ const trade = (id: string, pnl?: number, openedAt = now.toISOString()): Trade =>
 });
 
 describe("capital-preservation limits", () => {
+  test("saved configuration cannot raise the ₹500 risk ceiling", () => {
+    expect(enforceProfile({ ...DEFAULT_SETTINGS, maxRiskPerTrade: 9999 }).maxRiskPerTrade).toBe(500);
+  });
+  test("saved configuration cannot raise the ₹1,000 daily ceiling", () => {
+    expect(enforceProfile({ ...DEFAULT_SETTINGS, maxDailyLoss: 9999 }).maxDailyLoss).toBe(1000);
+  });
+  test("saved configuration cannot raise the three-trade ceiling", () => {
+    expect(enforceProfile({ ...DEFAULT_SETTINGS, maxTradesPerDay: 10 }).maxTradesPerDay).toBe(3);
+  });
+  test("saved configuration cannot remove the two-loss lock", () => {
+    expect(enforceProfile({ ...DEFAULT_SETTINGS, lockAfterLosingTrades: 10 }).lockAfterLosingTrades).toBe(2);
+  });
   test("starting profile has ₹1,00,000 capital and ₹500 risk cap", () => {
     expect(DEFAULT_SETTINGS.capital).toBe(100000);
     expect(DEFAULT_SETTINGS.maxRiskPerTrade).toBe(500);

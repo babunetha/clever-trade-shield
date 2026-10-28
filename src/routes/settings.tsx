@@ -68,6 +68,17 @@ function SettingsPage() {
       toast.error("Daily loss cap cannot exceed capital");
       return;
     }
+    if (patch.capital !== 100000 || (patch.maxRiskPerTrade ?? 0) > 500 || (patch.maxDailyLoss ?? 0) > 1000 ||
+        (patch.maxTradesPerDay ?? 0) > 3 || (patch.lockAfterLosingTrades ?? 0) > 2 ||
+        !Number.isInteger(patch.maxTradesPerDay) || !Number.isInteger(patch.lockAfterLosingTrades) ||
+        (patch.minRiskReward ?? 0) < 1.5) {
+      toast.error("Keep the ₹1,00,000 profile: max ₹500/trade, ₹1,000/day, 3 trades and lock after 2 losses. Limits may only be tightened.");
+      return;
+    }
+    if (!/^\d{2}:\d{2}$/.test(session.start) || !/^\d{2}:\d{2}$/.test(session.end) || session.start >= session.end) {
+      toast.error("Session end must be later than session start.");
+      return;
+    }
     saveSettings({ ...patch, sessionStart: session.start, sessionEnd: session.end } as never);
     toast.success("Risk settings saved");
   };

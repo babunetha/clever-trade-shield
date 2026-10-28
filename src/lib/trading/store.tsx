@@ -16,6 +16,7 @@ import {
 } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
+import { enforceProfile } from "./safe-settings";
 import type {
   AuditEntry,
   AuditSeverity,
@@ -138,8 +139,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Persisted>;
         if (parsed.settings)
-          setSettings({ ...DEFAULT_SETTINGS, ...parsed.settings, liveExecutionEnabled: false });
-        if (parsed.trades) setTrades(parsed.trades);
+          setSettings(enforceProfile({ ...DEFAULT_SETTINGS, ...parsed.settings }));
+        if (Array.isArray(parsed.trades)) {
+          setTrades(parsed.trades);
+          tradesRef.current = parsed.trades;
+          for (const trade of parsed.trades) approvedIds.current.add(trade.signalId);
+        }
         if (parsed.audit) setAudit(parsed.audit);
         if (parsed.signals) setSignals(parsed.signals);
       }
@@ -320,7 +325,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         message: "Approved — logged as a simulated trade. No live order was placed.",
       };
     },
-    [signals, risk, settings, log, persistPaperTrade],
+    [signals, settings, log, persistPaperTrade],
   );
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
@@ -401,7 +406,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       );
       return { ok: true, message: "Logged as a simulated paper trade. No live order was placed." };
     },
-    [risk, settings, trades, log, persistPaperTrade],
+    [settings, log, persistPaperTrade],
   );
 
   const rejectSignal = useCallback(
@@ -499,7 +504,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const saveSettings = useCallback(
     (patch: Partial<Settings>) => {
-      setSettings((prev) => ({ ...prev, ...patch, liveExecutionEnabled: false }));
+      setSettings((prev) => enforceProfile({ ...prev, ...patch }));
       log(
         "SETTINGS_UPDATED",
         Object.entries(patch)
@@ -525,6 +530,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const resetDay = useCallback(() => {
     setTrades([]);
+    tradesRef.current = [];
+    approvedIds.current.clear();
     setSignals([]);
     log("DAY_RESET", "Simulated day reset: trades and signals cleared", "WARN");
   }, [log]);
