@@ -513,6 +513,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     saveSettings,
     setTradingEnabled,
     resetDay,
+    log,
   };
 
   return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
