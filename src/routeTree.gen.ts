@@ -9,49 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AgentsRouteImport } from './routes/agents'
-import { Route as ApprovalsRouteImport } from './routes/approvals'
-import { Route as ArchitectureRouteImport } from './routes/architecture'
-import { Route as ChecklistRouteImport } from './routes/checklist'
-import { Route as JournalRouteImport } from './routes/journal'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as MarketRouteImport } from './routes/market'
-import { Route as RiskRouteImport } from './routes/risk'
-import { Route as ScannerRouteImport } from './routes/scanner'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SignalsRouteImport } from './routes/signals'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
+import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
+import { Route as AuthenticatedArchitectureRouteImport } from './routes/_authenticated/architecture'
+import { Route as AuthenticatedChecklistRouteImport } from './routes/_authenticated/checklist'
+import { Route as AuthenticatedJournalRouteImport } from './routes/_authenticated/journal'
+import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
+import { Route as AuthenticatedRiskRouteImport } from './routes/_authenticated/risk'
+import { Route as AuthenticatedScannerRouteImport } from './routes/_authenticated/scanner'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSignalsRouteImport } from './routes/_authenticated/signals'
 import { Route as ApiPublicDhanCallbackRouteImport } from './routes/api/public/dhan/callback'
 import { Route as ApiPublicDhanPostbackRouteImport } from './routes/api/public/dhan/postback'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentsRoute = AgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApprovalsRoute = ApprovalsRouteImport.update({
-  id: '/approvals',
-  path: '/approvals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArchitectureRoute = ArchitectureRouteImport.update({
-  id: '/architecture',
-  path: '/architecture',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChecklistRoute = ChecklistRouteImport.update({
-  id: '/checklist',
-  path: '/checklist',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -59,30 +34,61 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MarketRoute = MarketRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedApprovalsRoute = AuthenticatedApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedArchitectureRoute =
+  AuthenticatedArchitectureRouteImport.update({
+    id: '/architecture',
+    path: '/architecture',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedChecklistRoute = AuthenticatedChecklistRouteImport.update({
+  id: '/checklist',
+  path: '/checklist',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedJournalRoute = AuthenticatedJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMarketRoute = AuthenticatedMarketRouteImport.update({
   id: '/market',
   path: '/market',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const RiskRoute = RiskRouteImport.update({
+const AuthenticatedRiskRoute = AuthenticatedRiskRouteImport.update({
   id: '/risk',
   path: '/risk',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ScannerRoute = ScannerRouteImport.update({
+const AuthenticatedScannerRoute = AuthenticatedScannerRouteImport.update({
   id: '/scanner',
   path: '/scanner',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const SignalsRoute = SignalsRouteImport.update({
+const AuthenticatedSignalsRoute = AuthenticatedSignalsRouteImport.update({
   id: '/signals',
   path: '/signals',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiPublicDhanCallbackRoute = ApiPublicDhanCallbackRouteImport.update({
   id: '/api/public/dhan/callback',
@@ -96,51 +102,52 @@ const ApiPublicDhanPostbackRoute = ApiPublicDhanPostbackRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
-  '/approvals': typeof ApprovalsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/checklist': typeof ChecklistRoute
-  '/journal': typeof JournalRoute
+  '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
-  '/risk': typeof RiskRoute
-  '/scanner': typeof ScannerRoute
-  '/settings': typeof SettingsRoute
-  '/signals': typeof SignalsRoute
+  '/agents': typeof AuthenticatedAgentsRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
+  '/architecture': typeof AuthenticatedArchitectureRoute
+  '/checklist': typeof AuthenticatedChecklistRoute
+  '/journal': typeof AuthenticatedJournalRoute
+  '/market': typeof AuthenticatedMarketRoute
+  '/risk': typeof AuthenticatedRiskRoute
+  '/scanner': typeof AuthenticatedScannerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/signals': typeof AuthenticatedSignalsRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
-  '/approvals': typeof ApprovalsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/checklist': typeof ChecklistRoute
-  '/journal': typeof JournalRoute
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
-  '/risk': typeof RiskRoute
-  '/scanner': typeof ScannerRoute
-  '/settings': typeof SettingsRoute
-  '/signals': typeof SignalsRoute
+  '/agents': typeof AuthenticatedAgentsRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
+  '/architecture': typeof AuthenticatedArchitectureRoute
+  '/checklist': typeof AuthenticatedChecklistRoute
+  '/journal': typeof AuthenticatedJournalRoute
+  '/market': typeof AuthenticatedMarketRoute
+  '/risk': typeof AuthenticatedRiskRoute
+  '/scanner': typeof AuthenticatedScannerRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/signals': typeof AuthenticatedSignalsRoute
+  '/': typeof AuthenticatedIndexRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/agents': typeof AgentsRoute
-  '/approvals': typeof ApprovalsRoute
-  '/architecture': typeof ArchitectureRoute
-  '/checklist': typeof ChecklistRoute
-  '/journal': typeof JournalRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/market': typeof MarketRoute
-  '/risk': typeof RiskRoute
-  '/scanner': typeof ScannerRoute
-  '/settings': typeof SettingsRoute
-  '/signals': typeof SignalsRoute
+  '/_authenticated/agents': typeof AuthenticatedAgentsRoute
+  '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
+  '/_authenticated/architecture': typeof AuthenticatedArchitectureRoute
+  '/_authenticated/checklist': typeof AuthenticatedChecklistRoute
+  '/_authenticated/journal': typeof AuthenticatedJournalRoute
+  '/_authenticated/market': typeof AuthenticatedMarketRoute
+  '/_authenticated/risk': typeof AuthenticatedRiskRoute
+  '/_authenticated/scanner': typeof AuthenticatedScannerRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/signals': typeof AuthenticatedSignalsRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/dhan/callback': typeof ApiPublicDhanCallbackRoute
   '/api/public/dhan/postback': typeof ApiPublicDhanPostbackRoute
 }
@@ -148,12 +155,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/agents'
     | '/approvals'
     | '/architecture'
     | '/checklist'
     | '/journal'
-    | '/login'
     | '/market'
     | '/risk'
     | '/scanner'
@@ -163,97 +170,53 @@ export interface FileRouteTypes {
     | '/api/public/dhan/postback'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/login'
     | '/agents'
     | '/approvals'
     | '/architecture'
     | '/checklist'
     | '/journal'
-    | '/login'
     | '/market'
     | '/risk'
     | '/scanner'
     | '/settings'
     | '/signals'
+    | '/'
     | '/api/public/dhan/callback'
     | '/api/public/dhan/postback'
   id:
     | '__root__'
-    | '/'
-    | '/agents'
-    | '/approvals'
-    | '/architecture'
-    | '/checklist'
-    | '/journal'
+    | '/_authenticated'
     | '/login'
-    | '/market'
-    | '/risk'
-    | '/scanner'
-    | '/settings'
-    | '/signals'
+    | '/_authenticated/agents'
+    | '/_authenticated/approvals'
+    | '/_authenticated/architecture'
+    | '/_authenticated/checklist'
+    | '/_authenticated/journal'
+    | '/_authenticated/market'
+    | '/_authenticated/risk'
+    | '/_authenticated/scanner'
+    | '/_authenticated/settings'
+    | '/_authenticated/signals'
+    | '/_authenticated/'
     | '/api/public/dhan/callback'
     | '/api/public/dhan/postback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AgentsRoute: typeof AgentsRoute
-  ApprovalsRoute: typeof ApprovalsRoute
-  ArchitectureRoute: typeof ArchitectureRoute
-  ChecklistRoute: typeof ChecklistRoute
-  JournalRoute: typeof JournalRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  MarketRoute: typeof MarketRoute
-  RiskRoute: typeof RiskRoute
-  ScannerRoute: typeof ScannerRoute
-  SettingsRoute: typeof SettingsRoute
-  SignalsRoute: typeof SignalsRoute
   ApiPublicDhanCallbackRoute: typeof ApiPublicDhanCallbackRoute
   ApiPublicDhanPostbackRoute: typeof ApiPublicDhanPostbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agents': {
-      id: '/agents'
-      path: '/agents'
-      fullPath: '/agents'
-      preLoaderRoute: typeof AgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/approvals': {
-      id: '/approvals'
-      path: '/approvals'
-      fullPath: '/approvals'
-      preLoaderRoute: typeof ApprovalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/architecture': {
-      id: '/architecture'
-      path: '/architecture'
-      fullPath: '/architecture'
-      preLoaderRoute: typeof ArchitectureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checklist': {
-      id: '/checklist'
-      path: '/checklist'
-      fullPath: '/checklist'
-      preLoaderRoute: typeof ChecklistRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -263,40 +226,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/market': {
-      id: '/market'
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agents': {
+      id: '/_authenticated/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AuthenticatedAgentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/approvals': {
+      id: '/_authenticated/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AuthenticatedApprovalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/architecture': {
+      id: '/_authenticated/architecture'
+      path: '/architecture'
+      fullPath: '/architecture'
+      preLoaderRoute: typeof AuthenticatedArchitectureRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/checklist': {
+      id: '/_authenticated/checklist'
+      path: '/checklist'
+      fullPath: '/checklist'
+      preLoaderRoute: typeof AuthenticatedChecklistRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/journal': {
+      id: '/_authenticated/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof AuthenticatedJournalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/market': {
+      id: '/_authenticated/market'
       path: '/market'
       fullPath: '/market'
-      preLoaderRoute: typeof MarketRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedMarketRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/risk': {
-      id: '/risk'
+    '/_authenticated/risk': {
+      id: '/_authenticated/risk'
       path: '/risk'
       fullPath: '/risk'
-      preLoaderRoute: typeof RiskRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedRiskRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/scanner': {
-      id: '/scanner'
+    '/_authenticated/scanner': {
+      id: '/_authenticated/scanner'
       path: '/scanner'
       fullPath: '/scanner'
-      preLoaderRoute: typeof ScannerRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedScannerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/settings': {
-      id: '/settings'
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
       path: '/settings'
       fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/signals': {
-      id: '/signals'
+    '/_authenticated/signals': {
+      id: '/_authenticated/signals'
       path: '/signals'
       fullPath: '/signals'
-      preLoaderRoute: typeof SignalsRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedSignalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/dhan/callback': {
       id: '/api/public/dhan/callback'
@@ -315,19 +320,40 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRoute
+  AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
+  AuthenticatedArchitectureRoute: typeof AuthenticatedArchitectureRoute
+  AuthenticatedChecklistRoute: typeof AuthenticatedChecklistRoute
+  AuthenticatedJournalRoute: typeof AuthenticatedJournalRoute
+  AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
+  AuthenticatedRiskRoute: typeof AuthenticatedRiskRoute
+  AuthenticatedScannerRoute: typeof AuthenticatedScannerRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSignalsRoute: typeof AuthenticatedSignalsRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAgentsRoute: AuthenticatedAgentsRoute,
+  AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
+  AuthenticatedArchitectureRoute: AuthenticatedArchitectureRoute,
+  AuthenticatedChecklistRoute: AuthenticatedChecklistRoute,
+  AuthenticatedJournalRoute: AuthenticatedJournalRoute,
+  AuthenticatedMarketRoute: AuthenticatedMarketRoute,
+  AuthenticatedRiskRoute: AuthenticatedRiskRoute,
+  AuthenticatedScannerRoute: AuthenticatedScannerRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSignalsRoute: AuthenticatedSignalsRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AgentsRoute: AgentsRoute,
-  ApprovalsRoute: ApprovalsRoute,
-  ArchitectureRoute: ArchitectureRoute,
-  ChecklistRoute: ChecklistRoute,
-  JournalRoute: JournalRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  MarketRoute: MarketRoute,
-  RiskRoute: RiskRoute,
-  ScannerRoute: ScannerRoute,
-  SettingsRoute: SettingsRoute,
-  SignalsRoute: SignalsRoute,
   ApiPublicDhanCallbackRoute: ApiPublicDhanCallbackRoute,
   ApiPublicDhanPostbackRoute: ApiPublicDhanPostbackRoute,
 }

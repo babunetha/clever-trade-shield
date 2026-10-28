@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/signals")({
+export const Route = createFileRoute("/_authenticated/signals")({
   head: () => ({
     meta: [
       { title: "Signals — Clever Trade Shield" },

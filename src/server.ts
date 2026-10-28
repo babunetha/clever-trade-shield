@@ -55,15 +55,11 @@ export default {
         headers.set("X-Correlation-ID", crypto.randomUUID());
       }
       headers.set("X-Content-Type-Options", "nosniff");
-      headers.set("X-Frame-Options", "DENY");
       headers.set("Referrer-Policy", "no-referrer");
       headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
       headers.set("Cross-Origin-Opener-Policy", "same-origin");
       headers.set("Cross-Origin-Resource-Policy", "same-origin");
-      headers.set(
-        "Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'",
-      );
+      headers.set("Content-Security-Policy", contentSecurityPolicy());
       if (process.env["NODE_ENV"] === "production") {
         headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       }
@@ -85,3 +81,22 @@ export default {
     }
   },
 };
+
+// Browser sign-in talks directly to the app's auth/data backend, so its origin must be allowed.
+// Framing is limited to this site and the editor preview; every other site is blocked.
+function contentSecurityPolicy() {
+  const backend = (import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const backendWs = backend.replace(/^http/, "ws");
+  const connect = ["'self'", backend, backendWs].filter(Boolean).join(" ");
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    `connect-src ${connect}`,
+    "img-src 'self' data:",
+    "base-uri 'self'",
+    "frame-ancestors 'self' https://lovable.dev https://*.lovable.dev https://*.lovable.app",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join("; ");
+}

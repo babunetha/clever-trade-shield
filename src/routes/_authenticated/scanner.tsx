@@ -46,7 +46,7 @@ import { runAiTradingAgents } from "@/lib/ai-agents.functions";
 import { runDhanLiveScan } from "@/lib/live-scan.functions";
 import { quoteHealth } from "@/lib/scanner/quote-health";
 
-export const Route = createFileRoute("/scanner")({
+export const Route = createFileRoute("/_authenticated/scanner")({
   head: () => ({
     meta: [
       { title: "Scanner — ₹1L Trading Assistant" },

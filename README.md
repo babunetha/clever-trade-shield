@@ -24,8 +24,6 @@ Set these server-side only:
 
 - `DHAN_CLIENT_ID`
 - `DHAN_ACCESS_TOKEN`
-- `APP_SESSION_SECRET` — random, at least 32 characters
-- `APP_LOGIN_PASSWORD_HASH` — scrypt password hash generated with `bun run auth:hash-password`
 
 Never prefix Dhan or authentication secrets with `VITE_` or `PUBLIC_`. `.env` and `.env.*.local` are ignored; `.env.example` contains placeholders only. If a real secret was ever committed to Git history, rotate it immediately even if it has since been removed.
 

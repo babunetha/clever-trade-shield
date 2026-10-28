@@ -8,7 +8,7 @@ import { formatINR, formatPrice } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/checklist")({
+export const Route = createFileRoute("/_authenticated/checklist")({
   head: () => ({
     meta: [
       { title: "Pre-Market Checklist — ₹1L Trading Assistant" },

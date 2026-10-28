@@ -5,7 +5,7 @@ import { SignalCard } from "@/components/trading/SignalCard";
 import { useTrading } from "@/lib/trading/store";
 import { formatINR } from "@/lib/trading/format";
 
-export const Route = createFileRoute("/approvals")({
+export const Route = createFileRoute("/_authenticated/approvals")({
   head: () => ({
     meta: [
       { title: "Trade Approval — ₹1L Trading Assistant" },

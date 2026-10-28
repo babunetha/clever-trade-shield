@@ -18,7 +18,6 @@
 - All eleven content screens rendered in browser checks with **explicitly mocked authentication/integrations**; mobile Scanner had no document-width overflow. These are UI checks, not authenticated end-to-end verification.
 
 ## External setup and unverified flows
-1. Configure `APP_SESSION_SECRET` (at least 32 random characters) and `APP_LOGIN_PASSWORD_HASH` using the existing secure setup process. No configured application login was available during verification.
 2. Configure `DHAN_CLIENT_ID` and `DHAN_ACCESS_TOKEN` only as deployment server secrets; activate the relevant Dhan data entitlement. Then run Settings → Test connection. Successful real Dhan profile/quote/reconnect tests remain unverified.
 3. Configure OpenAI and/or Gemini server keys to run real AI analysis. News pasted into evidence analysis is operator-supplied, not an automatic live news feed. The separate TradingAgents/news service and legacy API files are not mounted as active TanStack endpoints.
 4. Configure existing server persistence and apply reviewed migrations before relying on durable audit/paper/order records.

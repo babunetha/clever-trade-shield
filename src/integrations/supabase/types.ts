@@ -14,16 +14,346 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      broker_orders: {
+        Row: {
+          average_price: number | null
+          broker_order_id: string
+          correlation_id: string | null
+          filled_quantity: number
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          order_intent_id: string | null
+          quantity: number | null
+          raw_payload: Json
+          status: string
+          symbol: string | null
+          transaction_type: string | null
+        }
+        Insert: {
+          average_price?: number | null
+          broker_order_id: string
+          correlation_id?: string | null
+          filled_quantity?: number
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          order_intent_id?: string | null
+          quantity?: number | null
+          raw_payload?: Json
+          status: string
+          symbol?: string | null
+          transaction_type?: string | null
+        }
+        Update: {
+          average_price?: number | null
+          broker_order_id?: string
+          correlation_id?: string | null
+          filled_quantity?: number
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          order_intent_id?: string | null
+          quantity?: number | null
+          raw_payload?: Json
+          status?: string
+          symbol?: string | null
+          transaction_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_orders_order_intent_id_fkey"
+            columns: ["order_intent_id"]
+            isOneToOne: false
+            referencedRelation: "order_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broker_postbacks: {
+        Row: {
+          broker_order_id: string | null
+          correlation_id: string | null
+          event_key: string
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          received_at: string
+        }
+        Insert: {
+          broker_order_id?: string | null
+          correlation_id?: string | null
+          event_key: string
+          event_type: string
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Update: {
+          broker_order_id?: string | null
+          correlation_id?: string | null
+          event_key?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+        }
+        Relationships: []
+      }
+      broker_trades: {
+        Row: {
+          broker_order_id: string | null
+          broker_trade_id: string
+          created_at: string
+          id: string
+          order_intent_id: string | null
+          price: number
+          quantity: number
+          raw_payload: Json
+          symbol: string
+          trade_time: string | null
+          transaction_type: string
+        }
+        Insert: {
+          broker_order_id?: string | null
+          broker_trade_id: string
+          created_at?: string
+          id?: string
+          order_intent_id?: string | null
+          price: number
+          quantity: number
+          raw_payload?: Json
+          symbol: string
+          trade_time?: string | null
+          transaction_type: string
+        }
+        Update: {
+          broker_order_id?: string | null
+          broker_trade_id?: string
+          created_at?: string
+          id?: string
+          order_intent_id?: string | null
+          price?: number
+          quantity?: number
+          raw_payload?: Json
+          symbol?: string
+          trade_time?: string | null
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_trades_order_intent_id_fkey"
+            columns: ["order_intent_id"]
+            isOneToOne: false
+            referencedRelation: "order_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_intents: {
+        Row: {
+          broker_correlation_id: string | null
+          broker_order_id: string | null
+          created_at: string
+          declared_risk: number
+          entry_price: number
+          exchange_segment: string
+          id: string
+          idempotency_key: string
+          order_type: string
+          price: number | null
+          product_type: string
+          quantity: number
+          signal_id: string
+          status: string
+          stop_loss: number
+          symbol: string
+          transaction_type: string
+          trigger_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          broker_correlation_id?: string | null
+          broker_order_id?: string | null
+          created_at?: string
+          declared_risk: number
+          entry_price: number
+          exchange_segment?: string
+          id?: string
+          idempotency_key: string
+          order_type: string
+          price?: number | null
+          product_type?: string
+          quantity: number
+          signal_id: string
+          status?: string
+          stop_loss: number
+          symbol: string
+          transaction_type: string
+          trigger_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          broker_correlation_id?: string | null
+          broker_order_id?: string | null
+          created_at?: string
+          declared_risk?: number
+          entry_price?: number
+          exchange_segment?: string
+          id?: string
+          idempotency_key?: string
+          order_type?: string
+          price?: number | null
+          product_type?: string
+          quantity?: number
+          signal_id?: string
+          status?: string
+          stop_loss?: number
+          symbol?: string
+          transaction_type?: string
+          trigger_price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      paper_trades: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          payload: Json
+          status: string
+          symbol: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id: string
+          opened_at: string
+          payload?: Json
+          status: string
+          symbol: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          payload?: Json
+          status?: string
+          symbol?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      risk_events: {
+        Row: {
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          reason: string
+          severity: string
+          signal_id: string | null
+          symbol: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          reason: string
+          severity: string
+          signal_id?: string | null
+          symbol?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          reason?: string
+          severity?: string
+          signal_id?: string | null
+          symbol?: string | null
+        }
+        Relationships: []
+      }
+      trade_audit: {
+        Row: {
+          action: string
+          at: string
+          created_at: string
+          detail: string
+          id: string
+          payload: Json
+          severity: string
+        }
+        Insert: {
+          action: string
+          at: string
+          created_at?: string
+          detail: string
+          id: string
+          payload?: Json
+          severity: string
+        }
+        Update: {
+          action?: string
+          at?: string
+          created_at?: string
+          detail?: string
+          id?: string
+          payload?: Json
+          severity?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +480,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner"],
+    },
   },
 } as const
