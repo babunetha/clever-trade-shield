@@ -6,10 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>): { denied?: "1" } =>
-    search.denied === "1" ? { denied: "1" } : {},
+  validateSearch: (search: Record<string, unknown>): { denied?: "1"; next?: string } => ({
+    ...(search.denied === "1" ? { denied: "1" as const } : {}),
+    ...(typeof search.next === "string" && oauthReturnPath(search.next) !== "/"
+      ? { next: oauthReturnPath(search.next) }
+      : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Secure Login — Clever Trade Shield" },
@@ -28,7 +33,8 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const router = useRouter();
-  const { denied } = Route.useSearch();
+  const { denied, next } = Route.useSearch();
+  const returnTo = oauthReturnPath(next);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +57,7 @@ function LoginPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: new URL(returnTo, window.location.origin).href },
         });
         if (signUpError) {
           setError(signUpError.message);
@@ -74,7 +80,8 @@ function LoginPage() {
       }
       toast.success("Secure session established");
       await router.invalidate();
-      await router.navigate({ to: "/" });
+      if (returnTo !== "/") window.location.assign(returnTo);
+      else await router.navigate({ to: "/" });
     } catch {
       setError("Sign-in failed. Please try again.");
     } finally {
