@@ -57,10 +57,13 @@ export default {
       headers.set("X-Content-Type-Options", "nosniff");
       headers.set("Referrer-Policy", "no-referrer");
       headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-      headers.set("Cross-Origin-Opener-Policy", "same-origin");
-      headers.set("Cross-Origin-Resource-Policy", "same-origin");
-      headers.set("Content-Security-Policy", contentSecurityPolicy());
-      if (process.env["NODE_ENV"] === "production") {
+      // The editor preview runs the dev server inside a frame and injects its own
+      // tooling scripts; a strict policy there renders a blank screen. The published
+      // build always gets the full policy.
+      if (!import.meta.env.DEV) {
+        headers.set("Cross-Origin-Opener-Policy", "same-origin");
+        headers.set("Cross-Origin-Resource-Policy", "same-origin");
+        headers.set("Content-Security-Policy", contentSecurityPolicy());
         headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       }
       return new Response(secured.body, {
