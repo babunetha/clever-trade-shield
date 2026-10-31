@@ -56,3 +56,20 @@ export const persistTradeAudit = createServerFn({ method: "POST" })
     await appendTradeAudit(data);
     return { ok: true as const };
   });
+
+export const loadPaperRecords = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async () => {
+    const { listPaperRecords } = await import("./supabase.server");
+    const records = await listPaperRecords();
+    return {
+      tradesJson: JSON.stringify(records.trades),
+      audit: records.audit as {
+        id: string;
+        at: string;
+        action: string;
+        severity: "INFO" | "WARN" | "CRITICAL";
+        detail: string;
+      }[],
+    };
+  });
