@@ -6,7 +6,7 @@
 - Backtest panel on Scanner.
 
 ## Completed in this phase
-- [ ] Correct the hosted server format causing `Bun is not defined`, then verify deployment configuration and the login page.
+- [x] Correct the hosted server format causing `Bun is not defined`; deployment regression tests pass, the blank public index override is removed, and / opens the login page locally. Hosted rebuild remains to be verified.
 - [x] Audit logging for scanner runs, verification, quote errors, AI evidence and paper approvals.
 - [x] Direct server-only OpenAI candidate evidence with operator-supplied news context; Gemini committee preserved.
 - [x] Pre-market checklist and navigation.
