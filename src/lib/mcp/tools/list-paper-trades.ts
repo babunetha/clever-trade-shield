@@ -25,15 +25,25 @@ export default defineTool({
       const s = (k: string) => (typeof t[k] === "string" ? (t[k] as string) : null);
       const n = (k: string) => (typeof t[k] === "number" ? (t[k] as number) : null);
       return {
-        id: s("id"), symbol: s("symbol"), side: s("side"), status: s("status"),
-        entry: n("entry"), stopLoss: n("stopLoss"), quantity: n("quantity"),
-        exit: n("exit"), pnl: n("pnl"), outcome: s("outcome"),
-        openedAt: s("openedAt"), closedAt: s("closedAt"),
+        id: s("id"),
+        symbol: s("symbol"),
+        side: s("side"),
+        status: s("status"),
+        entry: n("entry"),
+        stopLoss: n("stopLoss"),
+        quantity: n("quantity"),
+        exit: n("exit"),
+        pnl: n("pnl"),
+        outcome: s("outcome"),
+        openedAt: s("openedAt"),
+        closedAt: s("closedAt"),
       };
     };
     const trades = (data ?? []).map((r) => pick(r.payload));
     const text = trades.length
-      ? trades.map((t) => `${t.symbol} ${t.side} ${t.status} entry ${t.entry} pnl ${t.pnl ?? "-"}`).join("\n")
+      ? trades
+          .map((t) => `${t.symbol} ${t.side} ${t.status} entry ${t.entry} pnl ${t.pnl ?? "-"}`)
+          .join("\n")
       : "No paper trades yet (or this account is not the owner).";
     return { content: [{ type: "text", text }], structuredContent: { trades } };
   },

@@ -35,7 +35,8 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     ],
   }),
   beforeLoad: async ({ search, location }) => {
-    if (!search.authorization_id) throw new Error("This connection link is missing its request ID.");
+    if (!search.authorization_id)
+      throw new Error("This connection link is missing its request ID.");
     const { data } = await supabase.auth.getSession();
     const next = location.pathname + location.searchStr;
     if (!data.session) throw redirect({ to: "/login", search: { next } });
@@ -69,7 +70,8 @@ function Consent() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const client = (details?.client?.name as string | undefined) ?? "An assistant";
-  const redirectUri = (details?.redirect_uri ?? details?.client?.redirect_uri) as string | undefined;
+  const redirectUri = (details?.redirect_uri ?? details?.client?.redirect_uri) as
+    string | undefined;
   const scopes = String(details?.scope ?? "")
     .split(" ")
     .filter(Boolean);
@@ -129,7 +131,10 @@ function Consent() {
           This does not bypass this app's permissions or backend policies.
         </p>
         {error ? (
-          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+          <p
+            role="alert"
+            className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+          >
             {error}
           </p>
         ) : null}
@@ -137,7 +142,12 @@ function Consent() {
           <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>
             Approve
           </Button>
-          <Button className="flex-1" variant="outline" disabled={busy} onClick={() => decide(false)}>
+          <Button
+            className="flex-1"
+            variant="outline"
+            disabled={busy}
+            onClick={() => decide(false)}
+          >
             Cancel connection
           </Button>
         </div>
