@@ -16,11 +16,19 @@ const limits = {
 export default defineTool({
   name: "get_risk_limits",
   title: "Get risk limits",
-  description: "Return the hard safety limits this terminal enforces. Live orders are always disabled.",
+  description:
+    "Return the hard safety limits this terminal enforces. Live orders are always disabled.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: () => ({
-    content: [{ type: "text", text: Object.entries(limits).map(([k, v]) => `${k}: ${v}`).join("\n") }],
+    content: [
+      {
+        type: "text",
+        text: Object.entries(limits)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join("\n"),
+      },
+    ],
     structuredContent: { limits },
   }),
 });

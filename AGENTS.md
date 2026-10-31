@@ -9,7 +9,8 @@
 - Prefer durable server-side state for order intent, idempotency and reconciliation.
 - Run `bun run security:check`, `bun run lint` and `bun run build` before merging.
 - Candidate evidence and journal coaching use direct server-side OpenAI requests; Gemini remains the existing committee provider, avoiding platform-specific runtime dependencies.
-- The web app targets the existing Bun/Nitro runtime; CSP must permit TanStack hydration scripts and component styles while keeping external script origins blocked.
+- Hosted builds use Nitro's Cloudflare module preset with bundled dependencies and dist/ output because the hosting runtime cannot start Bun listeners; CSP must permit TanStack hydration scripts and component styles while keeping external script origins blocked.
+- Do not add public/index.html: static index files override the authenticated dashboard at / and prevent the app shell from loading.
 - Persisted and edited paper-profile settings pass through one safety-ceiling normalizer; scanner approvals recheck quote age and risk at confirmation time and deduplicate approval IDs.
 - Access uses Cloud email/password auth; private screens live under `src/routes/_authenticated/` and every private server function requires the server-side `owner` role (first sign-up only), so extra sign-ups get no data.
 - CSP `connect-src` must include the backend origin and `frame-ancestors` must allow the editor preview, otherwise sign-in and the preview break.

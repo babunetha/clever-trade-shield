@@ -3,7 +3,8 @@ export function oauthReturnPath(value: unknown): string {
     typeof value !== "string" ||
     !value.startsWith("/") ||
     value.startsWith("//") ||
-    /[\\\u0000-\u001f\u007f]/.test(value)
+    value.includes("\\") ||
+    [...value].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
   )
     return "/";
   // A fixed parsing origin keeps route search validation safe during SSR.
