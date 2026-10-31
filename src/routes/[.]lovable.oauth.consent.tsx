@@ -4,7 +4,14 @@ import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-type OAuthResult = { data: Record<string, any> | null; error: { message: string } | null };
+type OAuthDetails = {
+  redirect_url?: string;
+  redirect_to?: string;
+  redirect_uri?: string;
+  scope?: string;
+  client?: { name?: string; redirect_uri?: string };
+};
+type OAuthResult = { data: OAuthDetails | null; error: { message: string } | null };
 type OAuthApi = {
   getAuthorizationDetails: (id: string) => Promise<OAuthResult>;
   approveAuthorization: (id: string) => Promise<OAuthResult>;
@@ -34,7 +41,8 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     if (!data.session) throw redirect({ to: "/login", search: { next } });
   },
   loader: async ({ location }) => {
-    const id = new URLSearchParams(location.search).get("authorization_id")!;
+    const id = new URLSearchParams(location.search).get("authorization_id");
+    if (!id) throw new Error("This connection link is missing its request ID.");
     const { data, error } = await oauth().getAuthorizationDetails(id);
     if (error) throw new Error(error.message || "This request has expired or is invalid.");
     const immediate = data?.redirect_url ?? data?.redirect_to;
