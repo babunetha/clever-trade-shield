@@ -157,7 +157,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     // Saved records on the server win over this browser's copy.
     void loadPaperRecords()
       .then((remote) => {
-        const remoteTrades = remote.trades.filter(
+        const remoteTrades = (JSON.parse(remote.tradesJson) as Record<string, unknown>[]).filter(
           (t): t is Trade & Record<string, unknown> =>
             typeof t?.id === "string" && typeof t?.signalId === "string",
         ) as unknown as Trade[];

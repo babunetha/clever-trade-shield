@@ -62,8 +62,14 @@ export const loadPaperRecords = createServerFn({ method: "POST" })
   .handler(async () => {
     const { listPaperRecords } = await import("./supabase.server");
     const records = await listPaperRecords();
-    return JSON.parse(JSON.stringify(records)) as {
-      trades: Record<string, unknown>[];
-      audit: { id: string; at: string; action: string; severity: string; detail: string }[];
+    return {
+      tradesJson: JSON.stringify(records.trades),
+      audit: records.audit as {
+        id: string;
+        at: string;
+        action: string;
+        severity: "INFO" | "WARN" | "CRITICAL";
+        detail: string;
+      }[],
     };
   });
