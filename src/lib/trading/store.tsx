@@ -13,6 +13,7 @@ import { getDhanPaperMarks } from "@/lib/paper-market.functions";
 import {
   persistPaperTrade as persistPaperTradeFn,
   persistTradeAudit as persistTradeAuditFn,
+  loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState, validateSignalRisk } from "./risk-engine";
@@ -115,6 +116,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const approvedIds = useRef(new Set<string>());
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
+  const loadPaperRecords = useServerFn(loadPaperRecordsFn);
 
   const log = useCallback(
     (action: string, detail: string, severity: AuditSeverity = "INFO") => {
@@ -152,6 +154,39 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       /* ignore corrupt storage */
     }
     setHydrated(true);
+    // Saved records on the server win over this browser's copy.
+    void loadPaperRecords()
+      .then((remote) => {
+        const remoteTrades = remote.trades.filter(
+          (t): t is Trade & Record<string, unknown> =>
+            typeof t?.id === "string" && typeof t?.signalId === "string",
+        ) as unknown as Trade[];
+        if (remoteTrades.length) {
+          setTrades((prev) => {
+            const ids = new Set(remoteTrades.map((t) => t.id));
+            const merged = [...remoteTrades, ...prev.filter((t) => !ids.has(t.id))].sort((a, b) =>
+              b.openedAt.localeCompare(a.openedAt),
+            );
+            tradesRef.current = merged;
+            for (const t of merged) approvedIds.current.add(t.signalId);
+            return merged;
+          });
+        }
+        if (remote.audit.length) {
+          setAudit((prev) => {
+            const ids = new Set(remote.audit.map((a) => a.id));
+            const merged = [
+              ...(remote.audit.map((a) => ({ ...a, actor: "operator" })) as AuditEntry[]),
+              ...prev.filter((a) => !ids.has(a.id)),
+            ];
+            return merged.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 300);
+          });
+        }
+      })
+      .catch(() => {
+        /* offline or not signed in: keep this browser's copy */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -498,9 +533,25 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   closeTradeRef.current = closeTrade;
 
-  const updateNotes = useCallback((id: string, notes: string) => {
-    setTrades((prev) => prev.map((t) => (t.id === id ? { ...t, notes } : t)));
-  }, []);
+  const updateNotes = useCallback(
+    (id: string, notes: string) => {
+      setTrades((prev) => prev.map((t) => (t.id === id ? { ...t, notes } : t)));
+      const t = tradesRef.current.find((x) => x.id === id);
+      if (!t) return;
+      const updated = { ...t, notes };
+      void persistPaperTrade({
+        data: {
+          id: updated.id,
+          symbol: updated.symbol,
+          status: updated.status === "CLOSED" ? "CLOSED" : "OPEN",
+          openedAt: updated.openedAt,
+          closedAt: updated.closedAt,
+          payload: updated as unknown as Record<string, unknown>,
+        },
+      }).catch(() => {});
+    },
+    [persistPaperTrade],
+  );
 
   const saveSettings = useCallback(
     (patch: Partial<Settings>) => {

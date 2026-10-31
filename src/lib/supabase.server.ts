@@ -159,3 +159,15 @@ export async function appendTradeAudit(input: {
     }),
   });
 }
+
+/** Most recent paper trades and audit entries, for restoring the journal on any device. */
+export async function listPaperRecords() {
+  const [trades, audit] = await Promise.all([
+    request("paper_trades?select=payload&order=opened_at.desc&limit=500"),
+    request("trade_audit?select=id,at,action,severity,detail&order=at.desc&limit=300"),
+  ]);
+  return {
+    trades: (Array.isArray(trades) ? trades : []).map((r: { payload: unknown }) => r.payload),
+    audit: Array.isArray(audit) ? audit : [],
+  };
+}
