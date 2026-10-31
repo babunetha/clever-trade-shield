@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "sdk_version": "3.3.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://dqlqgdynpwshmgqpujqf.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "dhan-trading-buddy",
+      "version": "0.1.0",
+      "title": "Dhan Trading Buddy"
+    },
+    "tools": [
+      {
+        "name": "list_paper_trades",
+        "title": "List paper trades",
+        "description": "List your recent simulated paper trades (no live orders exist), newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "status": {
+              "default": "ALL",
+              "description": "Filter by trade status.",
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "CLOSED",
+                "ALL"
+              ]
+            },
+            "limit": {
+              "default": 25,
+              "description": "How many trades to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_audit_log",
+        "title": "List audit log",
+        "description": "List recent audit log entries (approvals, blocks, scans, settings changes), newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 50,
+              "description": "How many entries to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_risk_limits",
+        "title": "Get risk limits",
+        "description": "Return the hard safety limits this terminal enforces. Live orders are always disabled.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
