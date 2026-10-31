@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTrading } from "@/lib/trading/store";
+import { useWebMCP } from "use-webmcp-tool";
+import { runWebMCPTool } from "@/lib/webmcp-telemetry";
 import { formatPct, formatSignedINR, formatPrice, tone } from "@/lib/trading/format";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +46,23 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { indices, quotes, risk, settings, setTradingEnabled } = useTrading();
+  useWebMCP({
+    name: "get_trading_status",
+    description:
+      "Read today's risk status shown in the terminal: P&L, trades left, risk and loss budget left, and whether trading is locked.",
+    annotations: { readOnlyHint: true },
+    execute: () =>
+      runWebMCPTool("get_trading_status", () =>
+        [
+          `Approvals: ${settings.tradingEnabled ? "enabled" : "disabled"} (paper only, live orders off)`,
+          `Realised P&L today: ₹${risk.realisedPnl}`,
+          `Trades today: ${risk.tradesToday}, left: ${risk.tradesLeft}`,
+          `Open positions: ${risk.openPositions}`,
+          `Loss budget left: ₹${risk.lossBudgetLeft}`,
+          `Locked: ${risk.locked ? `yes (${risk.lockReasons.join("; ")})` : "no"}`,
+        ].join("\n"),
+      ),
+  });
   const router = useRouter();
 
   const logout = async () => {
