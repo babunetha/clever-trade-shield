@@ -19,7 +19,7 @@ function CheckingAccess() {
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  pendingComponent: CheckingAccess,
+  //PC
   beforeLoad: async () => {
     const userResult = await withTimeout(supabase.auth.getUser(), 8000);
     if (!userResult?.data.user) throw redirect({ to: "/login" });
