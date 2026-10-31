@@ -6,6 +6,7 @@
 - Backtest panel on Scanner.
 
 ## Completed in this phase
+- [ ] Correct the hosted server format causing `Bun is not defined`, then verify deployment configuration and the login page.
 - [x] Audit logging for scanner runs, verification, quote errors, AI evidence and paper approvals.
 - [x] Direct server-only OpenAI candidate evidence with operator-supplied news context; Gemini committee preserved.
 - [x] Pre-market checklist and navigation.

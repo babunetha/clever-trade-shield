@@ -27,6 +27,8 @@ export default defineConfig({
     }),
     viteReact(),
     tailwindcss(),
-    nitro({ preset: "bun", output: { dir: "dist" } }),
+    // Hosted previews load a Worker fetch handler, not a Bun HTTP listener.
+    // Bundle server dependencies and retain the deployment's required dist/ layout.
+    nitro({ preset: "cloudflare-module", output: { dir: "dist" } }),
   ],
 });
