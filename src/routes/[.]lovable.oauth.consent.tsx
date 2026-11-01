@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { RouteRecovery } from "@/components/LoadRecovery";
+import { LoadRecovery, RouteRecovery } from "@/components/LoadRecovery";
 
 type OAuthDetails = {
   redirect_url?: string;
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   },
   component: Consent,
   errorComponent: RouteRecovery,
-  notFoundComponent: RouteRecovery,
+  notFoundComponent: () => <LoadRecovery />,
 });
 
 function Consent() {
