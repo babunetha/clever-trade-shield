@@ -85,7 +85,11 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div id="startup-recovery" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: recoveryMarkup(true) }} />
+        <div
+          id="startup-recovery"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: recoveryMarkup(true) }}
+        />
         {children}
         <Scripts />
       </body>
