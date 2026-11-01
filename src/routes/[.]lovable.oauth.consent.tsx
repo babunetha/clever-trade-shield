@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { LoadRecovery, RouteRecovery } from "@/components/LoadRecovery";
 
 type OAuthDetails = {
   redirect_url?: string;
@@ -52,16 +53,8 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     return { details: data, email: u.user?.email ?? "" };
   },
   component: Consent,
-  errorComponent: ({ error }) => (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <section className="panel max-w-md p-6 text-sm">
-        <h1 className="text-lg font-semibold">Could not load this connection request</h1>
-        <p className="mt-2 text-muted-foreground">
-          {error instanceof Error ? error.message : String(error)}
-        </p>
-      </section>
-    </main>
-  ),
+  errorComponent: RouteRecovery,
+  notFoundComponent: () => <LoadRecovery />,
 });
 
 function Consent() {
