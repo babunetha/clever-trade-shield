@@ -1,30 +1,27 @@
+// Dependency-free: still renders when app bundles, hydration or SSR fail.
+export function recoveryMarkup(startup = false): string {
+  return `<style>
+    .load-fallback { --recovery-bg: oklch(0.16 0.014 250); --recovery-fg: oklch(0.94 0.008 240); --recovery-muted: oklch(0.66 0.017 250); --recovery-primary: oklch(0.74 0.125 188); --recovery-border: oklch(0.3 0.018 252); position: fixed; inset: 0; z-index: 9999; overflow: auto; display: grid; align-items: center; justify-items: center; box-sizing: border-box; padding: 24px; background: var(--recovery-bg); color: var(--recovery-fg); font: 15px/1.5 system-ui, sans-serif; }
+    .load-fallback section { width: 100%; max-width: 28rem; }
+    .load-fallback h1 { font-size: 24px; line-height: 1.3; margin: 24px 0 12px; }
+    .load-fallback p { color: var(--recovery-muted); }
+    .load-fallback strong { color: var(--recovery-primary); font-size: 18px; }
+    .load-fallback .session { padding: 16px 0; margin: 24px 0; border-block: 1px solid var(--recovery-border); }
+    .load-fallback .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .load-fallback a { padding: 8px 16px; border-radius: 6px; font: inherit; text-decoration: none; border: 1px solid var(--recovery-border); color: var(--recovery-fg); }
+    .load-fallback a:first-child { background: var(--recovery-primary); color: var(--recovery-bg); }
+    .load-fallback a:focus-visible { outline: 2px solid var(--recovery-primary); outline-offset: 4px; }
+    #startup-recovery[hidden] { display: none; }
+  </style>
+  <main class="load-fallback" aria-label="App recovery"><section>
+    <strong>Clever Trade Shield</strong>
+    <h1>${startup ? "Opening your terminal…" : "Your terminal couldn’t load"}</h1>
+    <p>${startup ? "If this page does not open, retry or go to sign-in." : "The connection may be interrupted. Retry this page or open sign-in. Live orders remain disabled."}</p>
+    <div class="session">Sign-in status<br>Unable to verify sign-in · your session has not been cleared</div>
+    <div class="actions"><a href="" role="button">Retry</a><a href="/login">Open sign-in</a></div>
+  </section></main>`;
+}
+
 export function renderErrorPage(): string {
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>This page didn't load</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      body { font: 15px/1.5 system-ui, -apple-system, sans-serif; background: #fafafa; color: #111; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
-      .card { max-width: 28rem; width: 100%; text-align: center; padding: 2rem; }
-      h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
-      p { color: #4b5563; margin: 0 0 1.5rem; }
-      .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-      a, button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
-      .primary { background: #111; color: #fff; }
-      .secondary { background: #fff; color: #111; border-color: #d1d5db; }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1>This page didn't load</h1>
-      <p>Something went wrong on our end. You can try refreshing or head back home.</p>
-      <div class="actions">
-        <button class="primary" onclick="location.reload()">Try again</button>
-        <a class="secondary" href="/">Go home</a>
-      </div>
-    </div>
-  </body>
-</html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Recovery — Clever Trade Shield</title><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body>${recoveryMarkup()}</body></html>`;
 }

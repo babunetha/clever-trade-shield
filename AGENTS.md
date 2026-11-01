@@ -15,3 +15,4 @@
 - Access uses Cloud email/password auth; private screens live under `src/routes/_authenticated/` and every private server function requires the server-side `owner` role (first sign-up only), so extra sign-ups get no data.
 - CSP `connect-src` must include the backend origin and `frame-ancestors` must allow the editor preview, otherwise sign-in and the preview break. CSP/COOP/CORP headers apply only to production builds; the dev-server preview runs framed with injected tooling and goes blank under them.
 - External assistants connect through the app's MCP server (`src/lib/mcp/`), signing in with OAuth as the owner; MCP tools stay read-only and use the caller's own database access so RLS still applies.
+- Recovery uses shared router loading/error screens plus a dependency-free HTML startup/server fallback; auth outages must remain retryable without clearing the session or reporting access denied.
