@@ -8,8 +8,15 @@ export const confirmationInput = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (/\b(password|access[_ -]?token|refresh[_ -]?token|authorization|api[_ -]?key)\s*[:=]\s*\S+|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.|\bsk-[A-Za-z0-9_-]+/i.test(value.errorMessage)) {
-      ctx.addIssue({ code: "custom", message: "Remove passwords, tokens and API keys before requesting guidance." });
+    if (
+      /\b(password|access[_ -]?token|refresh[_ -]?token|authorization|api[_ -]?key)\s*[:=]\s*\S+|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.|\bsk-[A-Za-z0-9_-]+/i.test(
+        value.errorMessage,
+      )
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Remove passwords, tokens and API keys before requesting guidance.",
+      });
     }
   });
 
