@@ -20,6 +20,7 @@ import { Route as AuthenticatedArchitectureRouteImport } from './routes/_authent
 import { Route as AuthenticatedChecklistRouteImport } from './routes/_authenticated/checklist'
 import { Route as AuthenticatedJournalRouteImport } from './routes/_authenticated/journal'
 import { Route as AuthenticatedMarketRouteImport } from './routes/_authenticated/market'
+import { Route as AuthenticatedResearcherRouteImport } from './routes/_authenticated/researcher'
 import { Route as AuthenticatedRiskRouteImport } from './routes/_authenticated/risk'
 import { Route as AuthenticatedScannerRouteImport } from './routes/_authenticated/scanner'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -84,6 +85,11 @@ const AuthenticatedMarketRoute = AuthenticatedMarketRouteImport.update({
   path: '/market',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedResearcherRoute = AuthenticatedResearcherRouteImport.update({
+  id: '/researcher',
+  path: '/researcher',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRiskRoute = AuthenticatedRiskRouteImport.update({
   id: '/risk',
   path: '/risk',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/checklist': typeof AuthenticatedChecklistRoute
   '/journal': typeof AuthenticatedJournalRoute
   '/market': typeof AuthenticatedMarketRoute
+  '/researcher': typeof AuthenticatedResearcherRoute
   '/risk': typeof AuthenticatedRiskRoute
   '/scanner': typeof AuthenticatedScannerRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/checklist': typeof AuthenticatedChecklistRoute
   '/journal': typeof AuthenticatedJournalRoute
   '/market': typeof AuthenticatedMarketRoute
+  '/researcher': typeof AuthenticatedResearcherRoute
   '/risk': typeof AuthenticatedRiskRoute
   '/scanner': typeof AuthenticatedScannerRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated/checklist': typeof AuthenticatedChecklistRoute
   '/_authenticated/journal': typeof AuthenticatedJournalRoute
   '/_authenticated/market': typeof AuthenticatedMarketRoute
+  '/_authenticated/researcher': typeof AuthenticatedResearcherRoute
   '/_authenticated/risk': typeof AuthenticatedRiskRoute
   '/_authenticated/scanner': typeof AuthenticatedScannerRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/checklist'
     | '/journal'
     | '/market'
+    | '/researcher'
     | '/risk'
     | '/scanner'
     | '/settings'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/checklist'
     | '/journal'
     | '/market'
+    | '/researcher'
     | '/risk'
     | '/scanner'
     | '/settings'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/checklist'
     | '/_authenticated/journal'
     | '/_authenticated/market'
+    | '/_authenticated/researcher'
     | '/_authenticated/risk'
     | '/_authenticated/scanner'
     | '/_authenticated/settings'
@@ -329,6 +341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/researcher': {
+      id: '/_authenticated/researcher'
+      path: '/researcher'
+      fullPath: '/researcher'
+      preLoaderRoute: typeof AuthenticatedResearcherRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/risk': {
       id: '/_authenticated/risk'
       path: '/risk'
@@ -388,6 +407,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChecklistRoute: typeof AuthenticatedChecklistRoute
   AuthenticatedJournalRoute: typeof AuthenticatedJournalRoute
   AuthenticatedMarketRoute: typeof AuthenticatedMarketRoute
+  AuthenticatedResearcherRoute: typeof AuthenticatedResearcherRoute
   AuthenticatedRiskRoute: typeof AuthenticatedRiskRoute
   AuthenticatedScannerRoute: typeof AuthenticatedScannerRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -402,6 +422,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChecklistRoute: AuthenticatedChecklistRoute,
   AuthenticatedJournalRoute: AuthenticatedJournalRoute,
   AuthenticatedMarketRoute: AuthenticatedMarketRoute,
+  AuthenticatedResearcherRoute: AuthenticatedResearcherRoute,
   AuthenticatedRiskRoute: AuthenticatedRiskRoute,
   AuthenticatedScannerRoute: AuthenticatedScannerRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

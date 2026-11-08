@@ -45,6 +45,7 @@ import { getScannerLiveQuotes } from "@/lib/scanner.functions";
 import { runAiTradingAgents } from "@/lib/ai-agents.functions";
 import { runDhanLiveScan } from "@/lib/live-scan.functions";
 import { quoteHealth } from "@/lib/scanner/quote-health";
+import { researchInbox } from "@/lib/research/researcher.functions";
 
 export const Route = createFileRoute("/_authenticated/scanner")({
   head: () => ({
@@ -84,6 +85,12 @@ function ScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
+  const fetchInbox = useServerFn(researchInbox);
+  const inbox = useQuery({
+    queryKey: ["research-inbox"],
+    queryFn: () => fetchInbox(),
+    retry: false,
+  });
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -194,7 +201,11 @@ function ScannerPage() {
     if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q.price);
     return map;
   }, [liveResult]);
-  const liveError = live.isError ? "The live price request failed. Reconnect to retry." : null;
+  const liveError = live.isError
+    ? live.error instanceof Error
+      ? live.error.message
+      : "The live price request failed. Reconnect to retry."
+    : null;
 
   // Connection/quote errors are part of the audit trail, fail-closed by design.
   useEffect(() => {
@@ -451,6 +462,25 @@ function ScannerPage() {
           disabled={!brokerConfigured || status === "loading"}
         >
           Run Dhan research scan
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!inbox.data?.length || status === "loading"}
+          onClick={() => {
+            setCandidates(inbox.data ?? []);
+            setScanSource("DHAN_LIVE");
+            setScannedAt(new Date(0).toISOString());
+            setStatus("ready");
+            setError(null);
+            log(
+              "RESEARCH_HANDOFF",
+              "Loaded research watchlist; stale daily evidence requires a new Dhan intraday scan",
+              "INFO",
+            );
+          }}
+        >
+          Research inbox ({inbox.data?.length ?? 0})
         </Button>
       </div>
 

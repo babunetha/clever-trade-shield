@@ -1,9 +1,14 @@
 # Clever Trade Shield — Remaining Work
 
-## AI Market Researcher (approved separate-app plan)
-- [ ] Identify or create the separate Market Researcher project; keep CTS intact and use the versioned idea handoff.
-- [ ] Build the approved research phases in that project with server-only Dhan credentials; live data depends on Dhan Data API entitlement.
-- [ ] Verify researched ideas pass safely to CTS without bypassing manual approval or enabling live orders.
+## AI Market Researcher (user chose integrated app)
+- [x] Build owner-only Researcher foundation with resumable NSE instrument batches, saved Dhan candles, OHLCV/order/freshness checks, basic technical evidence and daily real-history validation.
+- [x] Add saved research ideas, existing direct OpenAI evidence review and versioned watchlist handoff to CTS; daily ideas cannot authorize intraday trades.
+- [x] Verify signed-in research request, saved run reload and phone layout; 51 tests pass, security check passes, lint has no errors and harness build OK.
+- [ ] Verify valid-data research, live AI evidence and populated CTS handoff end-to-end: blocked by Dhan history access rejection (401/403); no substitute mock ideas were generated.
+- [ ] Complete external-source macro/news/fundamentals and verified morning briefing: requires source access and a verified scheduler.
+
+### Not delivered in this foundation
+Advanced VCP/SMT/PSP/CISD/volume-profile research, intraday strategy backtesting, automatic full-universe background scanning, dedicated Researcher paper portfolio and strategy_result.v1 return handoff remain outside the delivered foundation. Sources show unavailable rather than invented evidence. Current scans advance three instruments per explicit batch; observed instrument master contains 10,066 NSE EQUITY rows before liquidity/series exclusions. Existing CTS paper trading is preserved.
 
 ## Done (verified earlier)
 - Core app, 8 routes, risk guardrails (₹1,00,000 / ₹500 / ₹1,000 daily / 3 trades/day / lock after 2 losses / weekly ₹2,500 / max 2 open), live execution hard-disabled.

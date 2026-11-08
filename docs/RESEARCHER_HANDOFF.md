@@ -1,6 +1,6 @@
 # CTS ↔ AI Market Researcher handoff — v0.1 (draft)
 
-Status: proposed. Neither app can read the other's database. Integration happens only through this versioned payload, once both sides verify it.
+Status: integrated watchlist handoff implemented. The user chose Researcher inside CTS. Owner-scoped saved research uses research_candidate.v1; the scanner inbox reads handed-off watchlist candidates, marks daily evidence stale, and requires a new independent intraday scan. This is not a TRADE approval or an external app API. strategy_result.v1 remains proposed.
 
 ## Researcher → CTS: `research_candidate.v1`
 ```json
