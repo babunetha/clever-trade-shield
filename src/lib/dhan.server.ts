@@ -120,7 +120,12 @@ async function dhanRequest<T>(
     const text = await response.text();
 
     if (/Data APIs not Subscribed/i.test(text)) {
-      return { ok: false, code: "DATA_NOT_SUBSCRIBED", error: "Dhan Data APIs are not subscribed (806). Enable market-data access in Dhan before requesting live prices or history." };
+      return {
+        ok: false,
+        code: "DATA_NOT_SUBSCRIBED",
+        error:
+          "Dhan Data APIs are not subscribed (806). Enable market-data access in Dhan before requesting live prices or history.",
+      };
     }
 
     if (!response.ok) {
