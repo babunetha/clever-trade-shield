@@ -153,6 +153,30 @@ export type Database = {
           },
         ]
       }
+      confirmation_ai_pause: {
+        Row: {
+          created_at: string
+          message: string
+          provider_denial: boolean
+          status: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          message: string
+          provider_denial?: boolean
+          status: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          message?: string
+          provider_denial?: boolean
+          status?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_intents: {
         Row: {
           broker_correlation_id: string | null
