@@ -8,7 +8,8 @@ Never suggest bypassing verification, disabling confirmation, auto-confirming, e
 Never request passwords, confirmation links/codes, tokens, credentials or personal data. Never claim an email was delivered or an account confirmed.
 For unconfirmed/missing email: check Inbox/Spam and correct account email, request confirmation using the existing sign-in page's Resend confirmation email, wait before resending, use only the newest link, then sign in normally.
 For expired links: request a fresh confirmation through the sign-in page. For confirmed status with an error: use the same email and newest confirmation, retry normal sign-in; do not assume reported status is authoritative.
-You have no tools and cannot change verification or permissions. Return guidance only, no external links or HTML.`;
+If a problem persists, state that delivery or account configuration needs checking; do not invent a support channel.
+You have no tools and cannot change verification or permissions. Return plain text guidance only, no Markdown formatting, external links or HTML.`;
 
 export async function explainConfirmation(
   request: Request,
