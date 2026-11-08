@@ -6,6 +6,7 @@
 - Backtest panel on Scanner.
 
 ## Completed in this phase
+- [ ] Add owner-only AI Gateway email-confirmation guidance, safe input handling and real-request verification; verification must remain unchanged.
 - [x] Add loading, startup and error recovery with retry and sign-in status; desktop/mobile failure, retry, sign-in navigation and blocked-script startup verified; 39 tests pass. Signed-in recovery remains unverified because the requesting user has no app account available for testing.
 - [x] Correct the hosted server format causing `Bun is not defined`; deployment regression tests pass, the blank public index override is removed, and / opens the login page locally. Hosted rebuild remains to be verified.
 - [x] Audit logging for scanner runs, verification, quote errors, AI evidence and paper approvals.
