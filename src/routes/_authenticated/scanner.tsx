@@ -45,6 +45,7 @@ import { getScannerLiveQuotes } from "@/lib/scanner.functions";
 import { runAiTradingAgents } from "@/lib/ai-agents.functions";
 import { runDhanLiveScan } from "@/lib/live-scan.functions";
 import { quoteHealth } from "@/lib/scanner/quote-health";
+import { researchInbox } from "@/lib/research/researcher.functions";
 
 export const Route = createFileRoute("/_authenticated/scanner")({
   head: () => ({
@@ -84,6 +85,8 @@ function ScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
+  const fetchInbox = useServerFn(researchInbox);
+  const inbox = useQuery({ queryKey: ["research-inbox"], queryFn: () => fetchInbox(), retry: false });
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [selected, setSelected] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
