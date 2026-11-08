@@ -1,9 +1,10 @@
 # Clever Trade Shield — Remaining Work
 
-## AI Market Researcher (approved separate-app plan)
-- [ ] Identify or create the separate Market Researcher project; keep CTS intact and use the versioned idea handoff.
-- [ ] Build the approved research phases in that project with server-only Dhan credentials; live data depends on Dhan Data API entitlement.
-- [ ] Verify researched ideas pass safely to CTS without bypassing manual approval or enabling live orders.
+## AI Market Researcher (user chose integrated app)
+- [ ] Build owner-only Researcher with durable instrument batches, Dhan candles, data-quality checks, technical evidence and real-history validation.
+- [ ] Add saved research ideas, optional existing direct OpenAI evidence and a versioned handoff to the CTS scanner; retain verification and manual approval.
+- [ ] Verify owner research and handoff flow, including fail-closed data errors; live data depends on Dhan Data API entitlement.
+- [ ] Complete external-source macro/news/fundamentals and verified scheduled morning briefing once sources and scheduling are available.
 
 ## Done (verified earlier)
 - Core app, 8 routes, risk guardrails (₹1,00,000 / ₹500 / ₹1,000 daily / 3 trades/day / lock after 2 losses / weekly ₹2,500 / max 2 open), live execution hard-disabled.
