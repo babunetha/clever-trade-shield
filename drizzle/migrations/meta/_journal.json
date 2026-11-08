@@ -29,6 +29,13 @@
       "when": 1794130017825,
       "tag": "0003_confirmation_ai_pause",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794132400938,
+      "tag": "0004_market_research_runs",
+      "breakpoints": true
     }
   ]
 }
