@@ -2,7 +2,7 @@
 
 ## GitHub CI repair
 
-- [ ] Fix formatting exclusions and patch vulnerable dependencies; verify formatting, lint, tests, security checks and frozen dependency installation without weakening security gates.
+- [x] Fixed formatting exclusions and patched vulnerable dependencies; formatting, lint, all 51 tests, security checks, both high-severity audits and frozen dependency installation pass locally. Harness build OK; the next GitHub-hosted run remains unverified.
 
 ## AI Market Researcher (user chose integrated app)
 
