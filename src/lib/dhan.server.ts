@@ -44,6 +44,7 @@ export type DhanResult<T> =
 export type DhanErrorCode =
   | "NOT_CONFIGURED"
   | "UNAUTHORIZED"
+  | "DATA_NOT_SUBSCRIBED"
   | "RATE_LIMITED"
   | "TIMEOUT"
   | "NETWORK"
@@ -117,6 +118,10 @@ async function dhanRequest<T>(
     });
 
     const text = await response.text();
+
+    if (/Data APIs not Subscribed/i.test(text)) {
+      return { ok: false, code: "DATA_NOT_SUBSCRIBED", error: "Dhan Data APIs are not subscribed (806). Enable market-data access in Dhan before requesting live prices or history." };
+    }
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -410,7 +415,7 @@ export async function getDhanQuote(
 ): Promise<DhanResult<Record<string, DhanQuote>>> {
   const ids = request.securityIds
     .map((id) => String(id).trim())
-    .filter((id) => /^\\d{1,8}$/.test(id))
+    .filter((id) => /^\d{1,8}$/.test(id))
     .slice(0, 1000);
   if (!ids.length) return { ok: true, data: {} };
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
@@ -454,7 +459,7 @@ export async function getDhanLtp(
 ): Promise<DhanResult<Record<string, number>>> {
   const ids = request.securityIds
     .map((id) => String(id).trim())
-    .filter((id) => /^\\d{1,8}$/.test(id))
+    .filter((id) => /^\d{1,8}$/.test(id))
     .slice(0, 1000);
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
   const result = await dhanRequest<Record<string, unknown>>("/marketfeed/ltp", {
