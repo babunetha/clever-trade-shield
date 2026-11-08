@@ -1,5 +1,8 @@
 # Clever Trade Shield — Remaining Work
 
+## GitHub CI repair
+- [ ] Fix formatting exclusions and patch vulnerable dependencies; verify formatting, lint, tests, security checks and frozen dependency installation without weakening security gates.
+
 ## AI Market Researcher (user chose integrated app)
 - [x] Build owner-only Researcher foundation with resumable NSE instrument batches, saved Dhan candles, OHLCV/order/freshness checks, basic technical evidence and daily real-history validation.
 - [x] Add saved research ideas, existing direct OpenAI evidence review and versioned watchlist handoff to CTS; daily ideas cannot authorize intraday trades.

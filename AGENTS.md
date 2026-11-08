@@ -18,3 +18,4 @@
 - Recovery uses shared router loading/error screens plus a dependency-free HTML startup/server fallback; auth outages must remain retryable without clearing the session or reporting access denied.
 - Email-confirmation guidance alone uses server-side AI Gateway Responses with owner authorization and durable denial pauses; existing trading providers stay unchanged, and guidance never mutates verification or permissions.
 - Integrated Researcher stores resumable owner-scoped runs and Dhan candle evidence; daily watchlist handoffs stay stale in CTS until independent intraday scanning, preventing daily history from authorizing trades.
+- CI formatting combines .gitignore and .prettierignore, excluding generated integration files and platform metadata; dependency repairs retain both high-severity audit gates.
