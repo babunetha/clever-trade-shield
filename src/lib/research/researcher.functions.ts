@@ -47,14 +47,12 @@ export const runResearch = createServerFn({ method: "POST" })
       if (claim.error || !claim.data?.length)
         throw new Error("This batch changed in another tab. Refresh research before continuing.");
     } else {
-      const save = await supabaseAdmin
-        .from("market_research_runs")
-        .insert({
-          id: run.id,
-          user_id: context.userId,
-          updated_at: claimedAt,
-          payload: JSON.parse(JSON.stringify(run)),
-        });
+      const save = await supabaseAdmin.from("market_research_runs").insert({
+        id: run.id,
+        user_id: context.userId,
+        updated_at: claimedAt,
+        payload: JSON.parse(JSON.stringify(run)),
+      });
       if (save.error) throw new Error("Could not save the research run.");
     }
     try {
