@@ -1,9 +1,11 @@
 # Clever Trade Shield — Remaining Work
 
 ## GitHub CI repair
+
 - [ ] Fix formatting exclusions and patch vulnerable dependencies; verify formatting, lint, tests, security checks and frozen dependency installation without weakening security gates.
 
 ## AI Market Researcher (user chose integrated app)
+
 - [x] Build owner-only Researcher foundation with resumable NSE instrument batches, saved Dhan candles, OHLCV/order/freshness checks, basic technical evidence and daily real-history validation.
 - [x] Add saved research ideas, existing direct OpenAI evidence review and versioned watchlist handoff to CTS; daily ideas cannot authorize intraday trades.
 - [x] Verify signed-in research request, saved run reload and phone layout; 51 tests pass, security check passes, lint has no errors and harness build OK.
@@ -11,14 +13,17 @@
 - [ ] Complete external-source macro/news/fundamentals and verified morning briefing: requires source access and a verified scheduler.
 
 ### Not delivered in this foundation
+
 Advanced VCP/SMT/PSP/CISD/volume-profile research, intraday strategy backtesting, automatic full-universe background scanning, dedicated Researcher paper portfolio and strategy_result.v1 return handoff remain outside the delivered foundation. Sources show unavailable rather than invented evidence. Current scans advance three instruments per explicit batch; observed instrument master contains 10,066 NSE EQUITY rows before liquidity/series exclusions. Existing CTS paper trading is preserved.
 
 ## Done (verified earlier)
+
 - Core app, 8 routes, risk guardrails (₹1,00,000 / ₹500 / ₹1,000 daily / 3 trades/day / lock after 2 losses / weekly ₹2,500 / max 2 open), live execution hard-disabled.
 - Weekly-loss + open-position caps enforced in `risk-engine.ts` and `server-risk.ts`.
 - Backtest panel on Scanner.
 
 ## Completed in this phase
+
 - [x] Add owner-only AI Gateway email-confirmation guidance in Settings with sanitized inputs and durable denial pauses; a real owner request returned safe steps, desktop/phone checked, 46 tests pass. Verification remains unchanged; unconfirmed owners still use normal confirmation on the sign-in page.
 - [x] Add loading, startup and error recovery with retry and sign-in status; desktop/mobile failure, retry, sign-in navigation and blocked-script startup verified; 39 tests pass. Signed-in recovery remains unverified because the requesting user has no app account available for testing.
 - [x] Correct the hosted server format causing `Bun is not defined`; deployment regression tests pass, the blank public index override is removed, and / opens the login page locally. Hosted rebuild remains to be verified.
@@ -30,6 +35,7 @@ Advanced VCP/SMT/PSP/CISD/volume-profile research, intraday strategy backtesting
 - [x] Browser UI checks for all eleven content screens with explicitly mocked services; actual login/missing-configuration checks.
 
 ## External blockers / remaining verification
+
 - [x] Sign-in moved to the app's own account system (email + password); first account becomes the only owner; verified end-to-end in the browser.
 - [x] Preview was blocked by frame/connection security headers — fixed.
 - [x] Paper-trade and audit records now have server-only storage tables.
