@@ -32,7 +32,7 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
       - name: Formatting check
-        run: bunx prettier --check . --ignore-path .gitignore
+        run: bunx prettier --check . --ignore-path .gitignore --ignore-path .prettierignore
       - name: Lint
         run: bun run lint
       - name: Test suite

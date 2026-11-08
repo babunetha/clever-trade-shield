@@ -1,6 +1,7 @@
 # Final implementation and verification status
 
 ## Delivered
+
 - Existing screens preserved; Scanner, Pre-Market checklist, candidate AI evidence and journal review wired.
 - Scanner definitions remain configurable and labelled simulated unless an actual Dhan request succeeds. Dhan research scan now has a visible action.
 - Quote health shows update times, source, errors and block reasons. Invalid, future or older-than-20-second quotes block approval; failed live requests cannot silently authorize simulated fallback. Refresh/reconnect uses bounded candidate-only HTTP requests, not a whole-market stream.
@@ -11,6 +12,7 @@
 - Live order execution is hard-disabled even if environment enablement flags are set. Proposal binding, transactional account-risk reservation and reconciliation still require a separate production security review before any future live execution.
 
 ## Verification
+
 - Automated risk, quote freshness, research and execution security tests passed.
 - Lint completed without errors; existing component export warnings remain.
 - Latest harness build/typecheck: successful.
@@ -18,6 +20,7 @@
 - All eleven content screens rendered in browser checks with **explicitly mocked authentication/integrations**; mobile Scanner had no document-width overflow. These are UI checks, not authenticated end-to-end verification.
 
 ## External setup and unverified flows
+
 2. Configure `DHAN_CLIENT_ID` and `DHAN_ACCESS_TOKEN` only as deployment server secrets; activate the relevant Dhan data entitlement. Then run Settings → Test connection. Successful real Dhan profile/quote/reconnect tests remain unverified.
 3. Configure OpenAI and/or Gemini server keys to run real AI analysis. News pasted into evidence analysis is operator-supplied, not an automatic live news feed. The separate TradingAgents/news service and legacy API files are not mounted as active TanStack endpoints.
 4. Configure existing server persistence and apply reviewed migrations before relying on durable audit/paper/order records.
