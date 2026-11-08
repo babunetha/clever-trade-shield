@@ -54,7 +54,10 @@ function LoginPage() {
         options: { emailRedirectTo: new URL(returnTo, window.location.origin).href },
       });
       if (resendError) setError(resendError.message);
-      else setNotice("Confirmation requested. Check your Gmail inbox and Spam folder, open the confirmation link, then sign in. If nothing arrives, wait a minute before trying again.");
+      else
+        setNotice(
+          "Confirmation requested. Check your Gmail inbox and Spam folder, open the confirmation link, then sign in. If nothing arrives, wait a minute before trying again.",
+        );
     } catch {
       setError("Could not request confirmation. Please try again.");
     } finally {
@@ -97,9 +100,11 @@ function LoginPage() {
         if (signInError) {
           const unconfirmed = signInError.code === "email_not_confirmed";
           setNeedsConfirmation(unconfirmed);
-          setError(unconfirmed
-            ? "Your email address is not confirmed yet. Check your inbox and Spam folder for the confirmation link, or request another below."
-            : signInError.message);
+          setError(
+            unconfirmed
+              ? "Your email address is not confirmed yet. Check your inbox and Spam folder for the confirmation link, or request another below."
+              : signInError.message,
+          );
           return;
         }
       }
@@ -187,7 +192,13 @@ function LoginPage() {
             <p className="rounded-md border border-border bg-muted/40 p-3 text-xs">{notice}</p>
           ) : null}
           {needsConfirmation ? (
-            <Button type="button" variant="outline" className="w-full" disabled={busy || !email.trim()} onClick={resendConfirmation}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={busy || !email.trim()}
+              onClick={resendConfirmation}
+            >
               <Mail className="size-4" /> Resend confirmation email
             </Button>
           ) : null}
