@@ -65,6 +65,31 @@ function LoginPage() {
     }
   };
 
+  const sendReset = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    setError("");
+    setNotice("");
+    if (!cleanEmail) {
+      setError("Type your email above first, then tap “Forgot password?”.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) setError(resetError.message);
+      else
+        setNotice(
+          "Reset link sent. Open it from your Gmail (check Spam) on this device and choose a new password.",
+        );
+    } catch {
+      setError("Could not send the reset link. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
@@ -103,7 +128,9 @@ function LoginPage() {
           setError(
             unconfirmed
               ? "Your email address is not confirmed yet. Check your inbox and Spam folder for the confirmation link, or request another below."
-              : signInError.message,
+              : signInError.code === "invalid_credentials"
+                ? "Email or password is wrong. Your account is confirmed — use “Forgot password?” below to set a new one."
+                : signInError.message,
           );
           return;
         }
@@ -218,6 +245,16 @@ function LoginPage() {
             ? "First time here? Create the owner account"
             : "Already have an account? Sign in"}
         </button>
+        {mode === "signin" ? (
+          <button
+            type="button"
+            className="mt-2 w-full text-center text-xs text-primary underline-offset-4 hover:underline"
+            disabled={busy}
+            onClick={sendReset}
+          >
+            Forgot password? Email me a reset link
+          </button>
+        ) : null}
       </section>
     </main>
   );
