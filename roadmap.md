@@ -1,5 +1,11 @@
 # Clever Trade Shield — Remaining Work
 
+## Gap-only upgrade brief (9 November 2026)
+
+- [ ] Audit existing features, deployed database, schedules and current reliability; publish a gap report with priorities and evidence.
+- [ ] Present an incremental implementation plan for approval; no application changes before approval.
+- [ ] Implement approved missing capabilities only: awaiting scope approval and verified data/source access.
+
 ## GitHub CI repair
 
 - [x] Fixed formatting exclusions and patched vulnerable dependencies; formatting, lint, all 51 tests, security checks, both high-severity audits and frozen dependency installation pass locally. Harness build OK; the next GitHub-hosted run remains unverified.
