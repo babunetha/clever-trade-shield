@@ -11,7 +11,6 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
-import { TradingProvider } from "@/lib/trading/store";
 import { supabase } from "@/integrations/supabase/client";
 import { RouteRecovery } from "@/components/LoadRecovery";
 import { recoveryMarkup } from "@/lib/error-page";
@@ -112,11 +111,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TradingProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster />
-      </TradingProvider>
+      {/* Terminal state (TradingProvider) mounts only inside the signed-in layout. */}
+      <Outlet />
+      <Toaster />
     </QueryClientProvider>
   );
 }
