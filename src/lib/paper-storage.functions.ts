@@ -331,4 +331,3 @@ export const loadPaperRecords = createServerFn({ method: "POST" })
       }[],
     };
   });
-
