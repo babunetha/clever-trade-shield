@@ -204,15 +204,18 @@ export const persistPaperTrade = createServerFn({ method: "POST" })
     const perShareRisk = Math.abs(entry - Number(previous.stopLoss));
     const pnl = Number(((exit - entry) * (side === "LONG" ? 1 : -1) * quantity).toFixed(2));
     const closedAt = new Date().toISOString();
+    const requestedExitReason = String(data.payload.exitReason ?? "MANUAL");
+    const exitReason: "STOP" | "TARGET" | "MANUAL" =
+      requestedExitReason === "STOP" || requestedExitReason === "TARGET"
+        ? requestedExitReason
+        : "MANUAL";
     const payload = {
       ...previous,
       exit,
       pnl,
       rMultiple: perShareRisk ? Number((pnl / (perShareRisk * quantity)).toFixed(2)) : 0,
       outcome: pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : "BREAKEVEN",
-      exitReason: ["STOP", "TARGET", "MANUAL"].includes(String(data.payload.exitReason))
-        ? data.payload.exitReason
-        : "MANUAL",
+      exitReason,
       status: "CLOSED",
       closedAt,
       notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000),
