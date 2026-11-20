@@ -17,6 +17,7 @@
 New OPEN paper trades are created only through the authenticated `approvePaperTrade` server function and the atomic `public.approve_paper_trade` Postgres function.
 
 The server:
+
 - Re-resolves the NSE symbol/security-ID pair for Dhan-sourced approvals.
 - Re-fetches the full Dhan quote and checks its source timestamp.
 - Uses the re-fetched Dhan price as the approved entry for Dhan-sourced trades.
@@ -25,6 +26,7 @@ The server:
 - Uses an advisory transaction lock and a unique approval ID to prevent duplicate/concurrent approvals.
 
 The database enforces the paper profile:
+
 - ₹500 maximum planned risk per trade
 - ₹1,000 daily realized-loss plus reserved open-risk budget
 - ₹2,500 rolling seven-day realized-loss limit
@@ -57,6 +59,7 @@ bun run build
 ```
 
 The timestamp unit tests cover:
+
 - Dhan local-time conversion to UTC
 - The 1980 sentinel timestamp remaining stale
 - Missing source timestamps
@@ -71,3 +74,4 @@ The timestamp unit tests cover:
 - No deployment, credentials, or live execution setting has been changed.
 
 **No real broker orders are placed by this remediation.**
+
