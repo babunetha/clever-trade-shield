@@ -201,6 +201,11 @@ function ScannerPage() {
     if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q.price);
     return map;
   }, [liveResult]);
+  const liveQuoteMap = useMemo(() => {
+    const map = new Map<string, (typeof liveResult extends { ok: true; quotes: (infer Q)[] } ? Q : never)>();
+    if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q);
+    return map;
+  }, [liveResult]);
   const liveError = live.isError
     ? live.error instanceof Error
       ? live.error.message
@@ -232,7 +237,7 @@ function ScannerPage() {
         const livePrice = liveMap.get(candidate.symbol.toUpperCase());
         const tick =
           liveOk && livePrice !== undefined && liveResult?.ok
-            ? { price: livePrice, asOf: liveResult.asOf, source: "DHAN_LIVE" as const }
+            ? { price: livePrice, asOf: liveQuoteMap.get(candidate.symbol.toUpperCase())?.sourceTimestamp ?? "", source: "DHAN_LIVE" as const }
             : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
         const verification = verifyCandidate({
           candidate,
@@ -268,6 +273,7 @@ function ScannerPage() {
     risk,
     openPositions,
     liveMap,
+    liveQuoteMap,
     liveOk,
     liveResult,
     nowMs,
@@ -345,9 +351,10 @@ function ScannerPage() {
 
   const takePaperTrade = (row: Row) => {
     const approvalNow = Date.now();
-    const livePrice = liveMap.get(row.candidate.symbol.toUpperCase());
+    const liveQuote = liveQuoteMap.get(row.candidate.symbol.toUpperCase());
+    const livePrice = liveQuote?.price;
     const useLive = brokerConfigured && liveOk && livePrice !== undefined && liveResult?.ok;
-    const asOf = useLive && liveResult?.ok ? liveResult.asOf : (scannedAt ?? "");
+    const asOf = useLive ? (liveQuote?.sourceTimestamp ?? "") : (scannedAt ?? "");
     const price = useLive
       ? livePrice
       : (quotes.find((q) => q.symbol === row.candidate.symbol)?.ltp ?? row.candidate.scanClose);
@@ -386,6 +393,8 @@ function ScannerPage() {
       quantity: row.verification.plan.quantity,
       riskRupees: row.verification.plan.riskRupees,
       source: row.candidate.scannerName,
+      dataSource: useLive ? "DHAN_LIVE" : "SIMULATED",
+      sourceTimestamp: useLive ? (liveQuote?.sourceTimestamp ?? null) : null,
     });
     if (res.ok) {
       toast.success(res.message);
@@ -420,7 +429,7 @@ function ScannerPage() {
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         {liveOk && liveResult?.ok ? (
           <span className="num text-xs text-muted-foreground">
-            Prices {formatTime(liveResult.asOf)}
+            Fetched {formatTime(liveResult.fetchedAt)}
             {live.isFetching ? " · refreshing" : ""}
           </span>
         ) : null}
