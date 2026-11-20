@@ -202,7 +202,10 @@ function ScannerPage() {
     return map;
   }, [liveResult]);
   const liveQuoteMap = useMemo(() => {
-    const map = new Map<string, { symbol: string; price: number; securityId: string; sourceTimestamp: string | null }>();
+    const map = new Map<
+      string,
+      { symbol: string; price: number; securityId: string; sourceTimestamp: string | null }
+    >();
     if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q);
     return map;
   }, [liveResult]);
@@ -237,7 +240,11 @@ function ScannerPage() {
         const livePrice = liveMap.get(candidate.symbol.toUpperCase());
         const tick =
           liveOk && livePrice !== undefined && liveResult?.ok
-            ? { price: livePrice, asOf: liveQuoteMap.get(candidate.symbol.toUpperCase())?.sourceTimestamp ?? "", source: "DHAN_LIVE" as const }
+            ? {
+                price: livePrice,
+                asOf: liveQuoteMap.get(candidate.symbol.toUpperCase())?.sourceTimestamp ?? "",
+                source: "DHAN_LIVE" as const,
+              }
             : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
         const verification = verifyCandidate({
           candidate,
