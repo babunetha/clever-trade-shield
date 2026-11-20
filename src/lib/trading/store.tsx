@@ -17,7 +17,7 @@ import {
   loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
-import { calculateRiskState, validateSignalRisk } from "./risk-engine";
+import { calculateRiskState } from "./risk-engine";
 import { enforceProfile } from "./safe-settings";
 import type {
   AuditEntry,
