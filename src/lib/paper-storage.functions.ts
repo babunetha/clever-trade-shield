@@ -166,8 +166,20 @@ export const persistPaperTrade = createServerFn({ method: "POST" })
       if (JSON.stringify(previous[key] ?? null) !== JSON.stringify(data.payload[key] ?? null))
         throw new Error("Paper trade identity or risk fields cannot be changed after approval.");
     }
-    if (existing.status !== "OPEN")
-      throw new Error("A closed paper trade cannot be modified.");
+    if (existing.status === "CLOSED") {
+      if (data.status !== "CLOSED")
+        throw new Error("A closed paper trade cannot be reopened.");
+      const payload = { ...previous, notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000) };
+      await updatePaperTradeRecord({
+        id: data.id,
+        symbol: existing.symbol,
+        status: "CLOSED",
+        opened_at: existing.opened_at,
+        closed_at: existing.closed_at,
+        payload,
+      });
+      return { ok: true as const };
+    }
 
     if (data.status === "OPEN") {
       const payload = { ...previous, notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000) };
