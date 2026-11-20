@@ -427,10 +427,14 @@ export function parseDhanLastTradeTime(value: unknown): string | null {
     const day = Number(dayText), month = Number(monthText), year = Number(yearText);
     const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
     if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return null;
-    const utc = Date.UTC(year, month - 1, day, hour, minute, second) - (5 * 60 + 30) * 60_000;
-    const parsed = new Date(utc);
-    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
-    return parsed.toISOString();
+    const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    if (
+      localDate.getUTCFullYear() !== year ||
+      localDate.getUTCMonth() !== month - 1 ||
+      localDate.getUTCDate() !== day
+    ) return null;
+    const utc = localDate.getTime() - (5 * 60 + 30) * 60_000;
+    return new Date(utc).toISOString();
   }
   const timestamp = Date.parse(raw);
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
