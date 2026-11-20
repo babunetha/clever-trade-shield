@@ -534,7 +534,7 @@ function ScannerPage() {
             asOf: isLive
               ? (liveQuote?.sourceTimestamp ?? "")
               : (scannedAt ?? new Date(0).toISOString()),
-            missingFromFeed: Boolean(brokerConfigured && (!liveOk || lp === undefined)),
+            missingFromFeed: Boolean(brokerConfigured && (!liveOk || liveQuote === undefined)),
           };
         })}
         connection={
