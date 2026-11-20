@@ -189,7 +189,9 @@ export function SignalCard({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void onApprove()} disabled={approving}>{approving ? "Checking risk…" : "Yes, log simulated trade"}</AlertDialogAction>
+                <AlertDialogAction onClick={() => void onApprove()} disabled={approving}>
+                  {approving ? "Checking risk…" : "Yes, log simulated trade"}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
