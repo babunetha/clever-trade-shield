@@ -254,6 +254,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             const quote = trade.securityId ? quotesBySecurityId[trade.securityId] : undefined;
             const price = quote?.lastPrice;
             if (
+              !quote ||
               price === undefined ||
               !Number.isFinite(price) ||
               !quoteHealth(price, quote.sourceTimestamp ?? "").fresh
