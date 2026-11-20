@@ -172,24 +172,6 @@ export async function updatePaperTradeRecord(input: {
   });
 }
 
-export async function upsertPaperTrade(input: {
-  id: string;
-  symbol: string;
-  status: "OPEN" | "CLOSED";
-  opened_at: string;
-  closed_at?: string | null;
-  payload: Record<string, unknown>;
-}) {
-  return request("paper_trades?on_conflict=id", {
-    method: "POST",
-    body: JSON.stringify({
-      ...input,
-      updated_at: new Date().toISOString(),
-    }),
-    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-  });
-}
-
 export async function appendTradeAudit(input: {
   id: string;
   at: string;
