@@ -258,7 +258,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
               price === undefined ||
               !Number.isFinite(price) ||
               !quoteHealth(price, quote.sourceTimestamp ?? "").fresh
-            ) return trade;
+            )
+              return trade;
             if (price <= trade.stopLoss) {
               exits.push({
                 id: trade.id,
@@ -348,7 +349,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           "SIGNAL_APPROVED",
           `${signal.side} ${signal.quantity} ${signal.symbol} @ ${paperTrade.entry}, SL ${paperTrade.stopLoss} — server-approved paper simulation only; no order sent`,
         );
-        return { ok: true, message: "Server approved and saved the simulated paper trade. No broker order was sent." };
+        return {
+          ok: true,
+          message: "Server approved and saved the simulated paper trade. No broker order was sent.",
+        };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Server paper approval failed.";
         log("APPROVE_BLOCKED", signal.symbol + " blocked: " + message, "WARN");
@@ -390,7 +394,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           "PAPER_TRADE_OPENED",
           `LONG ${paperTrade.quantity} ${paperTrade.symbol} @ ${paperTrade.entry}, SL ${paperTrade.stopLoss}, server-calculated risk — ${input.dataSource} paper simulation only; no order sent`,
         );
-        return { ok: true, message: "Server approved and saved the simulated paper trade. No broker order was sent." };
+        return {
+          ok: true,
+          message: "Server approved and saved the simulated paper trade. No broker order was sent.",
+        };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Server paper approval failed.";
         log("PAPER_TRADE_BLOCKED", `${input.symbol}: ${message}`, "WARN");
@@ -572,3 +579,4 @@ export function useTrading() {
   if (!ctx) throw new Error("useTrading must be used inside TradingProvider");
   return ctx;
 }
+
