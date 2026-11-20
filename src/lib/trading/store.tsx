@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getDhanPaperMarks } from "@/lib/paper-market.functions";
+import { quoteHealth } from "@/lib/scanner/quote-health";
 import {
   approvePaperTrade as approvePaperTradeFn,
   persistPaperTrade as persistPaperTradeFn,
@@ -237,7 +238,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         if (!securityIds.length) return;
         const result = await getDhanPaperMarks({ data: { securityIds } });
         if (!result.ok) return;
-        const quotesBySecurityId = result.quotes as Record<string, { lastPrice: number }>;
+        const quotesBySecurityId = result.quotes as Record<
+          string,
+          { lastPrice: number; sourceTimestamp: string | null }
+        >;
         const exits: Array<{
           id: string;
           price: number;
@@ -247,10 +251,13 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         setTrades((prev) =>
           prev.map((trade) => {
             if (trade.status !== "OPEN") return trade;
-            const price = trade.securityId
-              ? quotesBySecurityId[trade.securityId]?.lastPrice
-              : undefined;
-            if (price === undefined || !Number.isFinite(price)) return trade;
+            const quote = trade.securityId ? quotesBySecurityId[trade.securityId] : undefined;
+            const price = quote?.lastPrice;
+            if (
+              price === undefined ||
+              !Number.isFinite(price) ||
+              !quoteHealth(price, quote.sourceTimestamp ?? "").fresh
+            ) return trade;
             if (price <= trade.stopLoss) {
               exits.push({
                 id: trade.id,
