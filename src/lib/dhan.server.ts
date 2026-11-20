@@ -421,7 +421,7 @@ export interface DhanQuote {
 export function parseDhanLastTradeTime(value: unknown): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const raw = value.trim();
-  const local = raw.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4}) (\\d{2}):(\\d{2}):(\\d{2})$/);
+  const local = raw.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
   if (local) {
     const [, dayText, monthText, yearText, hourText, minuteText, secondText] = local;
     const day = Number(dayText), month = Number(monthText), year = Number(yearText);
