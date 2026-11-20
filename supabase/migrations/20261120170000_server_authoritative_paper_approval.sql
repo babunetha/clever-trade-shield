@@ -45,6 +45,7 @@ declare
   v_open_exposure numeric;
   v_daily_pnl numeric;
   v_weekly_pnl numeric;
+  v_losing_today integer;
   v_new_id text;
   v_minutes integer;
 begin
@@ -130,6 +131,11 @@ begin
     into v_weekly_pnl
   from public.paper_trades
   where status = 'CLOSED' and closed_at >= v_week_start;
+  select count(*) into v_losing_today
+  from public.paper_trades
+  where status = 'CLOSED'
+    and closed_at >= v_today_start
+    and coalesce((payload->>'pnl')::numeric, 0) < 0;
 
   if v_open_count >= 2 then
     return jsonb_build_object('ok', false, 'reason', 'Maximum 2 open paper positions reached.');
@@ -139,6 +145,9 @@ begin
   end if;
   if v_weekly_pnl <= -2500 then
     return jsonb_build_object('ok', false, 'reason', 'Rolling 7-day paper loss limit of ₹2,500 reached.');
+  end if;
+  if v_losing_today >= 2 then
+    return jsonb_build_object('ok', false, 'reason', 'Two losing paper trades today: approval lock is active.');
   end if;
   if greatest(0, -v_daily_pnl) + v_open_risk + v_risk > 1000 then
     return jsonb_build_object('ok', false, 'reason', 'Daily loss and reserved open risk would exceed ₹1,000.');
