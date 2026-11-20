@@ -9,7 +9,13 @@ export interface ScannerLiveQuote {
 }
 
 export type ScannerLiveQuotesResult =
-  | { ok: true; source: "DHAN_LIVE"; fetchedAt: string; quotes: ScannerLiveQuote[]; missing: string[] }
+  | {
+      ok: true;
+      source: "DHAN_LIVE";
+      fetchedAt: string;
+      quotes: ScannerLiveQuote[];
+      missing: string[];
+    }
   | { ok: false; code: string; error: string };
 
 /**
@@ -92,3 +98,4 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       missing: data.symbols.filter((s) => !found.has(s)),
     };
   });
+
