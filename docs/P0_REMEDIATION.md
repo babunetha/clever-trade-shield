@@ -74,4 +74,3 @@ The timestamp unit tests cover:
 - No deployment, credentials, or live execution setting has been changed.
 
 **No real broker orders are placed by this remediation.**
-
