@@ -1,5 +1,5 @@
-import { parseDhanLastTradeTime } from "../src/lib/dhan.server";
 import { describe, expect, test } from "bun:test";
+import { parseDhanLastTradeTime } from "../src/lib/dhan.server";
 import { quoteHealth } from "../src/lib/scanner/quote-health";
 
 describe("fail-closed quote health", () => {
