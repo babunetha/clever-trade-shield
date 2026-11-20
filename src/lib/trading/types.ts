@@ -95,6 +95,10 @@ export interface Trade {
   closedAt?: string;
   notes: string;
   simulated: true;
+  riskRupees?: number;
+  riskReward?: number;
+  dataSource?: "DHAN_LIVE" | "SIMULATED";
+  sourceTimestamp?: string | null;
 }
 
 export type AuditSeverity = "INFO" | "WARN" | "CRITICAL";

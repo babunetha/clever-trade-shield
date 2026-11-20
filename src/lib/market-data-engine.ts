@@ -14,6 +14,8 @@ export interface MarketDataPoint {
   dayLow: number;
   volume: number;
   averagePrice: number;
+  sourceTimestamp: string | null;
+  fetchedAt: string;
 }
 
 export interface MarketDataSnapshot {
@@ -51,6 +53,8 @@ function toPoint(instrument: DhanInstrument, quote: DhanQuote): MarketDataPoint 
     dayLow: quote.low,
     volume: quote.volume,
     averagePrice: quote.averagePrice,
+    sourceTimestamp: quote.sourceTimestamp,
+    fetchedAt: new Date().toISOString(),
   };
 }
 
