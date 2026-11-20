@@ -5,10 +5,11 @@ export interface ScannerLiveQuote {
   symbol: string;
   price: number;
   securityId: string;
+  sourceTimestamp: string | null;
 }
 
 export type ScannerLiveQuotesResult =
-  | { ok: true; source: "DHAN_LIVE"; asOf: string; quotes: ScannerLiveQuote[]; missing: string[] }
+  | { ok: true; source: "DHAN_LIVE"; fetchedAt: string; quotes: ScannerLiveQuote[]; missing: string[] }
   | { ok: false; code: string; error: string };
 
 /**
@@ -24,7 +25,7 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       .slice(0, 50),
   }))
   .handler(async ({ data }): Promise<ScannerLiveQuotesResult> => {
-    const { readDhanCredentialStatus, getDhanLtp } = await import("./dhan.server");
+    const { readDhanCredentialStatus, getDhanQuote } = await import("./dhan.server");
     const status = readDhanCredentialStatus();
     if (!status.clientIdConfigured || !status.accessTokenConfigured) {
       return {
@@ -37,7 +38,7 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       return {
         ok: true,
         source: "DHAN_LIVE",
-        asOf: new Date().toISOString(),
+        fetchedAt: new Date().toISOString(),
         quotes: [],
         missing: [],
       };
@@ -64,7 +65,7 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       };
     }
 
-    const result = await getDhanLtp({
+    const result = await getDhanQuote({
       securityIds: equity.map((i) => i.securityId),
       exchangeSegment: "NSE_EQ",
     });
@@ -72,12 +73,13 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
 
     const quotes: ScannerLiveQuote[] = [];
     for (const instrument of equity) {
-      const price = result.data[instrument.securityId];
-      if (typeof price === "number" && price > 0) {
+      const quote = result.data[instrument.securityId];
+      if (quote && typeof quote.lastPrice === "number" && quote.lastPrice > 0) {
         quotes.push({
           symbol: instrument.tradingSymbol.toUpperCase(),
-          price,
+          price: quote.lastPrice,
           securityId: instrument.securityId,
+          sourceTimestamp: quote.sourceTimestamp,
         });
       }
     }
@@ -85,7 +87,7 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
     return {
       ok: true,
       source: "DHAN_LIVE",
-      asOf: new Date().toISOString(),
+      fetchedAt: new Date().toISOString(),
       quotes,
       missing: data.symbols.filter((s) => !found.has(s)),
     };
