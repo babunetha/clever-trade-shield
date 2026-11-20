@@ -11,8 +11,8 @@ export const getDhanPaperMarks = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data }) => {
     if (!data.securityIds.length)
-      return { ok: true as const, quotes: {}, asOf: new Date().toISOString() };
+      return { ok: true as const, quotes: {}, fetchedAt: new Date().toISOString() };
     const result = await getDhanQuote({ securityIds: data.securityIds, exchangeSegment: "NSE_EQ" });
     if (!result.ok) return result;
-    return { ok: true as const, quotes: result.data, asOf: new Date().toISOString() };
+    return { ok: true as const, quotes: result.data, fetchedAt: new Date().toISOString() };
   });
