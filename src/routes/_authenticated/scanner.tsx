@@ -202,7 +202,7 @@ function ScannerPage() {
     return map;
   }, [liveResult]);
   const liveQuoteMap = useMemo(() => {
-    const map = new Map<string, (typeof liveResult extends { ok: true; quotes: (infer Q)[] } ? Q : never)>();
+    const map = new Map<string, { symbol: string; price: number; securityId: string; sourceTimestamp: string | null }>();
     if (liveResult?.ok) for (const q of liveResult.quotes) map.set(q.symbol, q);
     return map;
   }, [liveResult]);
@@ -349,7 +349,7 @@ function ScannerPage() {
     }
   };
 
-  const takePaperTrade = (row: Row) => {
+  const takePaperTrade = async (row: Row) => {
     const approvalNow = Date.now();
     const liveQuote = liveQuoteMap.get(row.candidate.symbol.toUpperCase());
     const livePrice = liveQuote?.price;
@@ -382,7 +382,7 @@ function ScannerPage() {
       );
       return;
     }
-    const res = openPaperTrade({
+    const res = await openPaperTrade({
       approvalId: `${row.candidate.id}:${scannedAt}`,
       symbol: row.candidate.symbol,
       securityId: row.candidate.securityId,
@@ -394,7 +394,6 @@ function ScannerPage() {
       riskRupees: row.verification.plan.riskRupees,
       source: row.candidate.scannerName,
       dataSource: useLive ? "DHAN_LIVE" : "SIMULATED",
-      sourceTimestamp: useLive ? (liveQuote?.sourceTimestamp ?? null) : null,
     });
     if (res.ok) {
       toast.success(res.message);
@@ -787,7 +786,7 @@ function ScannerPage() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => takePaperTrade(row)}>
+                            <AlertDialogAction onClick={() => void takePaperTrade(row)}>
                               Approve simulated trade
                             </AlertDialogAction>
                           </AlertDialogFooter>
