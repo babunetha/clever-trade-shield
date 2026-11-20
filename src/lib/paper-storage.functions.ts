@@ -53,14 +53,22 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     if (data.dataSource === "DHAN_LIVE") {
       if (!/^\d{1,8}$/.test(data.securityId))
         return { ok: false as const, reason: "A valid Dhan security ID is required for live-source approval." };
+      const { resolveDhanInstruments } = await import("./market/instruments");
+      const resolved = await resolveDhanInstruments([data.symbol]);
+      const instrument = resolved.find(
+        (item) => item.exchangeSegment === "NSE_EQ" && item.tradingSymbol.toUpperCase() === data.symbol,
+      );
+      if (!instrument || instrument.securityId !== data.securityId)
+        return { ok: false as const, reason: "Symbol and Dhan security ID do not match the NSE instrument master." };
+
       const { getDhanQuote } = await import("./dhan.server");
       const quoteResult = await getDhanQuote({
-        securityIds: [data.securityId],
+        securityIds: [instrument.securityId],
         exchangeSegment: "NSE_EQ",
       });
       if (!quoteResult.ok)
         return { ok: false as const, reason: "Could not re-verify the Dhan quote: " + quoteResult.error };
-      const quote = quoteResult.data[data.securityId];
+      const quote = quoteResult.data[instrument.securityId];
       if (!quote)
         return { ok: false as const, reason: "Dhan did not return a quote for this security ID." };
       const health = quoteHealth(quote.lastPrice, quote.sourceTimestamp ?? "");
