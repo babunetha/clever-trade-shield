@@ -15,34 +15,46 @@ type PaperDataSource = "DHAN_LIVE" | "SIMULATED";
 
 export const approvePaperTrade = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .inputValidator((input: {
-    approvalId: string;
-    symbol: string;
-    securityId?: string;
-    name: string;
-    side: "LONG" | "SHORT";
-    entry: number;
-    stopLoss: number;
-    target1: number;
-    quantity: number;
-    source: string;
-    dataSource: PaperDataSource;
-  }) => ({
-    approvalId: String(input.approvalId ?? "").trim().slice(0, 120),
-    symbol: String(input.symbol ?? "").trim().toUpperCase().slice(0, 30),
-    securityId: String(input.securityId ?? "").trim(),
-    name: String(input.name ?? "").trim().slice(0, 100),
-    side: input.side,
-    entry: Number(input.entry),
-    stopLoss: Number(input.stopLoss),
-    target1: Number(input.target1),
-    quantity: Number(input.quantity),
-    source: String(input.source ?? "manual").slice(0, 80),
-    dataSource: input.dataSource,
-  }))
+  .inputValidator(
+    (input: {
+      approvalId: string;
+      symbol: string;
+      securityId?: string;
+      name: string;
+      side: "LONG" | "SHORT";
+      entry: number;
+      stopLoss: number;
+      target1: number;
+      quantity: number;
+      source: string;
+      dataSource: PaperDataSource;
+    }) => ({
+      approvalId: String(input.approvalId ?? "")
+        .trim()
+        .slice(0, 120),
+      symbol: String(input.symbol ?? "")
+        .trim()
+        .toUpperCase()
+        .slice(0, 30),
+      securityId: String(input.securityId ?? "").trim(),
+      name: String(input.name ?? "")
+        .trim()
+        .slice(0, 100),
+      side: input.side,
+      entry: Number(input.entry),
+      stopLoss: Number(input.stopLoss),
+      target1: Number(input.target1),
+      quantity: Number(input.quantity),
+      source: String(input.source ?? "manual").slice(0, 80),
+      dataSource: input.dataSource,
+    }),
+  )
   .handler(async ({ data }) => {
     if (process.env["CTS_PAPER_APPROVALS_ENABLED"] === "false")
-      return { ok: false as const, reason: "Paper approvals are disabled by the server safety switch." };
+      return {
+        ok: false as const,
+        reason: "Paper approvals are disabled by the server safety switch.",
+      };
     if (!data.approvalId || !data.symbol || !data.name)
       return { ok: false as const, reason: "Missing approval, symbol or company identity." };
     if (![data.entry, data.stopLoss, data.target1, data.quantity].every(Number.isFinite))
@@ -54,14 +66,21 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     let sourceTimestamp: string | null = null;
     if (data.dataSource === "DHAN_LIVE") {
       if (!/^\d{1,8}$/.test(data.securityId))
-        return { ok: false as const, reason: "A valid Dhan security ID is required for live-source approval." };
+        return {
+          ok: false as const,
+          reason: "A valid Dhan security ID is required for live-source approval.",
+        };
       const { resolveDhanInstruments } = await import("./market/instruments");
       const resolved = await resolveDhanInstruments([data.symbol]);
       const instrument = resolved.find(
-        (item) => item.exchangeSegment === "NSE_EQ" && item.tradingSymbol.toUpperCase() === data.symbol,
+        (item) =>
+          item.exchangeSegment === "NSE_EQ" && item.tradingSymbol.toUpperCase() === data.symbol,
       );
       if (!instrument || instrument.securityId !== data.securityId)
-        return { ok: false as const, reason: "Symbol and Dhan security ID do not match the NSE instrument master." };
+        return {
+          ok: false as const,
+          reason: "Symbol and Dhan security ID do not match the NSE instrument master.",
+        };
 
       const { getDhanQuote } = await import("./dhan.server");
       const quoteResult = await getDhanQuote({
@@ -69,15 +88,25 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
         exchangeSegment: "NSE_EQ",
       });
       if (!quoteResult.ok)
-        return { ok: false as const, reason: "Could not re-verify the Dhan quote: " + quoteResult.error };
+        return {
+          ok: false as const,
+          reason: "Could not re-verify the Dhan quote: " + quoteResult.error,
+        };
       const quote = quoteResult.data[instrument.securityId];
       if (!quote)
         return { ok: false as const, reason: "Dhan did not return a quote for this security ID." };
       const health = quoteHealth(quote.lastPrice, quote.sourceTimestamp ?? "");
       if (!health.fresh)
-        return { ok: false as const, reason: "Server-side Dhan quote check failed: " + health.reason };
+        return {
+          ok: false as const,
+          reason: "Server-side Dhan quote check failed: " + health.reason,
+        };
       if (Math.abs(data.entry - quote.lastPrice) / quote.lastPrice > 0.01)
-        return { ok: false as const, reason: "The scanner entry differs from the current Dhan price by more than 1%. Re-run verification." };
+        return {
+          ok: false as const,
+          reason:
+            "The scanner entry differs from the current Dhan price by more than 1%. Re-run verification.",
+        };
       entry = quote.lastPrice;
       sourceTimestamp = quote.sourceTimestamp;
     } else if (data.dataSource !== "SIMULATED") {
@@ -87,7 +116,10 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     const stopValid = data.side === "LONG" ? data.stopLoss < entry : data.stopLoss > entry;
     const targetValid = data.side === "LONG" ? data.target1 > entry : data.target1 < entry;
     if (!stopValid || !targetValid)
-      return { ok: false as const, reason: "Stop-loss and target are on the wrong side of the entry." };
+      return {
+        ok: false as const,
+        reason: "Stop-loss and target are on the wrong side of the entry.",
+      };
 
     const perShareRisk = Math.abs(entry - data.stopLoss);
     const riskRupees = Number((perShareRisk * data.quantity).toFixed(2));
@@ -98,7 +130,10 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     if (!Number.isFinite(riskReward) || riskReward < 1.5)
       return { ok: false as const, reason: "Server-calculated reward/risk is below 1.5R." };
     if (entry * data.quantity > 100000)
-      return { ok: false as const, reason: "Position value exceeds the ₹100,000 paper capital cap." };
+      return {
+        ok: false as const,
+        reason: "Position value exceeds the ₹100,000 paper capital cap.",
+      };
 
     const openedAt = new Date().toISOString();
     const trade: Trade & {
@@ -127,14 +162,17 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
       sourceTimestamp,
     };
 
-    const result = await approvePaperTradeAtomically({
+    const result = (await approvePaperTradeAtomically({
       approvalId: data.approvalId,
       source: data.dataSource,
       sourceTimestamp,
       payload: trade as unknown as Record<string, unknown>,
-    }) as { ok?: boolean; reason?: string; trade?: Trade };
+    })) as { ok?: boolean; reason?: string; trade?: Trade };
     if (!result?.ok || !result.trade)
-      return { ok: false as const, reason: result?.reason ?? "Server paper approval was not confirmed." };
+      return {
+        ok: false as const,
+        reason: result?.reason ?? "Server paper approval was not confirmed.",
+      };
     return { ok: true as const, trade: result.trade };
   });
 
@@ -144,34 +182,54 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
  */
 export const persistPaperTrade = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .inputValidator((input: {
-    id: string;
-    symbol: string;
-    status: "OPEN" | "CLOSED";
-    openedAt: string;
-    closedAt?: string;
-    payload: Record<string, unknown>;
-  }) => ({
-    id: String(input.id ?? "").trim(),
-    symbol: String(input.symbol ?? "").trim().toUpperCase(),
-    status: input.status,
-    openedAt: String(input.openedAt ?? ""),
-    closedAt: input.closedAt ? String(input.closedAt) : null,
-    payload: input.payload ?? {},
-  }))
+  .inputValidator(
+    (input: {
+      id: string;
+      symbol: string;
+      status: "OPEN" | "CLOSED";
+      openedAt: string;
+      closedAt?: string;
+      payload: Record<string, unknown>;
+    }) => ({
+      id: String(input.id ?? "").trim(),
+      symbol: String(input.symbol ?? "")
+        .trim()
+        .toUpperCase(),
+      status: input.status,
+      openedAt: String(input.openedAt ?? ""),
+      closedAt: input.closedAt ? String(input.closedAt) : null,
+      payload: input.payload ?? {},
+    }),
+  )
   .handler(async ({ data }) => {
     const existing = await getPaperTradeById(data.id);
-    if (!existing) throw new Error("Paper trades must be created through the server approval endpoint.");
+    if (!existing)
+      throw new Error("Paper trades must be created through the server approval endpoint.");
     const previous = existing.payload as Record<string, unknown>;
-    const immutable = ["id", "signalId", "securityId", "symbol", "name", "side", "entry", "stopLoss", "target1", "quantity", "openedAt", "simulated"];
+    const immutable = [
+      "id",
+      "signalId",
+      "securityId",
+      "symbol",
+      "name",
+      "side",
+      "entry",
+      "stopLoss",
+      "target1",
+      "quantity",
+      "openedAt",
+      "simulated",
+    ];
     for (const key of immutable) {
       if (JSON.stringify(previous[key] ?? null) !== JSON.stringify(data.payload[key] ?? null))
         throw new Error("Paper trade identity or risk fields cannot be changed after approval.");
     }
     if (existing.status === "CLOSED") {
-      if (data.status !== "CLOSED")
-        throw new Error("A closed paper trade cannot be reopened.");
-      const payload = { ...previous, notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000) };
+      if (data.status !== "CLOSED") throw new Error("A closed paper trade cannot be reopened.");
+      const payload = {
+        ...previous,
+        notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000),
+      };
       await updatePaperTradeRecord({
         id: data.id,
         symbol: existing.symbol,
@@ -184,7 +242,10 @@ export const persistPaperTrade = createServerFn({ method: "POST" })
     }
 
     if (data.status === "OPEN") {
-      const payload = { ...previous, notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000) };
+      const payload = {
+        ...previous,
+        notes: String(data.payload.notes ?? previous.notes ?? "").slice(0, 1000),
+      };
       await updatePaperTradeRecord({
         id: data.id,
         symbol: existing.symbol,
@@ -270,3 +331,4 @@ export const loadPaperRecords = createServerFn({ method: "POST" })
       }[],
     };
   });
+
