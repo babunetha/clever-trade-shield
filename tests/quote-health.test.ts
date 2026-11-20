@@ -1,3 +1,4 @@
+import { parseDhanLastTradeTime } from "../src/lib/dhan.server";
 import { describe, expect, test } from "bun:test";
 import { quoteHealth } from "../src/lib/scanner/quote-health";
 
@@ -19,7 +20,6 @@ describe("fail-closed quote health", () => {
   });
 });
 
-import { parseDhanLastTradeTime } from "../src/lib/dhan.server";
 
 describe("Dhan provider timestamps", () => {
   test("parses Dhan local timestamps as Asia/Kolkata time", () => {
