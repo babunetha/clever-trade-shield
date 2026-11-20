@@ -98,4 +98,3 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       missing: data.symbols.filter((s) => !found.has(s)),
     };
   });
-
