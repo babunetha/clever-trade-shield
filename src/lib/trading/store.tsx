@@ -579,4 +579,3 @@ export function useTrading() {
   if (!ctx) throw new Error("useTrading must be used inside TradingProvider");
   return ctx;
 }
-
