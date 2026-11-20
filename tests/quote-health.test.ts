@@ -36,4 +36,3 @@ describe("Dhan provider timestamps", () => {
     expect(quoteHealth(100, "", Date.parse("2026-11-20T05:00:00.000Z")).fresh).toBe(false);
   });
 });
-
