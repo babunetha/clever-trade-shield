@@ -11,6 +11,8 @@ create table if not exists public.paper_trades (
   updated_at timestamptz not null default now()
 );
 
+grant all on public.paper_trades to service_role;
+alter table public.paper_trades enable row level security;
 alter table public.paper_trades add column if not exists approval_id text;
 create unique index if not exists paper_trades_approval_id_uidx
   on public.paper_trades(approval_id) where approval_id is not null;
