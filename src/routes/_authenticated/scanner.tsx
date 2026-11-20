@@ -521,18 +521,19 @@ function ScannerPage() {
 
       <QuoteHealthPanel
         rows={rows.map((r) => {
-          const lp = liveMap.get(r.candidate.symbol.toUpperCase());
-          const isLive = liveOk && lp !== undefined && liveResult?.ok;
+          const liveQuote = liveQuoteMap.get(r.candidate.symbol.toUpperCase());
+          const isLive = liveOk && liveQuote !== undefined;
           return {
             symbol: r.candidate.symbol,
             scanClose: r.candidate.scanClose,
             verification: r.verification,
             price: isLive
-              ? lp
+              ? (liveQuote?.price ?? r.candidate.scanClose)
               : (quotes.find((q) => q.symbol === r.candidate.symbol)?.ltp ?? r.candidate.scanClose),
             source: isLive ? "DHAN_LIVE" : "SIMULATED",
-            asOf:
-              isLive && liveResult?.ok ? liveResult.asOf : (scannedAt ?? new Date(0).toISOString()),
+            asOf: isLive
+              ? (liveQuote?.sourceTimestamp ?? "")
+              : (scannedAt ?? new Date(0).toISOString()),
             missingFromFeed: Boolean(brokerConfigured && (!liveOk || lp === undefined)),
           };
         })}
