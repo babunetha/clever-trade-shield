@@ -51,7 +51,7 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     let entry = data.entry;
     let sourceTimestamp: string | null = null;
     if (data.dataSource === "DHAN_LIVE") {
-      if (!/^\\d{1,8}$/.test(data.securityId))
+      if (!/^\d{1,8}$/.test(data.securityId))
         return { ok: false as const, reason: "A valid Dhan security ID is required for live-source approval." };
       const { getDhanQuote } = await import("./dhan.server");
       const quoteResult = await getDhanQuote({
