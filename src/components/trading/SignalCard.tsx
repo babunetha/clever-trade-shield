@@ -42,14 +42,20 @@ export function SignalCard({
 }) {
   const { settings, risk, approveSignal, rejectSignal } = useTrading();
   const [reason, setReason] = useState("");
+  const [approving, setApproving] = useState(false);
   const { verdict, reasons, invalidation } = evaluateSignal(signal, settings, risk);
   const ind = signal.indicators;
   const decided = signal.status !== "PENDING";
 
-  const onApprove = () => {
-    const res = approveSignal(signal.id);
-    if (res.ok) toast.success(res.message);
-    else toast.error(res.message);
+  const onApprove = async () => {
+    setApproving(true);
+    try {
+      const res = await approveSignal(signal.id);
+      if (res.ok) toast.success(res.message);
+      else toast.error(res.message);
+    } finally {
+      setApproving(false);
+    }
   };
 
   return (
@@ -183,7 +189,7 @@ export function SignalCard({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onApprove}>Yes, log simulated trade</AlertDialogAction>
+                <AlertDialogAction onClick={() => void onApprove()} disabled={approving}>{approving ? "Checking risk…" : "Yes, log simulated trade"}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
