@@ -41,6 +41,8 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
     dataSource: input.dataSource,
   }))
   .handler(async ({ data }) => {
+    if (process.env["CTS_PAPER_APPROVALS_ENABLED"] === "false")
+      return { ok: false as const, reason: "Paper approvals are disabled by the server safety switch." };
     if (!data.approvalId || !data.symbol || !data.name)
       return { ok: false as const, reason: "Missing approval, symbol or company identity." };
     if (![data.entry, data.stopLoss, data.target1, data.quantity].every(Number.isFinite))
