@@ -70,7 +70,8 @@ The timestamp unit tests cover:
 
 - The migration has not been applied to the user's production Supabase project.
 - Dhan credentials and the user's live quote payload have not been tested.
-- Bun tests and the production build have not been executed in this environment.
+- The migration and end-to-end approval flow have not been tested against a non-production database; no active non-production Supabase project or development branch is connected.
+- GitHub Actions CI passed for commit `6477e36`, including typecheck, formatting, lint, all 54 tests, security checks, dependency audits, and production build.
 - No deployment, credentials, or live execution setting has been changed.
 
 **No real broker orders are placed by this remediation.**
