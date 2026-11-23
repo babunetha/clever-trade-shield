@@ -9,8 +9,7 @@
  *    refuses before any network call is made.
  */
 
-export const LIVE_EXECUTION_ENABLED =
-  process.env["CTS_LIVE_EXECUTION_ENABLED"] === ("true" as const);
+export const LIVE_EXECUTION_ENABLED = false as const;
 
 const DHAN_BASE = "https://api.dhan.co/v2";
 const TIMEOUT_MS = 10_000;
