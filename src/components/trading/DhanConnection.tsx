@@ -80,7 +80,9 @@ export function DhanConnection() {
             CHECKING…
           </Badge>
         ) : profileAuthenticated ? (
-          <Badge className="num bg-success text-success-foreground">PROFILE AUTHENTICATED · DATA UNVERIFIED</Badge>
+          <Badge className="num bg-success text-success-foreground">
+            PROFILE AUTHENTICATED · DATA UNVERIFIED
+          </Badge>
         ) : configured ? (
           <Badge variant="outline" className="num border-warn/40 text-warn">
             CONFIGURED · NOT VERIFIED
@@ -250,7 +252,12 @@ export function DhanConnection() {
       ) : null}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Verified here: <span className="num">GET /v2/profile</span> checks profile authentication. The account snapshot uses <span className="num">GET /v2/fundlimit</span>, <span className="num">GET /v2/holdings</span> and <span className="num">GET /v2/positions</span>. These checks do not verify market quotes or historical candles. This build remains paper/research-only; live order execution and cancellation are disabled.
+        Verified here: <span className="num">GET /v2/profile</span> checks profile authentication.
+        The account snapshot uses <span className="num">GET /v2/fundlimit</span>,{" "}
+        <span className="num">GET /v2/holdings</span> and{" "}
+        <span className="num">GET /v2/positions</span>. These checks do not verify market quotes or
+        historical candles. This build remains paper/research-only; live order execution and
+        cancellation are disabled.
       </p>
     </section>
   );

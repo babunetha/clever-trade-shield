@@ -228,8 +228,7 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
 
   const symbols = universe();
   const instruments = (await resolveDhanInstruments(symbols)).filter(
-    (instrument) =>
-      instrument.exchangeSegment === "NSE_EQ" && instrument.instrument === "EQUITY",
+    (instrument) => instrument.exchangeSegment === "NSE_EQ" && instrument.instrument === "EQUITY",
   );
   const by = new Map(instruments.map((x) => [x.tradingSymbol.toUpperCase(), x]));
 
@@ -330,7 +329,8 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
       price <= 0 ||
       !quote?.sourceTimestamp ||
       !quoteHealth(price, quote.sourceTimestamp).fresh
-    ) continue;
+    )
+      continue;
 
     const matchedScanners = SCANNERS.filter((def) => {
       if (!config[def.id]?.enabled) return false;

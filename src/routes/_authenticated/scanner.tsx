@@ -154,7 +154,9 @@ function ScannerPage() {
       if (!dhanStatus.isLoading && !initialScanStarted.current) {
         setCandidates(null);
         setStatus("error");
-        setError("Dhan credentials are not configured. Live scanning is unavailable; synthetic candidates are disabled.");
+        setError(
+          "Dhan credentials are not configured. Live scanning is unavailable; synthetic candidates are disabled.",
+        );
       }
       return;
     }
@@ -162,7 +164,6 @@ function ScannerPage() {
     initialScanStarted.current = true;
     void runLiveScan();
   }, [brokerConfigured, dhanStatus.isLoading, runLiveScan]);
-
 
   const fetchLive = useServerFn(getScannerLiveQuotes);
   const live = useQuery({
@@ -418,7 +419,7 @@ function ScannerPage() {
           <Badge className="bg-success text-success-foreground">LIVE DHAN PRICES · READ-ONLY</Badge>
         ) : (
           <Badge variant="outline" className="border-warn/40 bg-warn-muted text-warn">
-NO FRESH DHAN QUOTES
+            NO FRESH DHAN QUOTES
           </Badge>
         )}
         <Badge variant="outline" className="border-border">
@@ -455,7 +456,12 @@ NO FRESH DHAN QUOTES
           )}
           Reconnect prices
         </Button>
-        <Button size="sm" variant="outline" onClick={() => void runLiveScan()} disabled={!brokerConfigured || status === "loading"}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void runLiveScan()}
+          disabled={!brokerConfigured || status === "loading"}
+        >
           {status === "loading" ? (
             <Loader2 className="mr-1 size-3.5 animate-spin" />
           ) : (
@@ -495,7 +501,8 @@ NO FRESH DHAN QUOTES
 
       {brokerConfigured && liveError ? (
         <div className="mb-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
-          {liveError} No fallback price is used. Paper approval is blocked for missing or stale quotes.
+          {liveError} No fallback price is used. Paper approval is blocked for missing or stale
+          quotes.
         </div>
       ) : null}
 
@@ -523,10 +530,10 @@ NO FRESH DHAN QUOTES
               : liveError
                 ? "ERROR"
                 : liveOk
-              ? "LIVE"
-              : live.isFetching
-                ? "CONNECTING"
-                : "ERROR"
+                  ? "LIVE"
+                  : live.isFetching
+                    ? "CONNECTING"
+                    : "ERROR"
         }
         lastSuccessAt={liveOk && live.dataUpdatedAt ? live.dataUpdatedAt : null}
         lastErrorAt={
@@ -593,7 +600,11 @@ NO FRESH DHAN QUOTES
             ))}
           </div>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={() => void runLiveScan()} disabled={!brokerConfigured || status === "loading"}>
+            <Button
+              size="sm"
+              onClick={() => void runLiveScan()}
+              disabled={!brokerConfigured || status === "loading"}
+            >
               Apply &amp; scan
             </Button>
             <Button
@@ -636,7 +647,12 @@ NO FRESH DHAN QUOTES
                 <AlertTriangle className="size-4" /> The scan failed
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{error}</p>
-              <Button size="sm" className="mt-3" onClick={() => void runLiveScan()} disabled={!brokerConfigured}>
+              <Button
+                size="sm"
+                className="mt-3"
+                onClick={() => void runLiveScan()}
+                disabled={!brokerConfigured}
+              >
                 Try again
               </Button>
             </div>
@@ -645,7 +661,8 @@ NO FRESH DHAN QUOTES
           {status === "ready" && rows.length === 0 ? (
             <div className="panel p-8 text-center text-sm text-muted-foreground">
               <Radar className="mx-auto mb-2 size-5" />
-              No candidate passed the enabled filters using fresh Dhan data. Check quote health or re-run.
+              No candidate passed the enabled filters using fresh Dhan data. Check quote health or
+              re-run.
             </div>
           ) : null}
 
@@ -765,8 +782,8 @@ NO FRESH DHAN QUOTES
                               LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
                               stop {formatPrice(v.plan.stopLoss)}, target{" "}
                               {formatPrice(v.plan.target1)}, risk {formatINR(v.plan.riskRupees)}.
-                              This records a paper trade using read-only Dhan data. No broker order is sent and live execution
-                              remains disabled.
+                              This records a paper trade using read-only Dhan data. No broker order
+                              is sent and live execution remains disabled.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

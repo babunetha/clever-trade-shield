@@ -35,8 +35,6 @@ export const Route = createFileRoute("/_authenticated/market")({
   component: MarketOverview,
 });
 
-
-
 function MarketOverview() {
   const {
     quotes,
@@ -86,7 +84,8 @@ function MarketOverview() {
             </>
           ) : (
             <>
-              <WifiOff className="mr-1 size-3" /> {marketDataStatus === "CONNECTING" ? "CHECKING…" : "DATA UNAVAILABLE"}
+              <WifiOff className="mr-1 size-3" />{" "}
+              {marketDataStatus === "CONNECTING" ? "CHECKING…" : "DATA UNAVAILABLE"}
             </>
           )}
         </Badge>

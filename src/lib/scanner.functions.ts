@@ -83,7 +83,13 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
     const quotes: ScannerLiveQuote[] = [];
     for (const instrument of equity) {
       const quote = result.data[instrument.securityId];
-      if (quote && typeof quote.lastPrice === "number" && quote.lastPrice > 0 && quote.sourceTimestamp && quoteHealth(quote.lastPrice, quote.sourceTimestamp).fresh) {
+      if (
+        quote &&
+        typeof quote.lastPrice === "number" &&
+        quote.lastPrice > 0 &&
+        quote.sourceTimestamp &&
+        quoteHealth(quote.lastPrice, quote.sourceTimestamp).fresh
+      ) {
         quotes.push({
           symbol: instrument.tradingSymbol.toUpperCase(),
           price: quote.lastPrice,

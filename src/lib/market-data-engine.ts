@@ -108,7 +108,8 @@ export class DhanMarketDataEngine {
           !quote ||
           !quote.sourceTimestamp ||
           !quoteHealth(quote.lastPrice, quote.sourceTimestamp).fresh
-        ) continue;
+        )
+          continue;
         quotes[instrument.tradingSymbol] = toPoint(instrument, quote);
       }
     }

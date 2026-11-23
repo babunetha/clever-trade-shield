@@ -88,7 +88,9 @@ export function SignalCard({
           >
             {verdict}
           </span>
-          <span className="num text-xs text-muted-foreground">setup score {signal.score}/100 · not a win probability</span>
+          <span className="num text-xs text-muted-foreground">
+            setup score {signal.score}/100 · not a win probability
+          </span>
         </div>
       </header>
 

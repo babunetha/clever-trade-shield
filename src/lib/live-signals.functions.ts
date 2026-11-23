@@ -30,7 +30,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       : 500,
   }))
   .handler(async ({ data }) => {
-    const currentIstMinute = (Math.floor(Date.now() / 1000) + 19_800) % 86_400 / 60;
+    const currentIstMinute = ((Math.floor(Date.now() / 1000) + 19_800) % 86_400) / 60;
     if (currentIstMinute < 555 || currentIstMinute > 930) {
       return {
         ok: false as const,
@@ -53,7 +53,10 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       groups.set(item.exchangeSegment, ids);
     }
 
-    const quotes: Record<string, { ltp: number; close: number; netChange: number; sourceTimestamp: string }> = {};
+    const quotes: Record<
+      string,
+      { ltp: number; close: number; netChange: number; sourceTimestamp: string }
+    > = {};
     for (const [segment, ids] of groups) {
       const q = await getDhanQuote({
         securityIds: ids,
@@ -61,10 +64,8 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       });
       if (!q.ok) return q;
       for (const value of Object.values(q.data)) {
-        if (
-          !value.sourceTimestamp ||
-          !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh
-        ) continue;
+        if (!value.sourceTimestamp || !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh)
+          continue;
         quotes[value.securityId] = {
           ltp: value.lastPrice,
           close: value.close,
@@ -110,11 +111,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       const candleAgeSeconds = latestCandle
         ? Math.floor(Date.now() / 1000) - latestCandle.timestamp
         : Number.POSITIVE_INFINITY;
-      if (
-        !latestCandle ||
-        candleAgeSeconds < 0 ||
-        candleAgeSeconds > 10 * 60
-      ) {
+      if (!latestCandle || candleAgeSeconds < 0 || candleAgeSeconds > 10 * 60) {
         await sleep(220);
         continue;
       }

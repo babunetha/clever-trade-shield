@@ -114,7 +114,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   // No synthetic market values: these arrays stay empty until Dhan data is verified.
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [indices, setIndices] = useState<IndexQuote[]>([]);
-  const [marketDataStatus, setMarketDataStatus] = useState<"CONNECTING" | "FRESH" | "NOT_AVAILABLE">("CONNECTING");
+  const [marketDataStatus, setMarketDataStatus] = useState<
+    "CONNECTING" | "FRESH" | "NOT_AVAILABLE"
+  >("CONNECTING");
   const [marketDataAsOf, setMarketDataAsOf] = useState<string | null>(null);
   const [marketDataError, setMarketDataError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -187,7 +189,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         .filter((value): value is string => Boolean(value))
         .map(Date.parse)
         .filter(Number.isFinite);
-      setMarketDataAsOf(sourceTimes.length ? new Date(Math.max(...sourceTimes)).toISOString() : null);
+      setMarketDataAsOf(
+        sourceTimes.length ? new Date(Math.max(...sourceTimes)).toISOString() : null,
+      );
       setMarketDataError(
         result.data.missingSymbols.length
           ? "No fresh Dhan quote for: " + result.data.missingSymbols.join(", ")

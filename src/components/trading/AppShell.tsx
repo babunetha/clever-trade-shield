@@ -75,8 +75,8 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <div className="border-b border-border bg-warn-muted px-4 py-1.5 text-center text-[11px] tracking-wide text-warn">
-        DHAN DATA WHEN VERIFIED · PAPER ONLY · Live orders and cancellation are disabled. Educational use only —
-        not investment advice.
+        DHAN DATA WHEN VERIFIED · PAPER ONLY · Live orders and cancellation are disabled.
+        Educational use only — not investment advice.
       </div>
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
@@ -182,9 +182,9 @@ export function AppShell({
       </nav>
 
       <footer className="border-t border-border px-4 pt-6 pb-24 text-xs text-muted-foreground md:pb-6">
-        Live market screens display only verified Dhan data; historical backtests are explicitly simulated.
-        This workspace records paper trades only. Live broker order placement and cancellation are
-        disabled. Trading in Indian equities carries risk of capital loss.
+        Live market screens display only verified Dhan data; historical backtests are explicitly
+        simulated. This workspace records paper trades only. Live broker order placement and
+        cancellation are disabled. Trading in Indian equities carries risk of capital loss.
       </footer>
     </div>
   );

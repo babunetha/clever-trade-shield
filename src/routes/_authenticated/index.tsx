@@ -127,7 +127,8 @@ function Dashboard() {
             ))}
             {!indices.length ? (
               <li className="text-xs text-muted-foreground">
-                No verified Dhan index snapshot yet. Open Market Overview to fetch current provider data.
+                No verified Dhan index snapshot yet. Open Market Overview to fetch current provider
+                data.
               </li>
             ) : null}
           </ul>
@@ -149,7 +150,8 @@ function Dashboard() {
           ))}
           {!pending.length ? (
             <p className="panel p-4 text-sm text-muted-foreground">
-              No pending Dhan candidates. Run the Dhan scanner to publish verified market data; synthetic signals are disabled.
+              No pending Dhan candidates. Run the Dhan scanner to publish verified market data;
+              synthetic signals are disabled.
             </p>
           ) : null}
         </div>
