@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { calculateRiskState } from "../src/lib/trading/risk-engine";
+import { getServerRiskPolicy, validateServerOrderIntent } from "../src/lib/trading/server-risk";
 import { DEFAULT_SETTINGS } from "../src/lib/trading/store";
 import type { Trade } from "../src/lib/trading/types";
 import { enforceProfile } from "../src/lib/trading/safe-settings";
@@ -79,6 +80,75 @@ describe("capital-preservation limits", () => {
       "7-day loss limit hit (₹2500).",
     );
   });
+
+  test("server environment cannot loosen immutable paper risk ceilings", () => {
+    const names = [
+      "RISK_MAX_PER_TRADE",
+      "RISK_MAX_DAILY_LOSS",
+      "RISK_MAX_WEEKLY_LOSS",
+      "RISK_MAX_TRADES_PER_DAY",
+      "RISK_MAX_OPEN_POSITIONS",
+      "RISK_MIN_RR",
+    ];
+    const original = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    try {
+      process.env["RISK_MAX_PER_TRADE"] = "50000";
+      process.env["RISK_MAX_DAILY_LOSS"] = "50000";
+      process.env["RISK_MAX_WEEKLY_LOSS"] = "50000";
+      process.env["RISK_MAX_TRADES_PER_DAY"] = "50";
+      process.env["RISK_MAX_OPEN_POSITIONS"] = "50";
+      process.env["RISK_MIN_RR"] = "0.1";
+      const policy = getServerRiskPolicy();
+      expect(policy.maxRiskPerTrade).toBe(500);
+      expect(policy.maxDailyLoss).toBe(1000);
+      expect(policy.maxWeeklyLoss).toBe(2500);
+      expect(policy.maxTradesPerDay).toBe(3);
+      expect(policy.maxOpenPositions).toBe(2);
+      expect(policy.minRiskReward).toBe(1.5);
+    } finally {
+      for (const name of names) {
+        const value = original[name];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  });
+
+  test("server paper risk gate blocks position value above ₹1,00,000", () => {
+    const decision = validateServerOrderIntent(
+      {
+        signalId: "signal-1",
+        symbol: "TEST",
+        side: "BUY",
+        quantity: 100,
+        entry: 1001,
+        stopLoss: 996,
+        riskRupees: 500,
+        riskReward: 1.5,
+        exchangeSegment: "NSE_EQ",
+        productType: "INTRADAY",
+        securityId: "12345",
+      },
+      {
+        maxRiskPerTrade: 500,
+        maxDailyLoss: 1000,
+        maxWeeklyLoss: 2500,
+        maxTradesPerDay: 3,
+        maxOpenPositions: 2,
+        minRiskReward: 1.5,
+        sessionStart: "09:00",
+        sessionEnd: "15:30",
+        tradingEnabled: true,
+      },
+      new Date("2026-11-23T05:00:00.000Z"),
+      { requireLiveReady: false },
+    );
+    expect(decision.allowed).toBe(false);
+    expect(decision.reasons).toContain(
+      "Position value exceeds the ₹1,00,000 paper capital cap.",
+    );
+  });
+
   test("equity intraday profile forbids F&O and live execution", () => {
     expect(DEFAULT_SETTINGS.intradayOnly).toBe(true);
     expect(DEFAULT_SETTINGS.allowFno).toBe(false);
