@@ -73,7 +73,9 @@ function MarketOverview() {
       subtitle={
         mode === "LIVE"
           ? "Dhan live quote snapshot · read-only"
-          : marketDataStatus === "CONNECTING"\n            ? "Checking Dhan provider timestamps…"\n            : "No verified Dhan quote snapshot available · synthetic fallback disabled"
+          : marketDataStatus === "CONNECTING"
+            ? "Checking Dhan provider timestamps…"
+            : "No verified Dhan quote snapshot available · synthetic fallback disabled"
       }
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
