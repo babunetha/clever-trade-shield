@@ -1,5 +1,6 @@
 import { getDhanQuote, type DhanQuote, type DhanResult } from "./dhan.server";
 import { resolveDhanInstruments, type DhanInstrument } from "./market/instruments";
+import { quoteHealth } from "./scanner/quote-health";
 
 export interface MarketDataPoint {
   symbol: string;
@@ -76,11 +77,11 @@ export class DhanMarketDataEngine {
       };
     }
 
-    const instruments = await resolveDhanInstruments(requestedSymbols);
-    const resolvedSet = new Set(
-      instruments.map((instrument) => instrument.tradingSymbol.toUpperCase()),
+    const instruments = (await resolveDhanInstruments(requestedSymbols)).filter(
+      (instrument) =>
+        (instrument.exchangeSegment === "NSE_EQ" && instrument.instrument === "EQUITY") ||
+        (instrument.exchangeSegment === "IDX_I" && instrument.instrument === "INDEX"),
     );
-    const missingSymbols = requestedSymbols.filter((symbol) => !resolvedSet.has(symbol));
 
     const grouped = new Map<DhanInstrument["exchangeSegment"], DhanInstrument[]>();
     for (const instrument of instruments) {
@@ -103,7 +104,11 @@ export class DhanMarketDataEngine {
 
       for (const instrument of segmentInstruments) {
         const quote = result.data[instrument.securityId];
-        if (!quote) continue;
+        if (
+          !quote ||
+          !quote.sourceTimestamp ||
+          !quoteHealth(quote.lastPrice, quote.sourceTimestamp).fresh
+        ) continue;
         quotes[instrument.tradingSymbol] = toPoint(instrument, quote);
       }
     }
@@ -116,7 +121,7 @@ export class DhanMarketDataEngine {
         quotes,
         requestedSymbols,
         resolvedSymbols: Object.keys(quotes),
-        missingSymbols,
+        missingSymbols: requestedSymbols.filter((symbol) => !quotes[symbol]),
       },
     };
   }
