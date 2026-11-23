@@ -17,7 +17,7 @@ import {
   persistTradeAudit as persistTradeAuditFn,
   loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
-import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
+
 import { calculateRiskState } from "./risk-engine";
 import { enforceProfile } from "./safe-settings";
 import type {
@@ -106,11 +106,10 @@ function isToday(iso: string) {
 }
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  // Fixed seed: the first render must be identical on the server and in the
-  // browser or hydration mismatches. Randomness only enters on later ticks.
-  const seed = 20240101;
-  const [quotes, setQuotes] = useState<Quote[]>(() => buildQuotes(seed));
-  const [indices, setIndices] = useState<IndexQuote[]>(() => buildIndices(seed));
+  // Never seed synthetic prices or index values into the trading workspace.
+  // Real market data is published only after a verified Dhan read succeeds.
+  const quotes: Quote[] = [];
+  const indices: IndexQuote[] = [];
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -152,7 +151,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           for (const trade of parsed.trades) approvedIds.current.add(trade.signalId);
         }
         if (parsed.audit) setAudit(parsed.audit);
-        if (parsed.signals) setSignals(parsed.signals);
+        // Ignore previously persisted signals; only fresh Dhan scanner results may be published.
       }
     } catch {
       /* ignore corrupt storage */
@@ -204,16 +203,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       /* storage full or unavailable */
     }
   }, [hydrated, settings, signals, trades, audit]);
-
-  // Seed the first simulated signal batch after hydration.
-  useEffect(() => {
-    if (!hydrated) return;
-    setSignals((prev) => {
-      if (prev.length) return prev;
-      return buildSignals({ seed, quotes, indices, maxRiskPerTrade: settings.maxRiskPerTrade });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
 
   // When paper positions are open, mark them from Dhan and simulate SL/target fills.
   // This is deliberately read-only: the client never calls an order endpoint.
@@ -299,15 +288,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     const timer = window.setInterval(() => void tick(), 3000);
     return () => window.clearInterval(timer);
   }, [hydrated]);
-
-  // Simulated tick loop (clearly labelled as mock data in the UI).
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setQuotes((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)));
-      setIndices((prev) => stepIndices(prev, Math.floor(Math.random() * 1e9)));
-    }, 3000);
-    return () => window.clearInterval(t);
-  }, []);
 
   const risk = useMemo<RiskState>(() => calculateRiskState(trades, settings), [trades, settings]);
 
@@ -439,20 +419,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSignals = useCallback(() => {
-    const fresh = buildSignals({
-      seed: Math.floor(Math.random() * 1e9),
-      quotes,
-      indices,
-      maxRiskPerTrade: settings.maxRiskPerTrade,
-    });
-    setSignals((prev) =>
-      [
-        ...fresh,
-        ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
-      ].slice(0, 40),
+    log(
+      "SIGNALS_REFRESH_BLOCKED",
+      "Synthetic signals are disabled. Run the Dhan scanner to publish verified market-data candidates.",
+      "WARN",
     );
-    log("SIGNALS_REFRESHED", `${fresh.length} simulated signals generated`);
-  }, [quotes, indices, settings.maxRiskPerTrade, log]);
+  }, [log]);
 
   const closeTrade = useCallback(
     (
