@@ -10,7 +10,10 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       { title: "Reset Password — Clever Trade Shield" },
-      { name: "description", content: "Choose a new password for your Clever Trade Shield account." },
+      {
+        name: "description",
+        content: "Choose a new password for your Clever Trade Shield account.",
+      },
       { property: "og:title", content: "Reset Password — Clever Trade Shield" },
       { property: "og:description", content: "Securely set a new terminal password." },
       { property: "og:type", content: "website" },
@@ -90,7 +93,10 @@ function ResetPasswordPage() {
               required
             />
             {error ? (
-              <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+              <p
+                role="alert"
+                className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+              >
                 {error}
               </p>
             ) : null}
