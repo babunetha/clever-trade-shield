@@ -64,12 +64,13 @@ function indiaMinutes(now: Date) {
 
 export function getServerRiskPolicy(): ServerRiskPolicy {
   return {
-    maxRiskPerTrade: numberEnv("RISK_MAX_PER_TRADE", 500),
-    maxDailyLoss: numberEnv("RISK_MAX_DAILY_LOSS", 1000),
-    maxWeeklyLoss: numberEnv("RISK_MAX_WEEKLY_LOSS", 2500),
-    maxTradesPerDay: numberEnv("RISK_MAX_TRADES_PER_DAY", 3),
-    maxOpenPositions: numberEnv("RISK_MAX_OPEN_POSITIONS", 2),
-    minRiskReward: numberEnv("RISK_MIN_RR", 1.5),
+    // Environment values may tighten these limits, never relax the paper profile.
+    maxRiskPerTrade: Math.min(numberEnv("RISK_MAX_PER_TRADE", 500), 500),
+    maxDailyLoss: Math.min(numberEnv("RISK_MAX_DAILY_LOSS", 1000), 1000),
+    maxWeeklyLoss: Math.min(numberEnv("RISK_MAX_WEEKLY_LOSS", 2500), 2500),
+    maxTradesPerDay: Math.min(Math.floor(numberEnv("RISK_MAX_TRADES_PER_DAY", 3)), 3),
+    maxOpenPositions: Math.min(Math.floor(numberEnv("RISK_MAX_OPEN_POSITIONS", 2)), 2),
+    minRiskReward: Math.max(numberEnv("RISK_MIN_RR", 1.5), 1.5),
     sessionStart: process.env["RISK_SESSION_START"] ?? "09:20",
     sessionEnd: process.env["RISK_SESSION_END"] ?? "15:10",
     tradingEnabled: process.env["RISK_TRADING_ENABLED"] === "true",
@@ -129,6 +130,15 @@ export function validateServerOrderIntent(
     intent.riskRupees > policy.maxRiskPerTrade
   ) {
     reasons.push("Per-trade risk exceeds server cap.");
+  }
+  if (
+    Number.isFinite(intent.entry) &&
+    Number.isInteger(intent.quantity) &&
+    intent.entry > 0 &&
+    intent.quantity > 0 &&
+    intent.entry * intent.quantity > 100000
+  ) {
+    reasons.push("Position value exceeds the ₹1,00,000 paper capital cap.");
   }
   if (!Number.isFinite(intent.riskReward) || intent.riskReward < policy.minRiskReward)
     reasons.push("Risk/reward is below server minimum.");
