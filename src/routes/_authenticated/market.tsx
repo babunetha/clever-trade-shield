@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/trading/AppShell";
 import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { useTrading } from "@/lib/trading/store";
-import type { IndexQuote, Quote } from "@/lib/trading/types";
+import type { IndexQuote } from "@/lib/trading/types";
 import { formatCompact, formatPct, formatPrice, tone } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,13 @@ export const Route = createFileRoute("/_authenticated/market")({
       { property: "og:title", content: "Market Overview — Clever Trade Shield" },
       {
         property: "og:description",
-        content: "Read-only market snapshots with clearly labelled simulated fallback.",
+        content: "Read-only NSE market snapshots from verified Dhan provider timestamps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         name: "description",
-        content: "Live Dhan market snapshot with a clearly labelled simulated fallback.",
+        content: "Read-only Dhan market snapshot with stale data blocked.",
       },
     ],
   }),
@@ -55,10 +55,8 @@ const WATCHLIST = [
 ];
 
 function MarketOverview() {
-  const { quotes: simulatedQuotes, indices: simulatedIndices } = useTrading();
-  const [quotes, setQuotes] = useState<Quote[]>(simulatedQuotes);
-  const [indices, setIndices] = useState<IndexQuote[]>(simulatedIndices);
-  const [mode, setMode] = useState<"LIVE" | "SIMULATED">("SIMULATED");
+  const { quotes, indices, publishMarketSnapshot } = useTrading();
+  const [mode, setMode] = useState<"LIVE" | "UNAVAILABLE">("UNAVAILABLE");
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [asOf, setAsOf] = useState<string | null>(null);
@@ -68,7 +66,9 @@ function MarketOverview() {
     try {
       const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
       if (!result.ok) {
-        setMode("SIMULATED");
+        publishMarketSnapshot([], []);
+        setMode("UNAVAILABLE");
+        setAsOf(null);
         setError(result.error);
         return;
       }
@@ -103,25 +103,37 @@ function MarketOverview() {
         })
         .filter(Boolean) as IndexQuote[];
 
-      if (realQuotes.length) {
-        setQuotes(realQuotes);
-        if (realIndices.length) setIndices(realIndices);
+      if (realQuotes.length || realIndices.length) {
+        publishMarketSnapshot(realQuotes, realIndices);
         setMode("LIVE");
-        setError(null);
-        setAsOf(result.data.asOf);
-      } else {
-        setMode("SIMULATED");
         setError(
-          "Dhan returned no watchlist instruments. Check the Dhan instrument master and API access.",
+          result.data.missingSymbols.length
+            ? "No fresh Dhan quote for: " + result.data.missingSymbols.join(", ")
+            : null,
+        );
+        const sourceTimes = Object.values(data)
+          .map((row) => row.sourceTimestamp)
+          .filter((value): value is string => Boolean(value))
+          .map(Date.parse)
+          .filter(Number.isFinite);
+        setAsOf(sourceTimes.length ? new Date(Math.max(...sourceTimes)).toISOString() : null);
+      } else {
+        publishMarketSnapshot([], []);
+        setMode("UNAVAILABLE");
+        setAsOf(null);
+        setError(
+          "Dhan returned no fresh watchlist quotes. Check credentials, market session and provider timestamps.",
         );
       }
     } catch (e) {
-      setMode("SIMULATED");
+      publishMarketSnapshot([], []);
+      setMode("UNAVAILABLE");
+      setAsOf(null);
       setError(e instanceof Error ? e.message : "Dhan market request failed");
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [publishMarketSnapshot]);
 
   useEffect(() => {
     void refresh();
@@ -144,7 +156,7 @@ function MarketOverview() {
       subtitle={
         mode === "LIVE"
           ? "Dhan live quote snapshot · read-only"
-          : "Simulated fallback · connect Dhan to enable live data"
+          : "No verified Dhan quote snapshot available · synthetic fallback disabled"
       }
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -155,13 +167,13 @@ function MarketOverview() {
             </>
           ) : (
             <>
-              <WifiOff className="mr-1 size-3" /> SIMULATED
+              <WifiOff className="mr-1 size-3" /> DATA UNAVAILABLE
             </>
           )}
         </Badge>
         {asOf ? (
           <span className="num text-xs text-muted-foreground">
-            Updated {new Date(asOf).toLocaleTimeString()}
+            Latest provider trade {new Date(asOf).toLocaleTimeString()}
           </span>
         ) : null}
         <Button
@@ -199,6 +211,11 @@ function MarketOverview() {
             </div>
           </div>
         ))}
+        {!indices.length ? (
+          <div className="panel p-4 text-xs text-muted-foreground">
+            No fresh Dhan index quotes available.
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -258,6 +275,13 @@ function MarketOverview() {
                 <TableCell className="num text-right">{formatCompact(q.volume)}</TableCell>
               </TableRow>
             ))}
+            {!quotes.length ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                  No verified Dhan quotes. Synthetic prices are not displayed.
+                </TableCell>
+              </TableRow>
+            ) : null}
           </TableBody>
         </Table>
       </div>
