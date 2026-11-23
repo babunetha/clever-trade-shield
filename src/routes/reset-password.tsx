@@ -71,8 +71,8 @@ function ResetPasswordPage() {
         </div>
         {!ready ? (
           <p className="mt-5 rounded-md border border-border bg-muted/40 p-3 text-xs">
-            Open this page from the reset link in your email. If the link expired, go back to{" "}
-            sign in and request a new one.{" "}
+            Open this page from the reset link in your email. If the link expired, go back to sign
+            in and request a new one.{" "}
             <a className="text-primary underline" href="/login">
               Back to sign in
             </a>
