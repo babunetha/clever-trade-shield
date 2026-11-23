@@ -22,6 +22,7 @@ import {
   walkForwardTrendBreakout,
 } from "@/lib/research/backtest";
 import type { ScanCandidate } from "./candidates";
+import { quoteHealth } from "./quote-health";
 
 const crit = (c: ScannerConfig, id: string, key: string, fallback: number) =>
   c[id as keyof ScannerConfig]?.criteria[key] ?? fallback;
@@ -323,7 +324,13 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
     // substitute for a failed or missing quote endpoint response.
     const quote = quoteMap[x.instrument.securityId];
     const price = quote?.lastPrice;
-    if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) continue;
+    if (
+      typeof price !== "number" ||
+      !Number.isFinite(price) ||
+      price <= 0 ||
+      !quote?.lastTradeAt ||
+      !quoteHealth(price, quote.lastTradeAt).fresh
+    ) continue;
 
     const matchedScanners = SCANNERS.filter((def) => {
       if (!config[def.id]?.enabled) return false;
