@@ -14,5 +14,21 @@ export const getDhanPaperMarks = createServerFn({ method: "POST" })
       return { ok: true as const, quotes: {}, asOf: new Date().toISOString() };
     const result = await getDhanQuote({ securityIds: data.securityIds, exchangeSegment: "NSE_EQ" });
     if (!result.ok) return result;
-    return { ok: true as const, quotes: result.data, asOf: new Date().toISOString() };
+    const now = Date.now();
+    const quotes = Object.fromEntries(
+      Object.entries(result.data).map(([securityId, quote]) => {
+        const ageMs = quote.lastTradeAt ? now - Date.parse(quote.lastTradeAt) : Number.POSITIVE_INFINITY;
+        const fresh =
+          Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= 20_000 && quote.lastPrice > 0;
+        return [
+          securityId,
+          {
+            ...quote,
+            dataAgeSeconds: Number.isFinite(ageMs) && ageMs >= 0 ? Math.round(ageMs / 1000) : null,
+            dataStatus: fresh ? "FRESH" : "STALE",
+          },
+        ];
+      }),
+    );
+    return { ok: true as const, quotes, asOf: new Date(now).toISOString() };
   });
