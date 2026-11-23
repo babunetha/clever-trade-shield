@@ -385,6 +385,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
+      if (!signal.securityId) {
+        return {
+          ok: false,
+          message: "Signal has no verified Dhan security ID; paper approval is blocked.",
+        };
+      }
       try {
         const result = await approvePaperTradeServer({
           data: {
@@ -398,7 +404,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             target1: signal.target1,
             quantity: signal.quantity,
             source: "SignalCard",
-            dataSource: signal.securityId ? "DHAN_LIVE" : "SIMULATED",
+            dataSource: "DHAN_LIVE",
           },
         });
         if (!result.ok) {
