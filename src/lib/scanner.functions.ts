@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "./auth-middleware";
+import { quoteHealth } from "./scanner/quote-health";
 
 export interface ScannerLiveQuote {
   symbol: string;
@@ -62,7 +63,9 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
       };
     }
 
-    const equity = instruments.filter((i) => i.exchangeSegment === "NSE_EQ");
+    const equity = instruments.filter(
+      (i) => i.exchangeSegment === "NSE_EQ" && i.instrument === "EQUITY",
+    );
     if (!equity.length) {
       return {
         ok: false,
@@ -80,7 +83,7 @@ export const getScannerLiveQuotes = createServerFn({ method: "POST" })
     const quotes: ScannerLiveQuote[] = [];
     for (const instrument of equity) {
       const quote = result.data[instrument.securityId];
-      if (quote && typeof quote.lastPrice === "number" && quote.lastPrice > 0) {
+      if (quote && typeof quote.lastPrice === "number" && quote.lastPrice > 0 && quote.sourceTimestamp && quoteHealth(quote.lastPrice, quote.sourceTimestamp).fresh) {
         quotes.push({
           symbol: instrument.tradingSymbol.toUpperCase(),
           price: quote.lastPrice,
