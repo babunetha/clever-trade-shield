@@ -48,7 +48,7 @@ export function paperBlockReasons(
   if (freshness && !freshness.ok) reasons.push(freshness.detail);
   if (row.missingFromFeed)
     reasons.push(
-      "Live quote unavailable or connection failed. Paper approval is blocked; simulated fallback is display-only.",
+      "Live quote unavailable or connection failed. Paper approval is blocked; no fallback price is used.",
     );
   for (const c of v.checks) {
     if (!c.ok && c.blocking && c.label !== "Price freshness")
@@ -66,7 +66,7 @@ const connectionBadge: Record<ConnectionState, { label: string; cls: string }> =
   CONNECTING: { label: "CONNECTING", cls: "border-warn/40 bg-warn-muted text-warn" },
   ERROR: { label: "ERROR · FAIL-CLOSED", cls: "border-bear/40 bg-bear-muted text-bear" },
   NOT_CONFIGURED: {
-    label: "NOT CONFIGURED · SIMULATED",
+    label: "NOT CONFIGURED · DATA UNAVAILABLE",
     cls: "border-warn/40 bg-warn-muted text-warn",
   },
   SIMULATED: { label: "SIMULATED FEED", cls: "border-warn/40 bg-warn-muted text-warn" },
