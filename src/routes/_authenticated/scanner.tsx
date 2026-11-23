@@ -285,7 +285,7 @@ function ScannerPage() {
         .join("; ")
         .slice(0, 2000),
     );
-    // Log a scan's initial verification, not every simulated tick.
+    // Log a scan's initial verification, not every quote refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scannedAt, status]);
 
@@ -758,7 +758,7 @@ NO FRESH DHAN QUOTES
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Log a simulated paper trade?</AlertDialogTitle>
+                            <AlertDialogTitle>Approve paper trade?</AlertDialogTitle>
                             <AlertDialogDescription>
                               LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
                               stop {formatPrice(v.plan.stopLoss)}, target{" "}
@@ -770,7 +770,7 @@ NO FRESH DHAN QUOTES
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction onClick={() => void takePaperTrade(row)}>
-                              Approve simulated trade
+                              Approve paper trade
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
