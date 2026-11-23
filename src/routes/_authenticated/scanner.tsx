@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -30,7 +30,7 @@ import {
   type ScannerConfig,
   type ScannerId,
 } from "@/lib/scanner/definitions";
-import { runScanners, type ScanCandidate } from "@/lib/scanner/candidates";
+import type { ScanCandidate } from "@/lib/scanner/candidates";
 import {
   MAX_TICK_AGE_SECONDS,
   stateClasses,
@@ -84,7 +84,7 @@ function ScannerPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
-  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
+  const initialScanStarted = useRef(false);
   const fetchInbox = useServerFn(researchInbox);
   const inbox = useQuery({
     queryKey: ["research-inbox"],
@@ -103,28 +103,6 @@ function ScannerPage() {
     return () => window.clearInterval(t);
   }, []);
 
-  const runScan = useCallback(() => {
-    setStatus("loading");
-    setError(null);
-    window.setTimeout(() => {
-      try {
-        const found = runScanners(config, Math.floor(Math.random() * 1e9));
-        setCandidates(found);
-        setScanSource("SIMULATED");
-        setScannedAt(new Date().toISOString());
-        setNowMs(Date.now());
-        setStatus("ready");
-        log("SCANNER_RUN", `${found.length} simulated candidates matched the enabled scanners`);
-      } catch (e) {
-        setCandidates(null);
-        const message = e instanceof Error ? e.message : "The scan could not be completed.";
-        setError(message);
-        setStatus("error");
-        log("SCANNER_ERROR", message, "WARN");
-      }
-    }, 30);
-  }, [config, log]);
-
   const runLiveScan = useCallback(async () => {
     setStatus("loading");
     setError(null);
@@ -132,7 +110,6 @@ function ScannerPage() {
       const result = await runDhanLiveScan({ data: { config } });
       if (!result.ok) throw new Error(result.error);
       setCandidates(result.candidates);
-      setScanSource("DHAN_LIVE");
       setScannedAt(new Date().toISOString());
       setNowMs(Date.now());
       setStatus("ready");
@@ -150,12 +127,6 @@ function ScannerPage() {
       toast.error(message);
     }
   }, [config, log]);
-
-  // Client-only first scan (the engine is heavy and must not run during SSR).
-  useEffect(() => {
-    runScan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const scanAgeSeconds = scannedAt
     ? Math.max(0, Math.round((nowMs - new Date(scannedAt).getTime()) / 1000))
@@ -177,6 +148,21 @@ function ScannerPage() {
   const brokerConfigured = Boolean(
     dhanStatus.data?.clientIdConfigured && dhanStatus.data?.accessTokenConfigured,
   );
+
+  useEffect(() => {
+    if (!brokerConfigured) {
+      if (!dhanStatus.isLoading && !initialScanStarted.current) {
+        setCandidates(null);
+        setStatus("error");
+        setError("Dhan credentials are not configured. Live scanning is unavailable; synthetic candidates are disabled.");
+      }
+      return;
+    }
+    if (initialScanStarted.current) return;
+    initialScanStarted.current = true;
+    void runLiveScan();
+  }, [brokerConfigured, dhanStatus.isLoading, runLiveScan]);
+
 
   const fetchLive = useServerFn(getScannerLiveQuotes);
   const live = useQuery({
