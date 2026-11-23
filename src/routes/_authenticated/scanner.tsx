@@ -199,8 +199,8 @@ function ScannerPage() {
     ? live.error instanceof Error
       ? live.error.message
       : "The live price request failed. Reconnect to retry."
-    : liveResult?.ok && liveResult.quotes.length === 0
-      ? "Dhan returned no fresh candidate quotes. Paper approval remains blocked."
+    : liveResult?.ok && liveResult.missing.length > 0
+      ? "Fresh Dhan quotes unavailable for: " + liveResult.missing.join(", ")
       : null;
 
   // Connection/quote errors are part of the audit trail, fail-closed by design.
@@ -210,8 +210,8 @@ function ScannerPage() {
 
   const rows = useMemo<Row[]>(() => {
     if (!candidates) return [];
-    const asOf = scannedAt ?? new Date(0).toISOString();
     return [...candidates]
+      .filter((candidate) => liveQuoteMap.has(candidate.symbol.toUpperCase()))
       .sort(
         (a, b) =>
           0.55 * (b.marketScore ?? 0) +
@@ -241,6 +241,16 @@ function ScannerPage() {
           risk,
           openPositions,
         });
+        if (!indices.length) {
+          verification.checks.push({
+            label: "Index context",
+            ok: false,
+            blocking: true,
+            detail: "Fresh NIFTY/BANKNIFTY context is unavailable; candidate is blocked.",
+          });
+          verification.state = "AVOID";
+          verification.total = verification.checks.length;
+        }
         if (brokerConfigured && (!liveOk || livePrice === undefined)) {
           verification.checks.push({
             label: "Live quote connection",
@@ -455,13 +465,6 @@ NO FRESH DHAN QUOTES
         </Button>
         <Button
           size="sm"
-          onClick={() => void runLiveScan()}
-          disabled={!brokerConfigured || status === "loading"}
-        >
-          Run Dhan research scan
-        </Button>
-        <Button
-          size="sm"
           variant="outline"
           disabled={!inbox.data?.length || status === "loading"}
           onClick={() => {
@@ -492,8 +495,7 @@ NO FRESH DHAN QUOTES
 
       {brokerConfigured && liveError ? (
         <div className="mb-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
-          {liveError} Simulated fallback is display-only. Paper approval is blocked until live
-          quotes reconnect.
+          {liveError} No fallback price is used. Paper approval is blocked for missing or stale quotes.
         </div>
       ) : null}
 
@@ -521,10 +523,10 @@ NO FRESH DHAN QUOTES
               : liveError
                 ? "ERROR"
                 : liveOk
-                  ? "LIVE"
-                  : live.isFetching
-                    ? "CONNECTING"
-                    : "ERROR"
+              ? "LIVE"
+              : live.isFetching
+                ? "CONNECTING"
+                : "ERROR"
         }
         lastSuccessAt={liveOk && live.dataUpdatedAt ? live.dataUpdatedAt : null}
         lastErrorAt={
@@ -763,8 +765,7 @@ NO FRESH DHAN QUOTES
                               LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
                               stop {formatPrice(v.plan.stopLoss)}, target{" "}
                               {formatPrice(v.plan.target1)}, risk {formatINR(v.plan.riskRupees)}.
-                              This is recorded in the journal on simulated data only — no order is
-                              sent to any broker and live execution stays disabled.
+                              This records a paper trade using read-only Dhan data. No broker order is sent and live execution\n                              remains disabled.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
