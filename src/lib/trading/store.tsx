@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getDhanPaperMarks } from "@/lib/paper-market.functions";
+import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { quoteHealth } from "@/lib/scanner/quote-health";
 import {
   approvePaperTrade as approvePaperTradeFn,
@@ -17,7 +18,7 @@ import {
   persistTradeAudit as persistTradeAuditFn,
   loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
-import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
+
 import { calculateRiskState } from "./risk-engine";
 import { enforceProfile } from "./safe-settings";
 import type {
@@ -61,6 +62,10 @@ interface Persisted {
 interface Ctx extends Persisted {
   quotes: Quote[];
   indices: IndexQuote[];
+  marketDataStatus: "CONNECTING" | "FRESH" | "NOT_AVAILABLE";
+  marketDataAsOf: string | null;
+  marketDataError: string | null;
+  refreshMarketSnapshot: () => Promise<void>;
   risk: RiskState;
   approveSignal: (id: string) => Promise<{ ok: boolean; message: string }>;
   /** Logs an explicitly approved, verified scanner candidate as a simulated trade. */
@@ -106,11 +111,14 @@ function isToday(iso: string) {
 }
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  // Fixed seed: the first render must be identical on the server and in the
-  // browser or hydration mismatches. Randomness only enters on later ticks.
-  const seed = 20240101;
-  const [quotes, setQuotes] = useState<Quote[]>(() => buildQuotes(seed));
-  const [indices, setIndices] = useState<IndexQuote[]>(() => buildIndices(seed));
+  // No synthetic market values: these arrays stay empty until Dhan data is verified.
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [indices, setIndices] = useState<IndexQuote[]>([]);
+  const [marketDataStatus, setMarketDataStatus] = useState<
+    "CONNECTING" | "FRESH" | "NOT_AVAILABLE"
+  >("CONNECTING");
+  const [marketDataAsOf, setMarketDataAsOf] = useState<string | null>(null);
+  const [marketDataError, setMarketDataError] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -121,6 +129,82 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
   const loadPaperRecords = useServerFn(loadPaperRecordsFn);
+  const loadMarketSnapshot = useServerFn(getDhanMarketSnapshot);
+
+  const refreshMarketSnapshot = useCallback(async () => {
+    try {
+      const result = await loadMarketSnapshot({ data: {} });
+      if (!result.ok) {
+        setQuotes([]);
+        setIndices([]);
+        setMarketDataStatus("NOT_AVAILABLE");
+        setMarketDataAsOf(null);
+        setMarketDataError(result.error);
+        return;
+      }
+
+      const rows = Object.values(result.data.quotes);
+      const nextQuotes: Quote[] = rows
+        .filter((row) => row.exchangeSegment === "NSE_EQ")
+        .map((row) => ({
+          symbol: row.symbol,
+          name: row.name,
+          ltp: row.ltp,
+          prevClose: row.prevClose,
+          change: row.change,
+          changePct: row.changePct,
+          dayHigh: row.dayHigh,
+          dayLow: row.dayLow,
+          volume: row.volume,
+        }));
+      const nextIndices: IndexQuote[] = rows
+        .filter((row) => row.exchangeSegment === "IDX_I")
+        .map((row) => ({
+          symbol: row.symbol,
+          name: row.name,
+          ltp: row.ltp,
+          prevClose: row.prevClose,
+          change: row.change,
+          changePct: row.changePct,
+          dayHigh: row.dayHigh,
+          dayLow: row.dayLow,
+          volume: row.volume,
+          bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
+        }));
+
+      if (!nextQuotes.length && !nextIndices.length) {
+        setQuotes([]);
+        setIndices([]);
+        setMarketDataStatus("NOT_AVAILABLE");
+        setMarketDataAsOf(null);
+        setMarketDataError("No fresh Dhan market quotes are available.");
+        return;
+      }
+
+      setQuotes(nextQuotes);
+      setIndices(nextIndices);
+      setMarketDataStatus("FRESH");
+      const sourceTimes = rows
+        .map((row) => row.sourceTimestamp)
+        .filter((value): value is string => Boolean(value))
+        .map(Date.parse)
+        .filter(Number.isFinite);
+      setMarketDataAsOf(
+        sourceTimes.length ? new Date(Math.max(...sourceTimes)).toISOString() : null,
+      );
+      setMarketDataError(
+        result.data.missingSymbols.length
+          ? "No fresh Dhan quote for: " + result.data.missingSymbols.join(", ")
+          : null,
+      );
+    } catch (error) {
+      setQuotes([]);
+      setIndices([]);
+      setMarketDataStatus("NOT_AVAILABLE");
+      setMarketDataAsOf(null);
+      setMarketDataError(error instanceof Error ? error.message : "Dhan market request failed.");
+    }
+  }, [loadMarketSnapshot]);
 
   const log = useCallback(
     (action: string, detail: string, severity: AuditSeverity = "INFO") => {
@@ -152,7 +236,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           for (const trade of parsed.trades) approvedIds.current.add(trade.signalId);
         }
         if (parsed.audit) setAudit(parsed.audit);
-        if (parsed.signals) setSignals(parsed.signals);
+        // Ignore previously persisted signals; only fresh Dhan scanner results may be published.
       }
     } catch {
       /* ignore corrupt storage */
@@ -205,16 +289,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     }
   }, [hydrated, settings, signals, trades, audit]);
 
-  // Seed the first simulated signal batch after hydration.
-  useEffect(() => {
-    if (!hydrated) return;
-    setSignals((prev) => {
-      if (prev.length) return prev;
-      return buildSignals({ seed, quotes, indices, maxRiskPerTrade: settings.maxRiskPerTrade });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
-
   // When paper positions are open, mark them from Dhan and simulate SL/target fills.
   // This is deliberately read-only: the client never calls an order endpoint.
   const tradesRef = useRef(trades);
@@ -223,6 +297,13 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     tradesRef.current = trades;
   }, [trades]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void refreshMarketSnapshot();
+    const timer = window.setInterval(() => void refreshMarketSnapshot(), 5000);
+    return () => window.clearInterval(timer);
+  }, [hydrated, refreshMarketSnapshot]);
 
   // One stable poller avoids timer churn on every mark/P&L update.
   // Dhan quote reads are batched by Security ID and polled at 3s.
@@ -300,15 +381,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, [hydrated]);
 
-  // Simulated tick loop (clearly labelled as mock data in the UI).
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setQuotes((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)));
-      setIndices((prev) => stepIndices(prev, Math.floor(Math.random() * 1e9)));
-    }, 3000);
-    return () => window.clearInterval(t);
-  }, []);
-
   const risk = useMemo<RiskState>(() => calculateRiskState(trades, settings), [trades, settings]);
 
   const approveSignal = useCallback(
@@ -317,6 +389,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
+      if (!signal.securityId) {
+        return {
+          ok: false,
+          message: "Signal has no verified Dhan security ID; paper approval is blocked.",
+        };
+      }
       try {
         const result = await approvePaperTradeServer({
           data: {
@@ -330,7 +408,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             target1: signal.target1,
             quantity: signal.quantity,
             source: "SignalCard",
-            dataSource: signal.securityId ? "DHAN_LIVE" : "SIMULATED",
+            dataSource: "DHAN_LIVE",
           },
         });
         if (!result.ok) {
@@ -439,20 +517,12 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSignals = useCallback(() => {
-    const fresh = buildSignals({
-      seed: Math.floor(Math.random() * 1e9),
-      quotes,
-      indices,
-      maxRiskPerTrade: settings.maxRiskPerTrade,
-    });
-    setSignals((prev) =>
-      [
-        ...fresh,
-        ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
-      ].slice(0, 40),
+    log(
+      "SIGNALS_REFRESH_BLOCKED",
+      "Synthetic signals are disabled. Run the Dhan scanner to publish verified market-data candidates.",
+      "WARN",
     );
-    log("SIGNALS_REFRESHED", `${fresh.length} simulated signals generated`);
-  }, [quotes, indices, settings.maxRiskPerTrade, log]);
+  }, [log]);
 
   const closeTrade = useCallback(
     (
@@ -557,6 +627,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     audit,
     quotes,
     indices,
+    marketDataStatus,
+    marketDataAsOf,
+    marketDataError,
+    refreshMarketSnapshot,
     risk,
     approveSignal,
     openPaperTrade,

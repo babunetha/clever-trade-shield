@@ -88,7 +88,9 @@ export function SignalCard({
           >
             {verdict}
           </span>
-          <span className="num text-xs text-muted-foreground">score {signal.score}/100</span>
+          <span className="num text-xs text-muted-foreground">
+            setup score {signal.score}/100 · not a win probability
+          </span>
         </div>
       </header>
 
@@ -180,17 +182,17 @@ export function SignalCard({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Confirm simulated trade</AlertDialogTitle>
+                <AlertDialogTitle>Confirm paper trade</AlertDialogTitle>
                 <AlertDialogDescription>
                   {signal.side} {signal.quantity} {signal.symbol} at {formatPrice(signal.entry)},
                   stop {formatPrice(signal.stopLoss)}, risk {formatINR(signal.riskRupees)}. This is
-                  logged as a simulated trade only — no live order is ever sent to any broker.
+                  recorded as a paper trade only — no live order is ever sent to any broker.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={() => void onApprove()} disabled={approving}>
-                  {approving ? "Checking risk…" : "Yes, log simulated trade"}
+                  {approving ? "Checking risk…" : "Yes, log paper trade"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -214,7 +216,7 @@ export function SignalCard({
             <X className="mr-1 size-3.5" /> Reject
           </Button>
           <span className="text-[11px] text-muted-foreground">
-            Nothing executes until you approve. Approval logs a simulated fill only.
+            Approval records a paper fill only. Live broker order placement is disabled.
           </span>
         </div>
       ) : null}

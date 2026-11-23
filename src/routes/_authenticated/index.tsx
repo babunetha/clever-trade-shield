@@ -16,13 +16,13 @@ export const Route = createFileRoute("/_authenticated/")({
       {
         name: "description",
         content:
-          "Risk-controlled intraday dashboard for a ₹1,00,000 equity account: simulated signals, manual approval and hard risk limits.",
+          "Read-only Dhan market research and server-validated paper approvals with hard risk limits.",
       },
       { property: "og:title", content: "Dashboard — ₹1L Trading Assistant" },
       {
         property: "og:description",
         content:
-          "Simulated signals with manual approval, ₹500 risk per trade and a ₹1,000 daily loss lock.",
+          "Dhan-derived research candidates with paper approval, ₹500 risk cap and ₹1,000 daily loss lock.",
       },
     ],
   }),
@@ -58,7 +58,7 @@ function Dashboard() {
   return (
     <AppShell
       title="Dashboard"
-      subtitle="Today's simulated session at a glance. Every trade needs your explicit approval."
+      subtitle="Paper portfolio overview. Only verified Dhan candidates can be published; no broker orders are sent."
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
@@ -125,6 +125,12 @@ function Dashboard() {
                 <Badge variant="outline">{i.bias}</Badge>
               </li>
             ))}
+            {!indices.length ? (
+              <li className="text-xs text-muted-foreground">
+                No verified Dhan index snapshot yet. Open Market Overview to fetch current provider
+                data.
+              </li>
+            ) : null}
           </ul>
         </div>
       </div>
@@ -144,7 +150,8 @@ function Dashboard() {
           ))}
           {!pending.length ? (
             <p className="panel p-4 text-sm text-muted-foreground">
-              No pending signals. Generate a fresh simulated batch from the Signals screen.
+              No pending Dhan candidates. Run the Dhan scanner to publish verified market data;
+              synthetic signals are disabled.
             </p>
           ) : null}
         </div>
