@@ -25,7 +25,9 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       .map((s) => String(s).trim().toUpperCase())
       .filter(Boolean)
       .slice(0, 6),
-    maxRiskPerTrade: Math.max(1, Number(input?.maxRiskPerTrade ?? 500)),
+    maxRiskPerTrade: Number.isFinite(Number(input?.maxRiskPerTrade ?? 500))
+      ? Math.max(1, Math.min(500, Number(input?.maxRiskPerTrade ?? 500)))
+      : 500,
   }))
   .handler(async ({ data }) => {
     const currentIstMinute = (Math.floor(Date.now() / 1000) + 19_800) % 86_400 / 60;
@@ -151,7 +153,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       const target1 = side === "LONG" ? q.ltp + riskPerShare * 1.8 : q.ltp - riskPerShare * 1.8;
       const target2 = side === "LONG" ? q.ltp + riskPerShare * 2.6 : q.ltp - riskPerShare * 2.6;
       const quantity = Math.max(0, Math.floor(data.maxRiskPerTrade / riskPerShare));
-      if (!quantity) {
+      if (!quantity || q.ltp * quantity > 100000) {
         await sleep(220);
         continue;
       }
