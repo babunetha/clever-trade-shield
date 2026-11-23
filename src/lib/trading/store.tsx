@@ -10,13 +10,15 @@ import {
 } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getDhanPaperMarks } from "@/lib/paper-market.functions";
+import { quoteHealth } from "@/lib/scanner/quote-health";
 import {
+  approvePaperTrade as approvePaperTradeFn,
   persistPaperTrade as persistPaperTradeFn,
   persistTradeAudit as persistTradeAuditFn,
   loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
 import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
-import { calculateRiskState, validateSignalRisk } from "./risk-engine";
+import { calculateRiskState } from "./risk-engine";
 import { enforceProfile } from "./safe-settings";
 import type {
   AuditEntry,
@@ -60,7 +62,7 @@ interface Ctx extends Persisted {
   quotes: Quote[];
   indices: IndexQuote[];
   risk: RiskState;
-  approveSignal: (id: string) => { ok: boolean; message: string };
+  approveSignal: (id: string) => Promise<{ ok: boolean; message: string }>;
   /** Logs an explicitly approved, verified scanner candidate as a simulated trade. */
   openPaperTrade: (input: {
     symbol: string;
@@ -73,7 +75,8 @@ interface Ctx extends Persisted {
     riskRupees: number;
     source: string;
     approvalId: string;
-  }) => { ok: boolean; message: string };
+    dataSource: "DHAN_LIVE" | "SIMULATED";
+  }) => Promise<{ ok: boolean; message: string }>;
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
   publishLiveSignals: (signals: Signal[]) => void;
@@ -114,6 +117,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const approvedIds = useRef(new Set<string>());
+  const approvePaperTradeServer = useServerFn(approvePaperTradeFn);
   const persistPaperTrade = useServerFn(persistPaperTradeFn);
   const persistTradeAudit = useServerFn(persistTradeAuditFn);
   const loadPaperRecords = useServerFn(loadPaperRecordsFn);
@@ -234,7 +238,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         if (!securityIds.length) return;
         const result = await getDhanPaperMarks({ data: { securityIds } });
         if (!result.ok) return;
-        const quotesBySecurityId = result.quotes as Record<string, { lastPrice: number }>;
+        const quotesBySecurityId = result.quotes as Record<
+          string,
+          { lastPrice: number; sourceTimestamp: string | null }
+        >;
         const exits: Array<{
           id: string;
           price: number;
@@ -244,10 +251,15 @@ export function TradingProvider({ children }: { children: ReactNode }) {
         setTrades((prev) =>
           prev.map((trade) => {
             if (trade.status !== "OPEN") return trade;
-            const price = trade.securityId
-              ? quotesBySecurityId[trade.securityId]?.lastPrice
-              : undefined;
-            if (price === undefined || !Number.isFinite(price)) return trade;
+            const quote = trade.securityId ? quotesBySecurityId[trade.securityId] : undefined;
+            const price = quote?.lastPrice;
+            if (
+              !quote ||
+              price === undefined ||
+              !Number.isFinite(price) ||
+              !quoteHealth(price, quote.sourceTimestamp ?? "").fresh
+            )
+              return trade;
             if (price <= trade.stopLoss) {
               exits.push({
                 id: trade.id,
@@ -300,148 +312,99 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   const risk = useMemo<RiskState>(() => calculateRiskState(trades, settings), [trades, settings]);
 
   const approveSignal = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
-      const riskDecision = validateSignalRisk(
-        signal,
-        settings,
-        calculateRiskState(tradesRef.current, settings),
-      );
-      if (!riskDecision.allowed) {
-        log(
-          "APPROVE_BLOCKED",
-          signal.symbol + " blocked: " + riskDecision.reasons.join("; "),
-          "WARN",
+      try {
+        const result = await approvePaperTradeServer({
+          data: {
+            approvalId: signal.id,
+            symbol: signal.symbol,
+            securityId: signal.securityId,
+            name: signal.name,
+            side: signal.side,
+            entry: signal.entry,
+            stopLoss: signal.stopLoss,
+            target1: signal.target1,
+            quantity: signal.quantity,
+            source: "SignalCard",
+            dataSource: signal.securityId ? "DHAN_LIVE" : "SIMULATED",
+          },
+        });
+        if (!result.ok) {
+          log("APPROVE_BLOCKED", signal.symbol + " blocked: " + result.reason, "WARN");
+          return { ok: false, message: result.reason };
+        }
+        const paperTrade = result.trade as Trade;
+        const now = paperTrade.openedAt;
+        approvedIds.current.add(id);
+        setSignals((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)),
         );
-        return { ok: false, message: riskDecision.reasons[0] ?? "Risk validation failed" };
+        setTrades((prev) => [paperTrade, ...prev]);
+        tradesRef.current = [paperTrade, ...tradesRef.current];
+        log(
+          "SIGNAL_APPROVED",
+          `${signal.side} ${signal.quantity} ${signal.symbol} @ ${paperTrade.entry}, SL ${paperTrade.stopLoss} — server-approved paper simulation only; no order sent`,
+        );
+        return {
+          ok: true,
+          message: "Server approved and saved the simulated paper trade. No broker order was sent.",
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Server paper approval failed.";
+        log("APPROVE_BLOCKED", signal.symbol + " blocked: " + message, "WARN");
+        return { ok: false, message };
       }
-
-      const now = new Date().toISOString();
-      approvedIds.current.add(id);
-      const paperTrade: Trade = {
-        id: uid("TRD"),
-        signalId: signal.id,
-        securityId: signal.securityId,
-        symbol: signal.symbol,
-        name: signal.name,
-        side: signal.side,
-        entry: signal.entry,
-        stopLoss: signal.stopLoss,
-        target1: signal.target1,
-        quantity: signal.quantity,
-        status: "OPEN",
-        openedAt: now,
-        notes: "",
-        simulated: true,
-      };
-      setSignals((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, status: "APPROVED", decidedAt: now } : s)),
-      );
-      setTrades((prev) => [paperTrade, ...prev]);
-      tradesRef.current = [paperTrade, ...tradesRef.current];
-      void persistPaperTrade({
-        data: {
-          id: paperTrade.id,
-          symbol: paperTrade.symbol,
-          status: "OPEN",
-          openedAt: paperTrade.openedAt,
-          payload: paperTrade as unknown as Record<string, unknown>,
-        },
-      }).catch(() => {});
-      log(
-        "SIGNAL_APPROVED",
-        `${signal.side} ${signal.quantity} ${signal.symbol} @ ${signal.entry}, SL ${signal.stopLoss}, risk ₹${signal.riskRupees} — simulated only, no order sent`,
-      );
-      return {
-        ok: true,
-        message: "Approved — logged as a simulated trade. No live order was placed.",
-      };
     },
-    [signals, settings, log, persistPaperTrade],
+    [signals, log, approvePaperTradeServer],
   );
 
   const openPaperTrade = useCallback<Ctx["openPaperTrade"]>(
-    (input) => {
+    async (input) => {
       if (approvedIds.current.has(input.approvalId))
         return { ok: false, message: "This paper approval was already recorded." };
-      const currentRisk = calculateRiskState(tradesRef.current, settings);
-      if (currentRisk.locked) {
+      try {
+        const result = await approvePaperTradeServer({
+          data: {
+            approvalId: input.approvalId,
+            symbol: input.symbol,
+            securityId: input.securityId,
+            name: input.name,
+            side: "LONG",
+            entry: input.entry,
+            stopLoss: input.stopLoss,
+            target1: input.target1,
+            quantity: input.quantity,
+            source: input.source,
+            dataSource: input.dataSource,
+          },
+        });
+        if (!result.ok) {
+          log("PAPER_TRADE_BLOCKED", `${input.symbol}: ${result.reason}`, "WARN");
+          return { ok: false, message: result.reason };
+        }
+        const paperTrade = result.trade as Trade;
+        approvedIds.current.add(input.approvalId);
+        setTrades((prev) => [paperTrade, ...prev]);
+        tradesRef.current = [paperTrade, ...tradesRef.current];
         log(
-          "PAPER_TRADE_BLOCKED",
-          `${input.symbol} blocked: ${currentRisk.lockReasons.join("; ")}`,
-          "WARN",
+          "PAPER_TRADE_OPENED",
+          `LONG ${paperTrade.quantity} ${paperTrade.symbol} @ ${paperTrade.entry}, SL ${paperTrade.stopLoss}, server-calculated risk — ${input.dataSource} paper simulation only; no order sent`,
         );
-        return { ok: false, message: currentRisk.lockReasons[0] ?? "Risk lock active" };
-      }
-      const calculated = Math.abs(input.entry - input.stopLoss) * input.quantity;
-      if (
-        ![input.entry, input.stopLoss, input.target1, input.quantity, input.riskRupees].every(
-          Number.isFinite,
-        ) ||
-        !Number.isInteger(input.quantity) ||
-        input.entry <= 0 ||
-        input.stopLoss <= 0 ||
-        input.stopLoss >= input.entry ||
-        input.target1 <= input.entry ||
-        Math.abs(calculated - input.riskRupees) > 0.01 ||
-        calculated > currentRisk.riskBudgetLeft ||
-        input.entry * input.quantity > settings.capital ||
-        (input.target1 - input.entry) / (input.entry - input.stopLoss) < settings.minRiskReward
-      ) {
         return {
-          ok: false,
-          message: "Paper plan fails price, sizing, reward-to-risk or remaining-budget validation.",
+          ok: true,
+          message: "Server approved and saved the simulated paper trade. No broker order was sent.",
         };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Server paper approval failed.";
+        log("PAPER_TRADE_BLOCKED", `${input.symbol}: ${message}`, "WARN");
+        return { ok: false, message };
       }
-      if (input.quantity <= 0) return { ok: false, message: "Computed quantity is zero" };
-      if (input.riskRupees > settings.maxRiskPerTrade)
-        return {
-          ok: false,
-          message: `Risk ₹${input.riskRupees} exceeds ₹${settings.maxRiskPerTrade} cap`,
-        };
-      const openToday = tradesRef.current.filter((t) => t.status === "OPEN").length;
-      if (openToday >= settings.maxOpenPositions)
-        return { ok: false, message: `Open-position cap ${settings.maxOpenPositions} reached` };
-
-      const now = new Date().toISOString();
-      approvedIds.current.add(input.approvalId);
-      const paperTrade: Trade = {
-        id: uid("TRD"),
-        signalId: input.approvalId,
-        securityId: input.securityId,
-        symbol: input.symbol,
-        name: input.name,
-        side: "LONG",
-        entry: input.entry,
-        stopLoss: input.stopLoss,
-        target1: input.target1,
-        quantity: input.quantity,
-        status: "OPEN",
-        openedAt: now,
-        notes: `Scanner candidate (${input.source}) — verified, simulated only`,
-        simulated: true,
-      };
-      setTrades((prev) => [paperTrade, ...prev]);
-      tradesRef.current = [paperTrade, ...tradesRef.current];
-      void persistPaperTrade({
-        data: {
-          id: paperTrade.id,
-          symbol: paperTrade.symbol,
-          status: "OPEN",
-          openedAt: paperTrade.openedAt,
-          payload: paperTrade as unknown as Record<string, unknown>,
-        },
-      }).catch(() => {});
-      log(
-        "PAPER_TRADE_OPENED",
-        `LONG ${input.quantity} ${input.symbol} @ ${input.entry}, SL ${input.stopLoss}, risk ₹${input.riskRupees} from ${input.source} — simulated only, no order sent`,
-      );
-      return { ok: true, message: "Logged as a simulated paper trade. No live order was placed." };
     },
-    [settings, log, persistPaperTrade],
+    [log, approvePaperTradeServer],
   );
 
   const rejectSignal = useCallback(

@@ -125,7 +125,32 @@ export async function getOrderIntentStateByCorrelationId(correlationId: string) 
   return Array.isArray(rows) ? (rows[0] ?? null) : null;
 }
 
-export async function upsertPaperTrade(input: {
+export async function getPaperTradeById(id: string) {
+  const safe = encodeURIComponent(id);
+  const rows = await request(
+    `paper_trades?id=eq.${safe}&select=id,symbol,status,opened_at,closed_at,payload`,
+  );
+  return Array.isArray(rows) ? (rows[0] ?? null) : null;
+}
+
+export async function approvePaperTradeAtomically(input: {
+  approvalId: string;
+  source: "DHAN_LIVE" | "SIMULATED";
+  sourceTimestamp: string | null;
+  payload: Record<string, unknown>;
+}) {
+  return request("rpc/approve_paper_trade", {
+    method: "POST",
+    body: JSON.stringify({
+      p_approval_id: input.approvalId,
+      p_source: input.source,
+      p_source_timestamp: input.sourceTimestamp,
+      p_payload: input.payload,
+    }),
+  });
+}
+
+export async function updatePaperTradeRecord(input: {
   id: string;
   symbol: string;
   status: "OPEN" | "CLOSED";
@@ -133,13 +158,17 @@ export async function upsertPaperTrade(input: {
   closed_at?: string | null;
   payload: Record<string, unknown>;
 }) {
-  return request("paper_trades?on_conflict=id", {
-    method: "POST",
+  const safe = encodeURIComponent(input.id);
+  return request(`paper_trades?id=eq.${safe}`, {
+    method: "PATCH",
     body: JSON.stringify({
-      ...input,
+      symbol: input.symbol,
+      status: input.status,
+      opened_at: input.opened_at,
+      closed_at: input.closed_at ?? null,
+      payload: input.payload,
       updated_at: new Date().toISOString(),
     }),
-    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
   });
 }
 
