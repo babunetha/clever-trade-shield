@@ -32,10 +32,7 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
       - name: Formatting check
-        run: |
-          bunx prettier --write src/routes/reset-password.tsx
-          git diff -- src/routes/reset-password.tsx
-          bunx prettier --check . --ignore-path .gitignore --ignore-path .prettierignore
+        run: bunx prettier --check . --ignore-path .gitignore --ignore-path .prettierignore
       - name: Lint
         run: bun run lint
       - name: Test suite
