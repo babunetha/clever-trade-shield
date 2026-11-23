@@ -199,6 +199,14 @@ function intraday(c: DhanCandle[]) {
   };
 }
 
+function hasFreshIntradayBar(candles: DhanCandle[], nowMs = Date.now()) {
+  const latest = candles.at(-1);
+  if (!latest) return false;
+  const ageSeconds = Math.floor(nowMs / 1000) - latest.timestamp;
+  // Dhan timestamps each 5-minute candle; allow at most two intervals of lag.
+  return ageSeconds >= 0 && ageSeconds <= 10 * 60;
+}
+
 function timeNormalizedRvol(sessionVol: number, elapsedMinutes: number, bars: DailyBar[]) {
   const lookback = bars.slice(-20);
   if (!lookback.length) return 0;
@@ -213,8 +221,15 @@ function timeNormalizedRvol(sessionVol: number, elapsedMinutes: number, bars: Da
  * Live orders are never placed.
  */
 export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCandidate[]> {
+  const currentIstMinute = istMinutes(Math.floor(Date.now() / 1000));
+  // This is an intraday confirmation scanner, not a pre-market or after-hours scanner.
+  if (currentIstMinute < 555 || currentIstMinute > 930) return [];
+
   const symbols = universe();
-  const instruments = await resolveDhanInstruments(symbols);
+  const instruments = (await resolveDhanInstruments(symbols)).filter(
+    (instrument) =>
+      instrument.exchangeSegment === "NSE_EQ" && instrument.instrument === "EQUITY",
+  );
   const by = new Map(instruments.map((x) => [x.tradingSymbol.toUpperCase(), x]));
 
   // Dhan historical data is rate-limited; keep concurrent reads conservative.
@@ -270,7 +285,8 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
       fromDate: sessionDay + " 09:15:00",
       toDate: sessionDay + " 15:30:00",
     });
-    return { ...x, today: r.ok ? todayBars(r.data) : [] };
+    const candles = r.ok ? todayBars(r.data) : [];
+    return { ...x, today: hasFreshIntradayBar(candles) ? candles : [] };
   });
 
   // Quote API supports batched security IDs, so use one request instead of 40 concurrent calls.
