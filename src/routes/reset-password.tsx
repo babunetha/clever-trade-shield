@@ -59,15 +59,20 @@ function ResetPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <section className="panel w-full max-w-md p-6">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span
+            className={[
+              "flex size-10 items-center justify-center rounded-lg bg-primary",
+              "text-primary-foreground",
+            ].join(" ")}
+          >
             <KeyRound className="size-5" />
           </span>
           <h1 className="text-lg font-semibold">Set a new password</h1>
         </div>
         {!ready ? (
           <p className="mt-5 rounded-md border border-border bg-muted/40 p-3 text-xs">
-            Open this page from the reset link in your email. If the link expired, go back to sign in
-            and request a new one.{" "}
+            Open this page from the reset link in your email. If the link expired, go back to{" "}
+            sign in and request a new one.{" "}
             <a className="text-primary underline" href="/login">
               Back to sign in
             </a>
@@ -95,7 +100,10 @@ function ResetPasswordPage() {
             {error ? (
               <p
                 role="alert"
-                className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+                className={[
+                  "rounded-md border border-destructive/30 bg-destructive/10 p-3",
+                  "text-xs text-destructive",
+                ].join(" ")}
               >
                 {error}
               </p>
