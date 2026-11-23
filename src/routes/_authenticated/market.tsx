@@ -107,7 +107,7 @@ function MarketOverview() {
       </div>
       {marketDataError ? (
         <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
-          {error}
+          {marketDataError}
         </div>
       ) : null}
 
