@@ -29,7 +29,7 @@ export function DhanConnection() {
   const [loadingAccount, setLoadingAccount] = useState(false);
 
   const configured = Boolean(status.data?.clientIdConfigured && status.data?.accessTokenConfigured);
-  const live = test.kind === "ok";
+  const profileAuthenticated = test.kind === "ok";
 
   const onTest = async () => {
     setTest({ kind: "running" });
@@ -42,7 +42,7 @@ export function DhanConnection() {
           validity: result.data.tokenValidity,
           segments: result.data.activeSegments,
         });
-        toast.success("Dhan connection verified (read-only)");
+        toast.success("Dhan profile authenticated. Market data is not yet verified.");
       } else {
         setTest({ kind: "error", message: result.error });
         toast.error(result.error);
@@ -79,15 +79,15 @@ export function DhanConnection() {
           <Badge variant="secondary" className="num">
             CHECKING…
           </Badge>
-        ) : live ? (
-          <Badge className="num bg-success text-success-foreground">LIVE DATA · READ-ONLY</Badge>
+        ) : profileAuthenticated ? (
+          <Badge className="num bg-success text-success-foreground">PROFILE AUTHENTICATED · DATA UNVERIFIED</Badge>
         ) : configured ? (
           <Badge variant="outline" className="num border-warn/40 text-warn">
             CONFIGURED · NOT VERIFIED
           </Badge>
         ) : (
           <Badge variant="secondary" className="num">
-            SIMULATED — NOT CONNECTED
+            NOT CONNECTED · DATA UNAVAILABLE
           </Badge>
         )}
         <Badge variant="destructive" className="num ml-auto">
@@ -175,7 +175,7 @@ export function DhanConnection() {
       {test.kind === "ok" ? (
         <div className="mt-3 rounded-md border border-success/40 bg-success-muted p-3 text-xs text-success">
           <p className="flex items-center gap-1.5 font-medium">
-            <CheckCircle2 className="size-3.5" /> Connected — read-only
+            <CheckCircle2 className="size-3.5" /> Profile authenticated — market data unverified
           </p>
           <p className="mt-1 num">
             Client {test.clientId}
@@ -193,7 +193,7 @@ export function DhanConnection() {
 
       {account ? (
         <div className="mt-3 space-y-2 text-xs">
-          <div className="label-caps text-success">LIVE DATA · fetched from Dhan</div>
+          <div className="label-caps text-success">LIVE ACCOUNT SNAPSHOT · fetched from Dhan</div>
           {account.funds.ok ? (
             <div className="grid gap-2 sm:grid-cols-4">
               {[
@@ -250,13 +250,7 @@ export function DhanConnection() {
       ) : null}
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Wired Dhan endpoints (all read-only): <span className="num">GET /v2/profile</span>,{" "}
-        <span className="num">GET /v2/fundlimit</span>,{" "}
-        <span className="num">GET /v2/holdings</span>,{" "}
-        <span className="num">GET /v2/positions</span>,{" "}
-        <span className="num">POST /v2/marketfeed/ltp</span>. Order endpoints are not called by this
-        build under any circumstance; approvals and risk limits will still gate them when live
-        execution is eventually reviewed and enabled.
+        Verified here: <span className="num">GET /v2/profile</span> checks profile authentication. The account snapshot uses <span className="num">GET /v2/fundlimit</span>, <span className="num">GET /v2/holdings</span> and <span className="num">GET /v2/positions</span>. These checks do not verify market quotes or historical candles. This build remains paper/research-only; live order execution and cancellation are disabled.
       </p>
     </section>
   );
