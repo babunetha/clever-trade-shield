@@ -403,6 +403,43 @@ export async function getDhanDailyHistoricalCandles(
   };
 }
 
+/** Dhan REST quote LTT is returned as an IST wall-clock string. Convert it to UTC. */
+export function parseDhanLastTradeTime(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (!raw) return null;
+
+  const dayFirst = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  const yearFirst = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  let timestamp: number;
+
+  if (dayFirst || yearFirst) {
+    const parts = dayFirst ?? yearFirst!;
+    const year = Number(dayFirst ? parts[3] : parts[1]);
+    const month = Number(dayFirst ? parts[2] : parts[2]);
+    const day = Number(dayFirst ? parts[1] : parts[3]);
+    const hour = Number(parts[4]);
+    const minute = Number(parts[5]);
+    const second = Number(parts[6]);
+    if (
+      year < 2000 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59
+    ) return null;
+    timestamp = Date.UTC(year, month - 1, day, hour, minute, second) - 330 * 60 * 1000;
+  } else {
+    timestamp = Date.parse(raw);
+  }
+
+  if (!Number.isFinite(timestamp)) return null;
+  return new Date(timestamp).toISOString();
+}
+
 export interface DhanQuote {
   securityId: string;
   lastPrice: number;
@@ -413,6 +450,10 @@ export interface DhanQuote {
   volume: number;
   averagePrice: number;
   netChange: number;
+  lastTradeAt: string | null;
+  fetchedAt: string;
+  dataAgeSeconds: number | null;
+  dataStatus: "FRESH" | "STALE";
 }
 
 export async function getDhanQuote(
@@ -437,10 +478,21 @@ export async function getDhanQuote(
       const v = value as Record<string, unknown>;
       const o = (v["ohlc"] ?? {}) as Record<string, unknown>;
       const lastPrice = Number(v["last_price"]);
-      if (!Number.isFinite(lastPrice)) continue;
+      if (!Number.isFinite(lastPrice) || lastPrice <= 0) continue;
+      const fetchedAt = new Date();
+      const lastTradeAt = parseDhanLastTradeTime(v["last_trade_time"]);
+      const ageMs = lastTradeAt ? fetchedAt.getTime() - Date.parse(lastTradeAt) : Number.POSITIVE_INFINITY;
+      const dataAgeSeconds =
+        Number.isFinite(ageMs) && ageMs >= 0 ? Math.round(ageMs / 1000) : null;
+      const dataStatus =
+        dataAgeSeconds !== null && dataAgeSeconds <= 20 ? "FRESH" : "STALE";
       map[id] = {
         securityId: id,
         lastPrice,
+        lastTradeAt,
+        fetchedAt: fetchedAt.toISOString(),
+        dataAgeSeconds,
+        dataStatus,
         open: Number(o["open"] ?? 0),
         close: Number(o["close"] ?? 0),
         high: Number(o["high"] ?? 0),
