@@ -430,7 +430,14 @@ export function parseDhanLastTradeTime(value: unknown): string | null {
       minute > 59 ||
       second > 59
     ) return null;
-    timestamp = Date.UTC(year, month - 1, day, hour, minute, second) - 330 * 60 * 1000;
+    const localTimestamp = Date.UTC(year, month - 1, day, hour, minute, second);
+    const localDate = new Date(localTimestamp);
+    if (
+      localDate.getUTCFullYear() !== year ||
+      localDate.getUTCMonth() !== month - 1 ||
+      localDate.getUTCDate() !== day
+    ) return null;
+    timestamp = localTimestamp - 330 * 60 * 1000;
   } else {
     timestamp = Date.parse(raw);
   }
