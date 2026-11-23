@@ -12,6 +12,8 @@ import {
   returnOver,
   tightnessPct,
   tradedValueCr,
+  rangeExpansionDays,
+  sma,
   type DailyBar,
 } from "./series";
 import {
@@ -227,7 +229,11 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
       toDate: iso(new Date()),
     });
     if (!r.ok) return null;
-    const bars = toBars(r.data);
+    // Dhan may include the in-progress session in the historical response.
+    // Keep only completed IST sessions; on weekends/holidays this preserves
+    // the latest completed trading day instead of blindly dropping it.
+    const today = istDate();
+    const bars = toBars(r.data.filter((candle) => istDate(candle.timestamp) < today));
     return bars.length >= 220 ? { symbol, instrument: ins, bars } : null;
   });
 
@@ -236,7 +242,7 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
       Boolean(x),
     )
     .map((x) => {
-      const completed = x.bars.slice(0, -1);
+      const completed = x.bars;
       const last = completed.at(-1);
       if (!last) return null;
       const r22 = returnOver(completed, 22) ?? 0;
@@ -290,28 +296,68 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
     const tight = tightnessPct(x.bars) ?? 999;
     const pct = (x.bars.at(-1)!.close / (high52w(x.bars) || x.bars.at(-1)!.close)) * 100;
 
-    const pass = SCANNERS.some((def) => {
+    const lastDaily = x.bars.at(-1)!;
+    const dailyTradedValueCr = tradedValueCr(x.bars);
+    const closeValues = x.bars.map((bar) => bar.close);
+    const sma20 = sma(closeValues, 20);
+    const sma50 = sma(closeValues, 50);
+    const sma200 = sma(closeValues, 200);
+
+    // A live scan must use an actual Dhan quote. A candle close is not a
+    // substitute for a failed or missing quote endpoint response.
+    const quote = quoteMap[x.instrument.securityId];
+    const price = quote?.lastPrice;
+    if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) continue;
+
+    const matchedScanners = SCANNERS.filter((def) => {
       if (!config[def.id]?.enabled) return false;
       if (def.id === "BEST_BUY_INTRADAY") {
-        return m.breakout && m.lastPrice > m.vwap && rvol >= 1.1;
+        const requiresSmaStack = crit(config, def.id, "smaStack", 1) >= 1;
+        const smaStackPass =
+          !requiresSmaStack ||
+          (sma20 !== null && sma50 !== null && sma200 !== null && sma20 > sma50 && sma50 > sma200);
+        return (
+          rangeExpansionDays(x.bars) >= crit(config, def.id, "expansionDays", 3) &&
+          streak >= crit(config, def.id, "strongCloses", 2) &&
+          lastDaily.volume >= crit(config, def.id, "minVolume", 500000) &&
+          smaStackPass &&
+          m.breakout &&
+          m.lastPrice > m.vwap &&
+          rvol >= 1.1
+        );
       }
       if (def.id === "UP20_1M_30_3M") {
         return (
-          r22 >= crit(config, def.id, "return22", 20) && r66 >= crit(config, def.id, "return66", 30)
+          r22 >= crit(config, def.id, "return22", 20) &&
+          r66 >= crit(config, def.id, "return66", 30) &&
+          dailyTradedValueCr >= crit(config, def.id, "minTradedValue", 10)
         );
       }
-      if (def.id === "STRONG_STOCKS") return streak >= crit(config, def.id, "streak", 5);
-      if (def.id === "UP20_TIGHTNESS")
+      if (def.id === "STRONG_STOCKS") {
+        return (
+          streak >= crit(config, def.id, "streak", 5) &&
+          dailyTradedValueCr >= crit(config, def.id, "minTradedValue", 5)
+        );
+      }
+      if (def.id === "UP20_TIGHTNESS") {
         return (
           r22 >= crit(config, def.id, "return22", 20) &&
-          tight <= crit(config, def.id, "tightness", 4)
+          tight <= crit(config, def.id, "tightness", 4) &&
+          lastDaily.close >= crit(config, def.id, "minPrice", 50) &&
+          dailyTradedValueCr >= crit(config, def.id, "minTradedValue", 5)
         );
-      if (def.id === "POSSIBLE_BREAKOUT") return pct >= crit(config, def.id, "minPctOf52w", 90);
+      }
+      if (def.id === "POSSIBLE_BREAKOUT") {
+        return (
+          pct >= crit(config, def.id, "minPctOf52w", 90) &&
+          pct <= crit(config, def.id, "maxPctOf52w", 95) &&
+          lastDaily.close >= crit(config, def.id, "minPrice", 100) &&
+          lastDaily.close <= crit(config, def.id, "maxPrice", 1000)
+        );
+      }
       return false;
     });
-    if (!pass) continue;
-
-    const price = quoteMap[x.instrument.securityId]?.lastPrice ?? m.lastPrice;
+    if (!matchedScanners.length) continue;
     const marketScore = Math.min(
       100,
       Number(
@@ -326,8 +372,8 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
 
     out.push({
       id: "DHAN-" + x.instrument.securityId,
-      scannerId: "BEST_BUY_INTRADAY",
-      scannerName: "Dhan multi-stage intraday scanner",
+      scannerId: matchedScanners[0]!.id,
+      scannerName: matchedScanners.map((scanner) => scanner.name).join(", "),
       symbol: x.symbol,
       name: x.instrument.customSymbol || x.symbol,
       scanClose: price,
@@ -338,6 +384,9 @@ export async function runDhanLiveScanners(config: ScannerConfig): Promise<ScanCa
         "Opening range " + m.openingLow.toFixed(2) + "-" + m.openingHigh.toFixed(2),
         "Time-normalized RVOL " + rvol.toFixed(2) + "x",
         "ORB " + (m.breakout ? "confirmed" : "not confirmed"),
+        "Rule-based setup score (not a win-probability estimate)",
+        "Matched scanners: " + matchedScanners.map((scanner) => scanner.id).join(", "),
+        "Dhan quote required; no candle-close fallback",
         "Walk-forward OOS windows " +
           wf.stability.profitableWindows +
           "/" +
