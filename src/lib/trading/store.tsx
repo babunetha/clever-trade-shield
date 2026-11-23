@@ -17,7 +17,6 @@ import {
   persistTradeAudit as persistTradeAuditFn,
   loadPaperRecords as loadPaperRecordsFn,
 } from "@/lib/paper-storage.functions";
-import { buildIndices, buildQuotes, buildSignals, stepIndices, stepQuotes } from "./mock";
 import { calculateRiskState } from "./risk-engine";
 import { enforceProfile } from "./safe-settings";
 import type {
@@ -75,7 +74,7 @@ interface Ctx extends Persisted {
     riskRupees: number;
     source: string;
     approvalId: string;
-    dataSource: "DHAN_LIVE" | "SIMULATED";
+    dataSource: "DHAN_LIVE";
   }) => Promise<{ ok: boolean; message: string }>;
   rejectSignal: (id: string, reason: string) => void;
   refreshSignals: () => void;
@@ -106,11 +105,10 @@ function isToday(iso: string) {
 }
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  // Fixed seed: the first render must be identical on the server and in the
-  // browser or hydration mismatches. Randomness only enters on later ticks.
-  const seed = 20240101;
-  const [quotes, setQuotes] = useState<Quote[]>(() => buildQuotes(seed));
-  const [indices, setIndices] = useState<IndexQuote[]>(() => buildIndices(seed));
+  // Never synthesize market prices. Until a verified Dhan snapshot is wired,
+  // these collections intentionally remain empty rather than showing mock data.
+  const [quotes] = useState<Quote[]>([]);
+  const [indices] = useState<IndexQuote[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -152,7 +150,10 @@ export function TradingProvider({ children }: { children: ReactNode }) {
           for (const trade of parsed.trades) approvedIds.current.add(trade.signalId);
         }
         if (parsed.audit) setAudit(parsed.audit);
-        if (parsed.signals) setSignals(parsed.signals);
+        if (Array.isArray(parsed.signals)) {
+          // Drop legacy synthetic signals that have no Dhan instrument identity.
+          setSignals(parsed.signals.filter((signal) => typeof signal?.securityId === "string" && signal.securityId.length > 0));
+        }
       }
     } catch {
       /* ignore corrupt storage */
@@ -204,16 +205,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       /* storage full or unavailable */
     }
   }, [hydrated, settings, signals, trades, audit]);
-
-  // Seed the first simulated signal batch after hydration.
-  useEffect(() => {
-    if (!hydrated) return;
-    setSignals((prev) => {
-      if (prev.length) return prev;
-      return buildSignals({ seed, quotes, indices, maxRiskPerTrade: settings.maxRiskPerTrade });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
 
   // When paper positions are open, mark them from Dhan and simulate SL/target fills.
   // This is deliberately read-only: the client never calls an order endpoint.
@@ -300,15 +291,6 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, [hydrated]);
 
-  // Simulated tick loop (clearly labelled as mock data in the UI).
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setQuotes((prev) => stepQuotes(prev, Math.floor(Math.random() * 1e9)));
-      setIndices((prev) => stepIndices(prev, Math.floor(Math.random() * 1e9)));
-    }, 3000);
-    return () => window.clearInterval(t);
-  }, []);
-
   const risk = useMemo<RiskState>(() => calculateRiskState(trades, settings), [trades, settings]);
 
   const approveSignal = useCallback(
@@ -316,6 +298,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
+      if (!signal.securityId) return { ok: false, message: "No verified Dhan instrument is attached. Approval blocked." };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
       try {
         const result = await approvePaperTradeServer({
@@ -330,7 +313,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             target1: signal.target1,
             quantity: signal.quantity,
             source: "SignalCard",
-            dataSource: signal.securityId ? "DHAN_LIVE" : "SIMULATED",
+            dataSource: "DHAN_LIVE",
           },
         });
         if (!result.ok) {
@@ -429,7 +412,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
 
   const publishLiveSignals = useCallback(
     (liveSignals: Signal[]) => {
-      setSignals(liveSignals.slice(0, 40));
+      setSignals(liveSignals.filter((signal) => Boolean(signal.securityId)).slice(0, 40));
       log(
         "LIVE_SIGNALS_PUBLISHED",
         `${liveSignals.length} Dhan-derived signals published for manual approval`,
@@ -439,20 +422,9 @@ export function TradingProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshSignals = useCallback(() => {
-    const fresh = buildSignals({
-      seed: Math.floor(Math.random() * 1e9),
-      quotes,
-      indices,
-      maxRiskPerTrade: settings.maxRiskPerTrade,
-    });
-    setSignals((prev) =>
-      [
-        ...fresh,
-        ...prev.map((s) => (s.status === "PENDING" ? { ...s, status: "EXPIRED" as const } : s)),
-      ].slice(0, 40),
-    );
-    log("SIGNALS_REFRESHED", `${fresh.length} simulated signals generated`);
-  }, [quotes, indices, settings.maxRiskPerTrade, log]);
+    setSignals((prev) => prev.map((signal) => (signal.status === "PENDING" ? { ...signal, status: "EXPIRED" as const } : signal)));
+    log("SIGNALS_REFRESHED", "Synthetic signal generation is disabled. Run a verified Dhan live scan to publish candidates.", "WARN");
+  }, [log]);
 
   const closeTrade = useCallback(
     (
