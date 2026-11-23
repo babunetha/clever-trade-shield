@@ -61,6 +61,7 @@ interface Persisted {
 interface Ctx extends Persisted {
   quotes: Quote[];
   indices: IndexQuote[];
+  publishMarketSnapshot: (quotes: Quote[], indices: IndexQuote[]) => void;
   risk: RiskState;
   approveSignal: (id: string) => Promise<{ ok: boolean; message: string }>;
   /** Logs an explicitly approved, verified scanner candidate as a simulated trade. */
@@ -106,10 +107,9 @@ function isToday(iso: string) {
 }
 
 export function TradingProvider({ children }: { children: ReactNode }) {
-  // Never seed synthetic prices or index values into the trading workspace.
-  // Real market data is published only after a verified Dhan read succeeds.
-  const quotes: Quote[] = [];
-  const indices: IndexQuote[] = [];
+  // No synthetic market values: these arrays stay empty until Dhan data is verified.
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [indices, setIndices] = useState<IndexQuote[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -407,6 +407,11 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     [signals, log],
   );
 
+  const publishMarketSnapshot = useCallback((nextQuotes: Quote[], nextIndices: IndexQuote[]) => {
+    setQuotes(nextQuotes);
+    setIndices(nextIndices);
+  }, []);
+
   const publishLiveSignals = useCallback(
     (liveSignals: Signal[]) => {
       setSignals(liveSignals.slice(0, 40));
@@ -529,6 +534,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     audit,
     quotes,
     indices,
+    publishMarketSnapshot,
     risk,
     approveSignal,
     openPaperTrade,
