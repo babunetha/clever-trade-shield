@@ -19,14 +19,14 @@ export const Route = createFileRoute("/_authenticated/signals")({
       {
         property: "og:description",
         content:
-          "Dhan technical signals and clearly labelled simulations with manual paper approval.",
+          "Fresh Dhan technical research with manual paper approval and no synthetic fallback.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         name: "description",
         content:
-          "Dhan-derived technical signals with risk-aware manual approval and simulated execution.",
+          "Dhan-derived research signals with server-validated paper approval; no broker orders are sent.",
       },
     ],
   }),
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/signals")({
 });
 
 function Signals() {
-  const { signals, settings, risk, refreshSignals, publishLiveSignals } = useTrading();
+  const { signals, settings, risk, publishLiveSignals } = useTrading();
   const [filter, setFilter] = useState<"ALL" | Verdict>("ALL");
   const [loading, setLoading] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
@@ -52,6 +52,7 @@ function Signals() {
         },
       });
       if (!result.ok) {
+        publishLiveSignals([]);
         setError(result.error);
         setLiveMode(false);
         return;
@@ -61,6 +62,7 @@ function Signals() {
       setLastLiveAt(result.data.asOf);
       toast.success(`${result.data.signals.length} Dhan-derived signal(s) loaded`);
     } catch (e) {
+      publishLiveSignals([]);
       setError(e instanceof Error ? e.message : "Live signal request failed");
       setLiveMode(false);
     } finally {
@@ -83,12 +85,12 @@ function Signals() {
       subtitle={
         liveMode
           ? "Dhan-derived 5-minute technical signals · manual approval · paper execution only"
-          : "Simulated signal mode · no broker feed connected"
+          : "No fresh Dhan signals available · synthetic fallback disabled"
       }
     >
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant={liveMode ? "default" : "outline"}>
-          <Radio className="mr-1 size-3" /> {liveMode ? "DHAN LIVE ANALYSIS" : "SIMULATED ANALYSIS"}
+          <Radio className="mr-1 size-3" /> {liveMode ? "DHAN LIVE ANALYSIS" : "DATA UNAVAILABLE"}
         </Badge>
         {lastLiveAt ? (
           <span className="num text-xs text-muted-foreground">
@@ -113,17 +115,6 @@ function Signals() {
           <Button size="sm" variant="outline" onClick={() => void loadLive()} disabled={loading}>
             <RefreshCw className={`mr-1 size-3.5 ${loading ? "animate-spin" : ""}`} />
             {loading ? "Scanning Dhan…" : "Scan Dhan"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              refreshSignals();
-              setLiveMode(false);
-              toast.success("Fresh simulated signal batch generated");
-            }}
-          >
-            Simulate
           </Button>
         </div>
       </div>
