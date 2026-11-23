@@ -209,7 +209,7 @@ function ScannerPage() {
   }, [liveError, log]);
 
   const rows = useMemo<Row[]>(() => {
-    if (!candidates) return [];
+    if (!candidates || !liveOk || !liveResult?.ok) return [];
     return [...candidates]
       .filter((candidate) => liveQuoteMap.has(candidate.symbol.toUpperCase()))
       .sort(
