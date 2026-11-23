@@ -765,7 +765,8 @@ NO FRESH DHAN QUOTES
                               LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
                               stop {formatPrice(v.plan.stopLoss)}, target{" "}
                               {formatPrice(v.plan.target1)}, risk {formatINR(v.plan.riskRupees)}.
-                              This records a paper trade using read-only Dhan data. No broker order is sent and live execution\n                              remains disabled.
+                              This records a paper trade using read-only Dhan data. No broker order is sent and live execution
+                              remains disabled.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
