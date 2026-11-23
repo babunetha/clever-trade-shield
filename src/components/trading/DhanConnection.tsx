@@ -87,7 +87,7 @@ export function DhanConnection() {
           </Badge>
         ) : (
           <Badge variant="secondary" className="num">
-            SIMULATED — NOT CONNECTED
+            NOT CONNECTED
           </Badge>
         )}
         <Badge variant="destructive" className="num ml-auto">
