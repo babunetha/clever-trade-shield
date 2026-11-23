@@ -53,6 +53,7 @@ function Signals() {
       });
       if (!result.ok) {
         publishLiveSignals([]);
+        setLastLiveAt(null);
         setError(result.error);
         setLiveMode(false);
         return;
@@ -63,6 +64,7 @@ function Signals() {
       toast.success(`${result.data.signals.length} Dhan-derived signal(s) loaded`);
     } catch (e) {
       publishLiveSignals([]);
+      setLastLiveAt(null);
       setError(e instanceof Error ? e.message : "Live signal request failed");
       setLiveMode(false);
     } finally {
