@@ -41,20 +41,10 @@ function credentials() {
   return clientId && accessToken ? { clientId, accessToken } : null;
 }
 export function liveExecutionGate(): LiveExecutionGate {
-  const reasons: string[] = [
-    "Live order execution is hard-disabled in this release pending a separate security review.",
-  ];
-  if (process.env["CTS_LIVE_EXECUTION_ENABLED"] !== "true")
-    reasons.push("CTS_LIVE_EXECUTION_ENABLED is not true.");
-  if (process.env["CTS_LIVE_EXECUTION_CONFIRMATION"] !== "ENABLE_LIVE_TRADING")
-    reasons.push("Live execution confirmation phrase is missing.");
-  if (process.env["RISK_TRADING_ENABLED"] !== "true")
-    reasons.push("RISK_TRADING_ENABLED is not true.");
-  if (!process.env["DHAN_POSTBACK_SECRET"]) reasons.push("DHAN_POSTBACK_SECRET is not configured.");
-  if (!process.env["DHAN_STATIC_IP"])
-    reasons.push("DHAN_STATIC_IP is not configured for the production egress IP.");
-  if (!credentials()) reasons.push("Dhan server credentials are not configured.");
-  return { enabled: reasons.length === 0, reasons };
+  return {
+    enabled: false,
+    reasons: ["Live order execution is permanently disabled in this research-only build."],
+  };
 }
 function validCorrelationId(v: string) {
   return /^[A-Za-z0-9 _-]{1,30}$/.test(v);
@@ -225,9 +215,10 @@ export async function getLiveDhanOrderByCorrelationId(correlationId: string) {
     },
   };
 }
-export async function cancelLiveDhanOrder(orderId: string) {
-  if (!/^\d{5,30}$/.test(orderId)) return { ok: false as const, error: "Invalid Dhan order ID." };
-  return dhanOrderRequest<Record<string, unknown>>("/orders/" + encodeURIComponent(orderId), {
-    method: "DELETE",
-  });
+export async function cancelLiveDhanOrder(_orderId: string) {
+  return {
+    ok: false as const,
+    code: "DISABLED" as const,
+    error: "Live order cancellation is disabled in this research-only build.",
+  };
 }
