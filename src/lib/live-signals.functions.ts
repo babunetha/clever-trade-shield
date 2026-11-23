@@ -3,6 +3,7 @@ import { authMiddleware } from "./auth-middleware";
 import { getDhanHistoricalCandles, getDhanQuote } from "./dhan.server";
 import { resolveDhanInstruments } from "./market/instruments";
 import { calculateIndicators } from "./trading/indicators";
+import { quoteHealth } from "./scanner/quote-health";
 import type { Bias, Signal, Side } from "./trading/types";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -27,10 +28,22 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
     maxRiskPerTrade: Math.max(1, Number(input?.maxRiskPerTrade ?? 500)),
   }))
   .handler(async ({ data }) => {
+    const currentIstMinute = (Math.floor(Date.now() / 1000) + 19_800) % 86_400 / 60;
+    if (currentIstMinute < 555 || currentIstMinute > 930) {
+      return {
+        ok: false as const,
+        code: "OUT_OF_SESSION",
+        error: "Fresh intraday signals are unavailable outside the NSE cash session.",
+      };
+    }
     const symbols = data.symbols.length ? data.symbols : ["RELIANCE", "HDFCBANK", "INFY", "SBIN"];
     const instruments = await resolveDhanInstruments([...symbols, "NIFTY", "BANKNIFTY"]);
-    const equity = instruments.filter((x) => x.exchangeSegment === "NSE_EQ");
-    const indices = instruments.filter((x) => x.exchangeSegment === "IDX_I");
+    const equity = instruments.filter(
+      (x) => x.exchangeSegment === "NSE_EQ" && x.instrument === "EQUITY",
+    );
+    const indices = instruments.filter(
+      (x) => x.exchangeSegment === "IDX_I" && x.instrument === "INDEX",
+    );
     const groups = new Map<string, string[]>();
     for (const item of [...equity, ...indices]) {
       const ids = groups.get(item.exchangeSegment) ?? [];
@@ -38,19 +51,25 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       groups.set(item.exchangeSegment, ids);
     }
 
-    const quotes: Record<string, { ltp: number; close: number; netChange: number }> = {};
+    const quotes: Record<string, { ltp: number; close: number; netChange: number; sourceTimestamp: string }> = {};
     for (const [segment, ids] of groups) {
       const q = await getDhanQuote({
         securityIds: ids,
         exchangeSegment: segment as "NSE_EQ" | "IDX_I",
       });
       if (!q.ok) return q;
-      for (const value of Object.values(q.data))
+      for (const value of Object.values(q.data)) {
+        if (
+          !value.sourceTimestamp ||
+          !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh
+        ) continue;
         quotes[value.securityId] = {
           ltp: value.lastPrice,
           close: value.close,
           netChange: value.netChange,
+          sourceTimestamp: value.sourceTimestamp,
         };
+      }
     }
 
     const bySymbol = new Map(instruments.map((x) => [x.tradingSymbol, x]));
@@ -58,6 +77,13 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
     const bank = bySymbol.get("BANKNIFTY");
     const niftyQuote = nifty ? quotes[nifty.securityId] : undefined;
     const bankQuote = bank ? quotes[bank.securityId] : undefined;
+    if (!niftyQuote || !bankQuote) {
+      return {
+        ok: false as const,
+        code: "INDEX_DATA_STALE",
+        error: "Fresh NIFTY and BANKNIFTY provider quotes are required for market context.",
+      };
+    }
     const niftyBias = niftyQuote
       ? makeBias(niftyQuote.close ? (niftyQuote.netChange / niftyQuote.close) * 100 : 0)
       : "NEUTRAL";
@@ -78,6 +104,18 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
         interval: "5",
       });
       if (!candles.ok) return candles;
+      const latestCandle = candles.data.at(-1);
+      const candleAgeSeconds = latestCandle
+        ? Math.floor(Date.now() / 1000) - latestCandle.timestamp
+        : Number.POSITIVE_INFINITY;
+      if (
+        !latestCandle ||
+        candleAgeSeconds < 0 ||
+        candleAgeSeconds > 10 * 60
+      ) {
+        await sleep(220);
+        continue;
+      }
       const indicators = calculateIndicators(candles.data);
       if (!indicators) {
         await sleep(220);
@@ -153,7 +191,8 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
           `Price ${side === "LONG" ? "above" : "below"} VWAP ${indicators.vwap}`,
           `ADX ${indicators.adx}; relative volume ${indicators.relVolume}x`,
           `Nifty ${niftyBias}; Bank Nifty ${bankNiftyBias}`,
-          "Derived from Dhan 5-minute candles; no simulated indicator values",
+          "Derived from fresh Dhan 5-minute candles and provider-timestamped quotes",
+          "Rule-based setup score; not a win-probability estimate",
         ],
         indicators,
         niftyBias,
