@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/trading/AppShell";
-import { getDhanMarketSnapshot } from "@/lib/market.functions";
 import { useTrading } from "@/lib/trading/store";
-import type { IndexQuote } from "@/lib/trading/types";
 import { formatCompact, formatPct, formatPrice, tone } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,109 +35,28 @@ export const Route = createFileRoute("/_authenticated/market")({
   component: MarketOverview,
 });
 
-const WATCHLIST = [
-  "RELIANCE",
-  "HDFCBANK",
-  "INFY",
-  "TATAMOTORS",
-  "SBIN",
-  "ICICIBANK",
-  "ITC",
-  "AXISBANK",
-  "TATASTEEL",
-  "LT",
-  "MARUTI",
-  "BHARTIARTL",
-  "NIFTY",
-  "BANKNIFTY",
-];
+
 
 function MarketOverview() {
-  const { quotes, indices, publishMarketSnapshot } = useTrading();
-  const [mode, setMode] = useState<"LIVE" | "UNAVAILABLE">("UNAVAILABLE");
-  const [error, setError] = useState<string | null>(null);
+  const {
+    quotes,
+    indices,
+    marketDataStatus,
+    marketDataAsOf,
+    marketDataError,
+    refreshMarketSnapshot,
+  } = useTrading();
   const [refreshing, setRefreshing] = useState(false);
-  const [asOf, setAsOf] = useState<string | null>(null);
+  const mode = marketDataStatus === "FRESH" ? "LIVE" : "UNAVAILABLE";
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
-      if (!result.ok) {
-        publishMarketSnapshot([], []);
-        setMode("UNAVAILABLE");
-        setAsOf(null);
-        setError(result.error);
-        return;
-      }
-      const data = result.data.quotes;
-      const realQuotes = WATCHLIST.filter((symbol) => symbol !== "NIFTY" && symbol !== "BANKNIFTY")
-        .map((symbol) => data[symbol])
-        .filter((q): q is NonNullable<typeof q> => Boolean(q))
-        .map((q) => ({
-          symbol: q.symbol,
-          name: q.name,
-          ltp: q.ltp,
-          prevClose: q.prevClose,
-          change: q.change,
-          changePct: q.changePct,
-          dayHigh: q.dayHigh,
-          dayLow: q.dayLow,
-          volume: q.volume,
-        }));
-      const realIndices = [
-        ["NIFTY", "Nifty 50"],
-        ["BANKNIFTY", "Nifty Bank"],
-      ]
-        .map(([symbol, name]) => {
-          const row = symbol ? data[symbol] : undefined;
-          if (!row) return null;
-          return {
-            ...row,
-            symbol: symbol as string,
-            name: name as string,
-            bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
-          };
-        })
-        .filter(Boolean) as IndexQuote[];
-
-      if (realQuotes.length || realIndices.length) {
-        publishMarketSnapshot(realQuotes, realIndices);
-        setMode("LIVE");
-        setError(
-          result.data.missingSymbols.length
-            ? "No fresh Dhan quote for: " + result.data.missingSymbols.join(", ")
-            : null,
-        );
-        const sourceTimes = Object.values(data)
-          .map((row) => row.sourceTimestamp)
-          .filter((value): value is string => Boolean(value))
-          .map(Date.parse)
-          .filter(Number.isFinite);
-        setAsOf(sourceTimes.length ? new Date(Math.max(...sourceTimes)).toISOString() : null);
-      } else {
-        publishMarketSnapshot([], []);
-        setMode("UNAVAILABLE");
-        setAsOf(null);
-        setError(
-          "Dhan returned no fresh watchlist quotes. Check credentials, market session and provider timestamps.",
-        );
-      }
-    } catch (e) {
-      publishMarketSnapshot([], []);
-      setMode("UNAVAILABLE");
-      setAsOf(null);
-      setError(e instanceof Error ? e.message : "Dhan market request failed");
+      await refreshMarketSnapshot();
     } finally {
       setRefreshing(false);
     }
-  }, [publishMarketSnapshot]);
-
-  useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 5000);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
+  }, [refreshMarketSnapshot]);
 
   const gainers = useMemo(
     () => [...quotes].sort((a, b) => b.changePct - a.changePct).slice(0, 3),
@@ -156,7 +73,7 @@ function MarketOverview() {
       subtitle={
         mode === "LIVE"
           ? "Dhan live quote snapshot · read-only"
-          : "No verified Dhan quote snapshot available · synthetic fallback disabled"
+          : marketDataStatus === "CONNECTING"\n            ? "Checking Dhan provider timestamps…"\n            : "No verified Dhan quote snapshot available · synthetic fallback disabled"
       }
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -167,13 +84,13 @@ function MarketOverview() {
             </>
           ) : (
             <>
-              <WifiOff className="mr-1 size-3" /> DATA UNAVAILABLE
+              <WifiOff className="mr-1 size-3" /> {marketDataStatus === "CONNECTING" ? "CHECKING…" : "DATA UNAVAILABLE"}
             </>
           )}
         </Badge>
-        {asOf ? (
+        {marketDataAsOf ? (
           <span className="num text-xs text-muted-foreground">
-            Latest provider trade {new Date(asOf).toLocaleTimeString()}
+            Latest provider trade {new Date(marketDataAsOf).toLocaleTimeString()}
           </span>
         ) : null}
         <Button
@@ -186,7 +103,7 @@ function MarketOverview() {
           <RefreshCw className={`mr-1.5 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
-      {error ? (
+      {marketDataError ? (
         <div className="mb-3 rounded-lg border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
           {error}
         </div>
