@@ -91,7 +91,12 @@ export async function loadDhanInstruments(): Promise<DhanInstrument[]> {
 export async function resolveDhanInstruments(symbols: string[]): Promise<DhanInstrument[]> {
   const wanted = new Set(symbols.map((s) => s.trim().toUpperCase()).filter(Boolean));
   const rows = await loadDhanInstruments();
-  const exact = rows.filter((row) => wanted.has(row.tradingSymbol.toUpperCase()));
+  const exact = rows.filter(
+    (row) =>
+      wanted.has(row.tradingSymbol.toUpperCase()) &&
+      ((row.exchangeSegment === "NSE_EQ" && row.instrument === "EQUITY") ||
+        (row.exchangeSegment === "IDX_I" && row.instrument === "INDEX")),
+  );
   return symbols
     .map((symbol) =>
       exact.find((row) => row.tradingSymbol.toUpperCase() === symbol.trim().toUpperCase()),
