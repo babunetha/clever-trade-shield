@@ -39,7 +39,7 @@ export interface DhanOrderResult {
 
 /** Discriminated result so the UI never has to inspect thrown errors. */
 export type DhanResult<T> =
-  { ok: true; data: T } | { ok: false; error: string; code: DhanErrorCode };
+  { ok: true; data: T } | { ok: false; error: string; code: DhanErrorCode; retryAt?: number };
 
 export type DhanErrorCode =
   | "NOT_CONFIGURED"
@@ -87,6 +87,21 @@ function scrub(message: string): string {
     .slice(0, 300);
 }
 
+// Each warm worker backs off all Dhan reads after a provider throttle.
+let retryAfterUntil = 0;
+
+function rateLimited(retryAt: number) {
+  return {
+    ok: false as const,
+    code: "RATE_LIMITED" as const,
+    retryAt,
+    error:
+      "Dhan rate limit reached. Retry after " +
+      Math.max(1, Math.ceil((retryAt - Date.now()) / 1000)) +
+      " seconds.",
+  };
+}
+
 async function dhanRequest<T>(
   path: string,
   init: { method: "GET" | "POST"; body?: unknown } = { method: "GET" },
@@ -101,6 +116,7 @@ async function dhanRequest<T>(
     };
   }
 
+  if (Date.now() < retryAfterUntil) return rateLimited(retryAfterUntil);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -138,11 +154,12 @@ async function dhanRequest<T>(
         };
       }
       if (response.status === 429) {
-        return {
-          ok: false,
-          code: "RATE_LIMITED",
-          error: "Dhan rate limit reached. Wait a moment and test again.",
-        };
+        const hint = response.headers.get("Retry-After")?.trim();
+        const delay =
+          hint && /^\d+$/.test(hint) ? Number(hint) * 1000 : Date.parse(hint ?? "") - Date.now();
+        const wait = Number.isFinite(delay) && delay >= 0 ? Math.max(1000, delay) : 60000;
+        retryAfterUntil = Math.max(retryAfterUntil, Date.now() + wait);
+        return rateLimited(retryAfterUntil);
       }
       return {
         ok: false,
@@ -195,6 +212,12 @@ export async function testDhanConnection(): Promise<DhanResult<DhanProfileSummar
   if (!result.ok) return result;
   const raw = result.data;
   const id = typeof raw["dhanClientId"] === "string" ? raw["dhanClientId"] : "";
+  if (!id || id !== credentials()?.clientId)
+    return {
+      ok: false,
+      code: "BAD_RESPONSE",
+      error: "Dhan profile identity could not be verified.",
+    };
   return {
     ok: true,
     data: {
@@ -449,41 +472,59 @@ export function parseDhanLastTradeTime(value: unknown): string | null {
 export async function getDhanQuote(
   request: DhanLtpRequest,
 ): Promise<DhanResult<Record<string, DhanQuote>>> {
-  const ids = request.securityIds
-    .map((id) => String(id).trim())
-    .filter((id) => /^\d{1,8}$/.test(id))
-    .slice(0, 1000);
-  if (!ids.length) return { ok: true, data: {} };
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
+  const result = await getDhanQuoteGroups({ [segmentName]: request.securityIds });
+  return result.ok ? { ok: true, data: result.data[segmentName] ?? {} } : result;
+}
+
+export async function getDhanQuoteGroups(
+  groups: Record<string, string[]>,
+): Promise<DhanResult<Record<string, Record<string, DhanQuote>>>> {
+  const body: Record<string, number[]> = {};
+  let remaining = 1000;
+  for (const [segment, ids] of Object.entries(groups)) {
+    const valid = [
+      ...new Set(ids.map((id) => String(id).trim()).filter((id) => /^\d{1,8}$/.test(id))),
+    ]
+      .slice(0, remaining)
+      .map(Number);
+    if (valid.length) body[segment] = valid;
+    remaining -= valid.length;
+  }
+  if (!Object.keys(body).length) return { ok: true, data: {} };
   const result = await dhanRequest<Record<string, unknown>>("/marketfeed/quote", {
     method: "POST",
-    body: { [segmentName]: ids.map(Number) },
+    body,
   });
   if (!result.ok) return result;
-  const segment = (result.data["data"] as Record<string, unknown> | undefined)?.[segmentName];
-  const map: Record<string, DhanQuote> = {};
-  if (segment && typeof segment === "object") {
-    for (const [id, value] of Object.entries(segment as Record<string, unknown>)) {
-      if (!value || typeof value !== "object") continue;
-      const v = value as Record<string, unknown>;
-      const o = (v["ohlc"] ?? {}) as Record<string, unknown>;
-      const lastPrice = Number(v["last_price"]);
-      if (!Number.isFinite(lastPrice)) continue;
-      map[id] = {
-        securityId: id,
-        sourceTimestamp: parseDhanLastTradeTime(v["last_trade_time"]),
-        lastPrice,
-        open: Number(o["open"] ?? 0),
-        close: Number(o["close"] ?? 0),
-        high: Number(o["high"] ?? 0),
-        low: Number(o["low"] ?? 0),
-        volume: Number(v["volume"] ?? 0),
-        averagePrice: Number(v["average_price"] ?? 0),
-        netChange: Number(v["net_change"] ?? 0),
-      };
+  const grouped: Record<string, Record<string, DhanQuote>> = {};
+  for (const segmentName of Object.keys(body)) {
+    const segment = (result.data["data"] as Record<string, unknown> | undefined)?.[segmentName];
+    const map: Record<string, DhanQuote> = {};
+    if (segment && typeof segment === "object") {
+      for (const [id, value] of Object.entries(segment as Record<string, unknown>)) {
+        if (!value || typeof value !== "object") continue;
+        const v = value as Record<string, unknown>;
+        const o = (v["ohlc"] ?? {}) as Record<string, unknown>;
+        const lastPrice = Number(v["last_price"]);
+        if (!Number.isFinite(lastPrice)) continue;
+        map[id] = {
+          securityId: id,
+          sourceTimestamp: parseDhanLastTradeTime(v["last_trade_time"]),
+          lastPrice,
+          open: Number(o["open"] ?? 0),
+          close: Number(o["close"] ?? 0),
+          high: Number(o["high"] ?? 0),
+          low: Number(o["low"] ?? 0),
+          volume: Number(v["volume"] ?? 0),
+          averagePrice: Number(v["average_price"] ?? 0),
+          netChange: Number(v["net_change"] ?? 0),
+        };
+      }
     }
+    grouped[segmentName] = map;
   }
-  return { ok: true, data: map };
+  return { ok: true, data: grouped };
 }
 
 export interface DhanLtpRequest {
