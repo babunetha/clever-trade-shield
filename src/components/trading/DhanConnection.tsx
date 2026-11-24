@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CheckCircle2, Lock, Loader2, PlugZap, RefreshCw } from "lucide-react";
@@ -28,6 +28,18 @@ export function DhanConnection() {
   const [account, setAccount] = useState<AccountState>(null);
   const [loadingAccount, setLoadingAccount] = useState(false);
 
+  const [retryAt, setRetryAt] = useState(0);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!retryAt) return;
+    const timer = window.setInterval(() => {
+      const time = Date.now();
+      setNow(time);
+      if (time >= retryAt) setRetryAt(0);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAt]);
+  const remaining = Math.max(0, Math.ceil((retryAt - now) / 1000));
   const configured = Boolean(status.data?.clientIdConfigured && status.data?.accessTokenConfigured);
   const live = test.kind === "ok";
 
@@ -44,6 +56,10 @@ export function DhanConnection() {
         });
         toast.success("Dhan connection verified (read-only)");
       } else {
+        if (result.code === "RATE_LIMITED" && result.retryAt) {
+          setNow(Date.now());
+          setRetryAt(result.retryAt);
+        }
         setTest({ kind: "error", message: result.error });
         toast.error(result.error);
       }
@@ -80,7 +96,9 @@ export function DhanConnection() {
             CHECKING…
           </Badge>
         ) : live ? (
-          <Badge className="num bg-success text-success-foreground">LIVE DATA · READ-ONLY</Badge>
+          <Badge className="num bg-success text-success-foreground">
+            PROFILE VERIFIED · READ-ONLY
+          </Badge>
         ) : configured ? (
           <Badge variant="outline" className="num border-warn/40 text-warn">
             CONFIGURED · NOT VERIFIED
@@ -146,13 +164,13 @@ export function DhanConnection() {
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Button size="sm" onClick={onTest} disabled={test.kind === "running"}>
+        <Button size="sm" onClick={onTest} disabled={test.kind === "running" || remaining > 0}>
           {test.kind === "running" ? (
             <Loader2 className="mr-1 size-3.5 animate-spin" />
           ) : (
             <PlugZap className="mr-1 size-3.5" />
           )}
-          Test connection
+          {remaining > 0 ? "Retry in " + remaining + "s" : "Test connection"}
         </Button>
         <Button
           size="sm"

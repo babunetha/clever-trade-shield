@@ -1,7 +1,7 @@
 import { quoteHealth } from "./scanner/quote-health";
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "./auth-middleware";
-import { getDhanHistoricalCandles, getDhanQuote } from "./dhan.server";
+import { getDhanHistoricalCandles, getDhanQuoteGroups } from "./dhan.server";
 import { resolveDhanInstruments } from "./market/instruments";
 import { calculateIndicators } from "./trading/indicators";
 import type { Bias, Signal, Side } from "./trading/types";
@@ -43,13 +43,10 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       string,
       { ltp: number; close: number; netChange: number; timestamp: string }
     > = {};
-    for (const [segment, ids] of groups) {
-      const q = await getDhanQuote({
-        securityIds: ids,
-        exchangeSegment: segment as "NSE_EQ" | "IDX_I",
-      });
-      if (!q.ok) return q;
-      for (const value of Object.values(q.data)) {
+    const q = await getDhanQuoteGroups(Object.fromEntries(groups));
+    if (!q.ok) return q;
+    for (const [segment, values] of Object.entries(q.data)) {
+      for (const value of Object.values(values)) {
         if (!value.sourceTimestamp || !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh)
           continue;
         quotes[segment + ":" + value.securityId] = {

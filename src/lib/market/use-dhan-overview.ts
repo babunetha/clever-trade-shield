@@ -20,6 +20,15 @@ const WATCHLIST = [
   "BANKNIFTY",
 ];
 
+class DhanPollError extends Error {
+  constructor(
+    message: string,
+    readonly retryAt?: number,
+  ) {
+    super(message);
+  }
+}
+
 export function useDhanOverview(symbols = WATCHLIST) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -31,10 +40,15 @@ export function useDhanOverview(symbols = WATCHLIST) {
     enabled: symbols.length > 0,
     queryFn: async () => {
       const result = await getDhanMarketSnapshot({ data: { symbols } });
-      if (!result.ok) throw new Error(result.error);
+      if (!result.ok) throw new DhanPollError(result.error, result.retryAt);
       return result.data;
     },
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      const error = query.state.error;
+      return error instanceof DhanPollError && error.retryAt
+        ? Math.max(5000, error.retryAt - Date.now())
+        : 5000;
+    },
     retry: false,
   });
   const data = feed.isError ? undefined : feed.data;

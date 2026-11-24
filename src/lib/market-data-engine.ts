@@ -1,4 +1,4 @@
-import { getDhanQuote, type DhanQuote, type DhanResult } from "./dhan.server";
+import { getDhanQuoteGroups, type DhanQuote, type DhanResult } from "./dhan.server";
 import { resolveDhanInstruments, type DhanInstrument } from "./market/instruments";
 
 export interface MarketDataPoint {
@@ -91,18 +91,14 @@ export class DhanMarketDataEngine {
 
     const quotes: Record<string, MarketDataPoint> = {};
 
+    const request = Object.fromEntries(
+      [...grouped].map(([segment, items]) => [segment, items.map((i) => i.securityId)]),
+    );
+    const result = await getDhanQuoteGroups(request);
+    if (!result.ok) return result;
     for (const [segment, segmentInstruments] of grouped) {
-      if (segment !== "NSE_EQ" && segment !== "BSE_EQ" && segment !== "IDX_I") continue;
-
-      const result = await getDhanQuote({
-        securityIds: segmentInstruments.map((instrument) => instrument.securityId),
-        exchangeSegment: segment,
-      });
-
-      if (!result.ok) return result;
-
       for (const instrument of segmentInstruments) {
-        const quote = result.data[instrument.securityId];
+        const quote = result.data[segment]?.[instrument.securityId];
         if (!quote) continue;
         quotes[instrument.tradingSymbol] = toPoint(instrument, quote);
       }
