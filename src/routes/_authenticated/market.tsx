@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/trading/AppShell";
 import { getDhanMarketSnapshot } from "@/lib/market.functions";
-import { useTrading } from "@/lib/trading/store";
-import type { IndexQuote, Quote } from "@/lib/trading/types";
+import { useQuery } from "@tanstack/react-query";
+import { quoteHealth } from "@/lib/scanner/quote-health";
 import { formatCompact, formatPct, formatPrice, tone } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,13 @@ export const Route = createFileRoute("/_authenticated/market")({
       { property: "og:title", content: "Market Overview — Clever Trade Shield" },
       {
         property: "og:description",
-        content: "Read-only market snapshots with clearly labelled simulated fallback.",
+        content: "Read-only Dhan quotes with exchange timestamps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       {
         name: "description",
-        content: "Live Dhan market snapshot with a clearly labelled simulated fallback.",
+        content: "Dhan market data with quote availability and age.",
       },
     ],
   }),
@@ -55,79 +55,52 @@ const WATCHLIST = [
 ];
 
 function MarketOverview() {
-  const { quotes: simulatedQuotes, indices: simulatedIndices } = useTrading();
-  const [quotes, setQuotes] = useState<Quote[]>(simulatedQuotes);
-  const [indices, setIndices] = useState<IndexQuote[]>(simulatedIndices);
-  const [mode, setMode] = useState<"LIVE" | "SIMULATED">("SIMULATED");
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [asOf, setAsOf] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
-      if (!result.ok) {
-        setMode("SIMULATED");
-        setError(result.error);
-        return;
-      }
-      const data = result.data.quotes;
-      const realQuotes = WATCHLIST.filter((symbol) => symbol !== "NIFTY" && symbol !== "BANKNIFTY")
-        .map((symbol) => data[symbol])
-        .filter((q): q is NonNullable<typeof q> => Boolean(q))
-        .map((q) => ({
-          symbol: q.symbol,
-          name: q.name,
-          ltp: q.ltp,
-          prevClose: q.prevClose,
-          change: q.change,
-          changePct: q.changePct,
-          dayHigh: q.dayHigh,
-          dayLow: q.dayLow,
-          volume: q.volume,
-        }));
-      const realIndices = [
-        ["NIFTY", "Nifty 50"],
-        ["BANKNIFTY", "Nifty Bank"],
-      ]
-        .map(([symbol, name]) => {
-          const row = symbol ? data[symbol] : undefined;
-          if (!row) return null;
-          return {
-            ...row,
-            symbol: symbol as string,
-            name: name as string,
-            bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
-          };
-        })
-        .filter(Boolean) as IndexQuote[];
-
-      if (realQuotes.length) {
-        setQuotes(realQuotes);
-        if (realIndices.length) setIndices(realIndices);
-        setMode("LIVE");
-        setError(null);
-        setAsOf(result.data.asOf);
-      } else {
-        setMode("SIMULATED");
-        setError(
-          "Dhan returned no watchlist instruments. Check the Dhan instrument master and API access.",
-        );
-      }
-    } catch (e) {
-      setMode("SIMULATED");
-      setError(e instanceof Error ? e.message : "Dhan market request failed");
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 5000);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [refresh]);
+  }, []);
+  const feed = useQuery({
+    queryKey: ["dhan-market-overview"],
+    queryFn: async () => {
+      const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
+      if (!result.ok) throw new Error(result.error);
+      return result.data;
+    },
+    refetchInterval: 5000,
+    retry: false,
+  });
+  const data = feed.isError ? undefined : feed.data;
+  const { quotes, indices, unavailable } = useMemo(() => {
+    const rows = Object.values(data?.quotes ?? {});
+    const health = (row: (typeof rows)[number]) =>
+      quoteHealth(row.ltp, row.sourceTimestamp ?? "", now);
+    const fresh = rows.filter((row) => health(row).fresh);
+    return {
+      quotes: fresh.filter((row) => row.exchangeSegment === "NSE_EQ"),
+      indices: fresh
+        .filter((row) => row.exchangeSegment === "IDX_I")
+        .map((row) => ({
+          ...row,
+          bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
+        })),
+      unavailable: WATCHLIST.filter((symbol) => !fresh.some((row) => row.symbol === symbol)).map(
+        (symbol) => {
+          const row = data?.quotes[symbol];
+          const age = row ? health(row).ageSeconds : Infinity;
+          return (
+            symbol + " (" + (Number.isFinite(age) ? Math.floor(age) + "s" : "age unknown") + ")"
+          );
+        },
+      ),
+    };
+  }, [data, now]);
+  const hasQuotes = quotes.length + indices.length > 0;
+  const error = feed.isError
+    ? feed.error.message
+    : data && unavailable.length
+      ? "NOT_AVAILABLE · Missing, invalid or stale quotes: " + unavailable.join(", ")
+      : null;
 
   const gainers = useMemo(
     () => [...quotes].sort((a, b) => b.changePct - a.changePct).slice(0, 3),
@@ -141,37 +114,34 @@ function MarketOverview() {
   return (
     <AppShell
       title="Market Overview"
-      subtitle={
-        mode === "LIVE"
-          ? "Dhan live quote snapshot · read-only"
-          : "Simulated fallback · connect Dhan to enable live data"
-      }
+      subtitle="Read-only Dhan quotes verified against exchange timestamps"
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant={mode === "LIVE" ? "default" : "outline"}>
-          {mode === "LIVE" ? (
+        <Badge variant={hasQuotes ? "default" : "outline"}>
+          {hasQuotes ? (
             <>
               <Wifi className="mr-1 size-3" /> DHAN LIVE
             </>
           ) : (
             <>
-              <WifiOff className="mr-1 size-3" /> SIMULATED
+              <WifiOff className="mr-1 size-3" /> {feed.isPending ? "Connecting…" : "NOT_AVAILABLE"}
             </>
           )}
         </Badge>
-        {asOf ? (
+        {data?.asOf ? (
           <span className="num text-xs text-muted-foreground">
-            Updated {new Date(asOf).toLocaleTimeString()}
+            Fetched {new Date(data.asOf).toLocaleTimeString()}
           </span>
         ) : null}
         <Button
           size="sm"
           variant="outline"
           className="ml-auto"
-          onClick={() => void refresh()}
-          disabled={refreshing}
+          onClick={() => void feed.refetch()}
+          disabled={feed.isFetching}
         >
-          <RefreshCw className={`mr-1.5 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh
+          <RefreshCw className={`mr-1.5 size-3.5 ${feed.isFetching ? "animate-spin" : ""}`} />{" "}
+          Refresh
         </Button>
       </div>
       {error ? (
