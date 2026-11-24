@@ -52,7 +52,7 @@ function Checklist() {
   const openPositions = trades.filter((t) => t.status === "OPEN");
   const pendingApprovals = signals.filter((s) => s.status === "PENDING");
   const losingToday = risk.losingTradesToday;
-  const nifty = indices[0];
+  const nifty = indices.find((i) => i.symbol === "NIFTY");
 
   const items: CheckItem[] = [
     {
@@ -138,7 +138,9 @@ function Checklist() {
       subtitle="Run this before 09:20 IST each session. Nothing here places orders — it only confirms the risk state before you take the first trade."
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant="outline">SIMULATED / MOCK CHECKLIST DATA</Badge>
+        <Badge variant="outline">
+          {quotes.length ? "DHAN QUOTES · PAPER ACCOUNT" : "NOT_AVAILABLE · NO FRESH QUOTES"}
+        </Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         <Badge variant={allClear ? "default" : "secondary"} className="ml-auto num">
           {items.length - blocking.length}/{items.length} CLEAR
@@ -191,7 +193,7 @@ function Checklist() {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="panel p-4">
-          <div className="label-caps">Nifty bias (simulated)</div>
+          <div className="label-caps">Nifty bias (Dhan)</div>
           <div className="num text-lg font-semibold">
             {nifty ? `${formatPrice(nifty.ltp)} · ${nifty.bias}` : "—"}
           </div>
@@ -207,7 +209,7 @@ function Checklist() {
       </div>
 
       <p className="mt-4 text-[11px] text-muted-foreground">
-        {quotes.length} instruments tracked on simulated ticks
+        {quotes.length} instruments with verified Dhan quotes
         {liveOnlyItems.length
           ? " · live-only checks are skipped until broker data is configured"
           : ""}

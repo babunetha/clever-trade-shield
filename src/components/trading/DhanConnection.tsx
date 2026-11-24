@@ -87,7 +87,7 @@ export function DhanConnection() {
           </Badge>
         ) : (
           <Badge variant="secondary" className="num">
-            SIMULATED — NOT CONNECTED
+            NOT_CONNECTED
           </Badge>
         )}
         <Badge variant="destructive" className="num ml-auto">
@@ -138,8 +138,8 @@ export function DhanConnection() {
               <span className="num">DHAN_ACCESS_TOKEN</span>.
             </li>
             <li>
-              Return here and press “Test connection”. Until then every screen keeps using simulated
-              data.
+              Return here and press “Test connection”. Freshness is verified separately for each
+              quote.
             </li>
           </ol>
         </div>

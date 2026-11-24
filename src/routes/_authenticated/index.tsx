@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/")({
       {
         name: "description",
         content:
-          "Risk-controlled intraday dashboard for a ₹1,00,000 equity account: simulated signals, manual approval and hard risk limits.",
+          "Risk-controlled intraday dashboard for a ₹1,00,000 equity account: Dhan signals, manual approval and hard risk limits.",
       },
       { property: "og:title", content: "Dashboard — ₹1L Trading Assistant" },
       {
@@ -144,7 +144,7 @@ function Dashboard() {
           ))}
           {!pending.length ? (
             <p className="panel p-4 text-sm text-muted-foreground">
-              No pending signals. Generate a fresh simulated batch from the Signals screen.
+              No pending signals. Run a Dhan scan from the Signals screen.
             </p>
           ) : null}
         </div>

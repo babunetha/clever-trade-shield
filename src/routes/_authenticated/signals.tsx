@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_authenticated/signals")({
 });
 
 function Signals() {
-  const { signals, settings, risk, refreshSignals, publishLiveSignals } = useTrading();
+  const { signals, settings, risk, publishLiveSignals } = useTrading();
   const [filter, setFilter] = useState<"ALL" | Verdict>("ALL");
   const [loading, setLoading] = useState(false);
   const [liveMode, setLiveMode] = useState(false);
@@ -53,6 +53,7 @@ function Signals() {
       });
       if (!result.ok) {
         setError(result.error);
+        publishLiveSignals([]);
         setLiveMode(false);
         return;
       }
@@ -62,6 +63,7 @@ function Signals() {
       toast.success(`${result.data.signals.length} Dhan-derived signal(s) loaded`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Live signal request failed");
+      publishLiveSignals([]);
       setLiveMode(false);
     } finally {
       setLoading(false);
@@ -83,12 +85,12 @@ function Signals() {
       subtitle={
         liveMode
           ? "Dhan-derived 5-minute technical signals · manual approval · paper execution only"
-          : "Simulated signal mode · no broker feed connected"
+          : "NOT_AVAILABLE · waiting for verified Dhan signals"
       }
     >
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant={liveMode ? "default" : "outline"}>
-          <Radio className="mr-1 size-3" /> {liveMode ? "DHAN LIVE ANALYSIS" : "SIMULATED ANALYSIS"}
+          <Radio className="mr-1 size-3" /> {liveMode ? "DHAN LIVE ANALYSIS" : "NOT_AVAILABLE"}
         </Badge>
         {lastLiveAt ? (
           <span className="num text-xs text-muted-foreground">
@@ -113,17 +115,6 @@ function Signals() {
           <Button size="sm" variant="outline" onClick={() => void loadLive()} disabled={loading}>
             <RefreshCw className={`mr-1 size-3.5 ${loading ? "animate-spin" : ""}`} />
             {loading ? "Scanning Dhan…" : "Scan Dhan"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              refreshSignals();
-              setLiveMode(false);
-              toast.success("Fresh simulated signal batch generated");
-            }}
-          >
-            Simulate
           </Button>
         </div>
       </div>

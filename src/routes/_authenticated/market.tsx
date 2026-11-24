@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/trading/AppShell";
-import { getDhanMarketSnapshot } from "@/lib/market.functions";
-import { useQuery } from "@tanstack/react-query";
-import { quoteHealth } from "@/lib/scanner/quote-health";
+import { useDhanOverview } from "@/lib/market/use-dhan-overview";
 import { formatCompact, formatPct, formatPrice, tone } from "@/lib/trading/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,64 +35,8 @@ export const Route = createFileRoute("/_authenticated/market")({
   component: MarketOverview,
 });
 
-const WATCHLIST = [
-  "RELIANCE",
-  "HDFCBANK",
-  "INFY",
-  "TATAMOTORS",
-  "SBIN",
-  "ICICIBANK",
-  "ITC",
-  "AXISBANK",
-  "TATASTEEL",
-  "LT",
-  "MARUTI",
-  "BHARTIARTL",
-  "NIFTY",
-  "BANKNIFTY",
-];
-
 function MarketOverview() {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const feed = useQuery({
-    queryKey: ["dhan-market-overview"],
-    queryFn: async () => {
-      const result = await getDhanMarketSnapshot({ data: { symbols: WATCHLIST } });
-      if (!result.ok) throw new Error(result.error);
-      return result.data;
-    },
-    refetchInterval: 5000,
-    retry: false,
-  });
-  const data = feed.isError ? undefined : feed.data;
-  const { quotes, indices, unavailable } = useMemo(() => {
-    const rows = Object.values(data?.quotes ?? {});
-    const health = (row: (typeof rows)[number]) =>
-      quoteHealth(row.ltp, row.sourceTimestamp ?? "", now);
-    const fresh = rows.filter((row) => health(row).fresh);
-    return {
-      quotes: fresh.filter((row) => row.exchangeSegment === "NSE_EQ"),
-      indices: fresh
-        .filter((row) => row.exchangeSegment === "IDX_I")
-        .map((row) => ({
-          ...row,
-          bias: row.changePct > 0.25 ? "BULLISH" : row.changePct < -0.25 ? "BEARISH" : "NEUTRAL",
-        })),
-      unavailable: WATCHLIST.filter((symbol) => !fresh.some((row) => row.symbol === symbol)).map(
-        (symbol) => {
-          const row = data?.quotes[symbol];
-          const age = row ? health(row).ageSeconds : Infinity;
-          return (
-            symbol + " (" + (Number.isFinite(age) ? Math.floor(age) + "s" : "age unknown") + ")"
-          );
-        },
-      ),
-    };
-  }, [data, now]);
+  const { quotes, indices, unavailable, data, feed } = useDhanOverview();
   const hasQuotes = quotes.length + indices.length > 0;
   const error = feed.isError
     ? feed.error.message

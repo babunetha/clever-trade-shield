@@ -14,7 +14,7 @@ export interface QuoteHealthRow {
   missingFromFeed: boolean;
 }
 
-export type ConnectionState = "LIVE" | "CONNECTING" | "ERROR" | "NOT_CONFIGURED" | "SIMULATED";
+export type ConnectionState = "LIVE" | "CONNECTING" | "ERROR" | "NOT_CONFIGURED" | "UNAVAILABLE";
 
 interface Props {
   rows: QuoteHealthRow[];
@@ -64,12 +64,12 @@ export function paperBlockReasons(
 const connectionBadge: Record<ConnectionState, { label: string; cls: string }> = {
   LIVE: { label: "CONNECTED · DHAN LIVE", cls: "border-bull/40 bg-bull-muted text-bull" },
   CONNECTING: { label: "CONNECTING", cls: "border-warn/40 bg-warn-muted text-warn" },
-  ERROR: { label: "ERROR · FAIL-CLOSED", cls: "border-bear/40 bg-bear-muted text-bear" },
+  ERROR: { label: "NOT_AVAILABLE · QUOTE ERROR", cls: "border-bear/40 bg-bear-muted text-bear" },
   NOT_CONFIGURED: {
-    label: "NOT CONFIGURED · SIMULATED",
+    label: "NOT_CONNECTED",
     cls: "border-warn/40 bg-warn-muted text-warn",
   },
-  SIMULATED: { label: "SIMULATED FEED", cls: "border-warn/40 bg-warn-muted text-warn" },
+  UNAVAILABLE: { label: "NOT_AVAILABLE", cls: "border-warn/40 bg-warn-muted text-warn" },
 };
 
 function ageClass(s: number) {

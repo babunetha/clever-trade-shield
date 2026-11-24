@@ -75,7 +75,7 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       <div className="border-b border-border bg-warn-muted px-4 py-1.5 text-center text-[11px] tracking-wide text-warn">
-        SIMULATED TICKER · NO LIVE ORDERS · Live execution is hard-disabled. Educational use only —
+        DHAN READ-ONLY · NO LIVE ORDERS · Live execution is hard-disabled. Educational use only —
         not investment advice.
       </div>
 
