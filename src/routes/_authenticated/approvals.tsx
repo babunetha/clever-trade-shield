@@ -65,7 +65,7 @@ function Approvals() {
         ))}
         {!pending.length ? (
           <p className="panel p-4 text-sm text-muted-foreground">
-            Nothing pending. Regenerate a simulated batch on the Signals screen.
+            Nothing pending. Run a Dhan scan on the Signals screen.
           </p>
         ) : null}
       </div>

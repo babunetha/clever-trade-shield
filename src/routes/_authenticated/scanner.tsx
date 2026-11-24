@@ -7,7 +7,6 @@ import { AlertTriangle, Loader2, Radar, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/trading/AppShell";
 import { QuoteHealthPanel } from "@/components/trading/QuoteHealthPanel";
 import { CandidateEvidenceDialog } from "@/components/trading/CandidateEvidenceDialog";
-import { BacktestPanel } from "@/components/trading/BacktestPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,7 @@ import {
   type ScannerConfig,
   type ScannerId,
 } from "@/lib/scanner/definitions";
-import { runScanners, type ScanCandidate } from "@/lib/scanner/candidates";
+import type { ScanCandidate } from "@/lib/scanner/candidates";
 import {
   MAX_TICK_AGE_SECONDS,
   stateClasses,
@@ -84,7 +83,7 @@ function ScannerPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
-  const [scanSource, setScanSource] = useState<"SIMULATED" | "DHAN_LIVE">("SIMULATED");
+
   const fetchInbox = useServerFn(researchInbox);
   const inbox = useQuery({
     queryKey: ["research-inbox"],
@@ -103,28 +102,6 @@ function ScannerPage() {
     return () => window.clearInterval(t);
   }, []);
 
-  const runScan = useCallback(() => {
-    setStatus("loading");
-    setError(null);
-    window.setTimeout(() => {
-      try {
-        const found = runScanners(config, Math.floor(Math.random() * 1e9));
-        setCandidates(found);
-        setScanSource("SIMULATED");
-        setScannedAt(new Date().toISOString());
-        setNowMs(Date.now());
-        setStatus("ready");
-        log("SCANNER_RUN", `${found.length} simulated candidates matched the enabled scanners`);
-      } catch (e) {
-        setCandidates(null);
-        const message = e instanceof Error ? e.message : "The scan could not be completed.";
-        setError(message);
-        setStatus("error");
-        log("SCANNER_ERROR", message, "WARN");
-      }
-    }, 30);
-  }, [config, log]);
-
   const runLiveScan = useCallback(async () => {
     setStatus("loading");
     setError(null);
@@ -132,7 +109,7 @@ function ScannerPage() {
       const result = await runDhanLiveScan({ data: { config } });
       if (!result.ok) throw new Error(result.error);
       setCandidates(result.candidates);
-      setScanSource("DHAN_LIVE");
+
       setScannedAt(new Date().toISOString());
       setNowMs(Date.now());
       setStatus("ready");
@@ -153,7 +130,7 @@ function ScannerPage() {
 
   // Client-only first scan (the engine is heavy and must not run during SSR).
   useEffect(() => {
-    runScan();
+    runLiveScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -162,7 +139,8 @@ function ScannerPage() {
     : 0;
   const stale = Boolean(scannedAt) && scanAgeSeconds > STALE_AFTER_SECONDS;
   const openPositions = trades.filter((t) => t.status === "OPEN").length;
-  const niftyBias = indices[0]?.bias ?? "NEUTRAL";
+  const nifty = indices.find((i) => i.symbol === "NIFTY");
+  const niftyBias = nifty?.bias ?? "NEUTRAL";
 
   const symbols = useMemo(
     () => Array.from(new Set((candidates ?? []).map((c) => c.symbol))).sort(),
@@ -221,8 +199,8 @@ function ScannerPage() {
   }, [liveError, log]);
 
   const rows = useMemo<Row[]>(() => {
-    if (!candidates) return [];
-    const asOf = scannedAt ?? new Date(0).toISOString();
+    if (!candidates || !nifty) return [];
+
     return [...candidates]
       .sort(
         (a, b) =>
@@ -230,22 +208,17 @@ function ScannerPage() {
           0.45 * b.research.score -
           (0.55 * (a.marketScore ?? 0) + 0.45 * a.research.score),
       )
-      .map((candidate) => {
-        const quote = quotes.find((q) => q.symbol === candidate.symbol);
+      .flatMap((candidate) => {
         const sector = SECTORS[candidate.symbol] ?? "Unclassified";
         const peers = quotes.filter((q) => (SECTORS[q.symbol] ?? "Unclassified") === sector);
         const sectorChangePct = peers.length
           ? peers.reduce((s, q) => s + q.changePct, 0) / peers.length
           : 0;
         const livePrice = liveMap.get(candidate.symbol.toUpperCase());
-        const tick =
-          liveOk && livePrice !== undefined && liveResult?.ok
-            ? {
-                price: livePrice,
-                asOf: liveQuoteMap.get(candidate.symbol.toUpperCase())?.sourceTimestamp ?? "",
-                source: "DHAN_LIVE" as const,
-              }
-            : { price: quote?.ltp ?? candidate.scanClose, asOf, source: "SIMULATED" as const };
+        const timestamp = liveQuoteMap.get(candidate.symbol.toUpperCase())?.sourceTimestamp ?? "";
+        if (!liveOk || livePrice === undefined || !quoteHealth(livePrice, timestamp, nowMs).fresh)
+          return [];
+        const tick = { price: livePrice, asOf: timestamp, source: "DHAN_LIVE" as const };
         const verification = verifyCandidate({
           candidate,
           tick,
@@ -256,17 +229,6 @@ function ScannerPage() {
           risk,
           openPositions,
         });
-        if (brokerConfigured && (!liveOk || livePrice === undefined)) {
-          verification.checks.push({
-            label: "Live quote connection",
-            ok: false,
-            blocking: true,
-            detail:
-              "Live quote unavailable or refresh failed. Simulated fallback is display-only; reconnect before approval.",
-          });
-          verification.state = "AVOID";
-          verification.total = verification.checks.length;
-        }
         return {
           candidate,
           verification,
@@ -276,16 +238,14 @@ function ScannerPage() {
     candidates,
     quotes,
     niftyBias,
+    nifty,
     settings,
     risk,
     openPositions,
     liveMap,
     liveQuoteMap,
     liveOk,
-    liveResult,
     nowMs,
-    scannedAt,
-    brokerConfigured,
   ]);
 
   useEffect(() => {
@@ -361,16 +321,9 @@ function ScannerPage() {
     const liveQuote = liveQuoteMap.get(row.candidate.symbol.toUpperCase());
     const livePrice = liveQuote?.price;
     const useLive = brokerConfigured && liveOk && livePrice !== undefined && liveResult?.ok;
-    const asOf = useLive ? (liveQuote?.sourceTimestamp ?? "") : (scannedAt ?? "");
-    const price = useLive
-      ? livePrice
-      : (quotes.find((q) => q.symbol === row.candidate.symbol)?.ltp ?? row.candidate.scanClose);
-    const health = quoteHealth(price, asOf, approvalNow);
-    if (!health.fresh || (brokerConfigured && !useLive)) {
-      const reason =
-        brokerConfigured && !useLive
-          ? "Live quote connection unavailable. Reconnect before approving."
-          : health.reason;
+    const health = quoteHealth(livePrice ?? NaN, liveQuote?.sourceTimestamp ?? "", approvalNow);
+    if (!health.fresh || !useLive) {
+      const reason = useLive ? health.reason : "NOT_AVAILABLE · current Dhan quote required.";
       toast.error(reason);
       log("PAPER_TRADE_BLOCKED", `${row.candidate.symbol}: ${reason}`, "WARN");
       return;
@@ -400,13 +353,13 @@ function ScannerPage() {
       quantity: row.verification.plan.quantity,
       riskRupees: row.verification.plan.riskRupees,
       source: row.candidate.scannerName,
-      dataSource: useLive ? "DHAN_LIVE" : "SIMULATED",
+      dataSource: "DHAN_LIVE",
     });
     if (res.ok) {
       toast.success(res.message);
       log(
         "PAPER_TRADE_OPENED",
-        `${row.candidate.symbol} approved paper trade using ${useLive ? "Dhan quote" : "mock quote"} (${row.candidate.scannerName}); no broker order`,
+        `${row.candidate.symbol} approved paper trade using Dhan quote (${row.candidate.scannerName}); no broker order`,
       );
     } else {
       toast.error(res.message);
@@ -420,17 +373,15 @@ function ScannerPage() {
       subtitle="Five scanner concepts as candidate sources only. Every candidate is re-verified here before it can become a paper trade."
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {liveOk ? (
+        {rows.length > 0 ? (
           <Badge className="bg-success text-success-foreground">LIVE DHAN PRICES · READ-ONLY</Badge>
         ) : (
           <Badge variant="outline" className="border-warn/40 bg-warn-muted text-warn">
-            SIMULATED / MOCK PRICES
+            {brokerConfigured ? "NOT_AVAILABLE" : "NOT_CONNECTED"}
           </Badge>
         )}
         <Badge variant="outline" className="border-border">
-          {scanSource === "DHAN_LIVE"
-            ? "History: completed Dhan candles"
-            : "History & context: SIMULATED / MOCK"}
+          History: Dhan candles
         </Badge>
         <Badge variant="destructive">LIVE ORDERS OFF</Badge>
         {liveOk && liveResult?.ok ? (
@@ -463,7 +414,7 @@ function ScannerPage() {
           )}
           Reconnect prices
         </Button>
-        <Button size="sm" variant="outline" onClick={runScan} disabled={status === "loading"}>
+        <Button size="sm" variant="outline" onClick={runLiveScan} disabled={status === "loading"}>
           {status === "loading" ? (
             <Loader2 className="mr-1 size-3.5 animate-spin" />
           ) : (
@@ -484,7 +435,7 @@ function ScannerPage() {
           disabled={!inbox.data?.length || status === "loading"}
           onClick={() => {
             setCandidates(inbox.data ?? []);
-            setScanSource("DHAN_LIVE");
+
             setScannedAt(new Date(0).toISOString());
             setStatus("ready");
             setError(null);
@@ -505,36 +456,27 @@ function ScannerPage() {
           Add
           <span className="num"> DHAN_CLIENT_ID </span> and{" "}
           <span className="num">DHAN_ACCESS_TOKEN</span> as backend secrets (Settings → Dhan
-          connection). Until then every price here is simulated and paper trading is judged on
-          simulated prices only.
+          connection). Fresh Dhan quotes are required for paper approvals.
         </div>
       ) : null}
 
       {brokerConfigured && liveError ? (
         <div className="mb-3 rounded-md border border-bear/40 bg-bear-muted p-3 text-xs text-bear">
-          {liveError} Simulated fallback is display-only. Paper approval is blocked until live
-          quotes reconnect.
+          {liveError}. Paper approval is blocked until live quotes reconnect.
         </div>
       ) : null}
-
-      <BacktestPanel config={config} />
 
       <QuoteHealthPanel
         rows={rows.map((r) => {
           const liveQuote = liveQuoteMap.get(r.candidate.symbol.toUpperCase());
-          const isLive = liveOk && liveQuote !== undefined;
           return {
             symbol: r.candidate.symbol,
             scanClose: r.candidate.scanClose,
             verification: r.verification,
-            price: isLive
-              ? (liveQuote?.price ?? r.candidate.scanClose)
-              : (quotes.find((q) => q.symbol === r.candidate.symbol)?.ltp ?? r.candidate.scanClose),
-            source: isLive ? "DHAN_LIVE" : "SIMULATED",
-            asOf: isLive
-              ? (liveQuote?.sourceTimestamp ?? "")
-              : (scannedAt ?? new Date(0).toISOString()),
-            missingFromFeed: Boolean(brokerConfigured && (!liveOk || liveQuote === undefined)),
+            price: liveQuote!.price,
+            source: "DHAN_LIVE",
+            asOf: liveQuote!.sourceTimestamp!,
+            missingFromFeed: false,
           };
         })}
         connection={
@@ -544,11 +486,11 @@ function ScannerPage() {
               ? "NOT_CONFIGURED"
               : liveError
                 ? "ERROR"
-                : liveOk
+                : rows.length > 0
                   ? "LIVE"
                   : live.isFetching
                     ? "CONNECTING"
-                    : "SIMULATED"
+                    : "UNAVAILABLE"
         }
         lastSuccessAt={liveOk && live.dataUpdatedAt ? live.dataUpdatedAt : null}
         lastErrorAt={
@@ -561,7 +503,7 @@ function ScannerPage() {
         scanStaleAfter={STALE_AFTER_SECONDS}
         nowMs={nowMs}
         onReconnect={() => void live.refetch()}
-        onRescan={runScan}
+        onRescan={runLiveScan}
         canReconnect={brokerConfigured}
       />
 
@@ -615,7 +557,7 @@ function ScannerPage() {
             ))}
           </div>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={runScan} disabled={status === "loading"}>
+            <Button size="sm" onClick={runLiveScan} disabled={status === "loading"}>
               Apply &amp; scan
             </Button>
             <Button
@@ -641,8 +583,8 @@ function ScannerPage() {
             <span className="text-warn">WAIT {counts.wait}</span>
             <span className="text-bear">AVOID {counts.avoid}</span>
             <span className="ml-auto text-muted-foreground">
-              Index bias {niftyBias} · open positions {openPositions}/{settings.maxOpenPositions} ·
-              trades left {risk.tradesLeft}
+              Index bias {nifty?.bias ?? "NOT_AVAILABLE"} · open positions {openPositions}/
+              {settings.maxOpenPositions} · trades left {risk.tradesLeft}
             </span>
           </div>
 
@@ -658,7 +600,7 @@ function ScannerPage() {
                 <AlertTriangle className="size-4" /> The scan failed
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{error}</p>
-              <Button size="sm" className="mt-3" onClick={runScan}>
+              <Button size="sm" className="mt-3" onClick={runLiveScan}>
                 Try again
               </Button>
             </div>
@@ -667,8 +609,9 @@ function ScannerPage() {
           {status === "ready" && rows.length === 0 ? (
             <div className="panel p-8 text-center text-sm text-muted-foreground">
               <Radar className="mx-auto mb-2 size-5" />
-              No symbol met the enabled criteria in this simulated scan. Loosen a threshold or
-              re-run.
+              {candidates?.length
+                ? "NOT_AVAILABLE · verification requires fresh equity and NIFTY quotes."
+                : "No Dhan candidates matched the enabled criteria."}
             </div>
           ) : null}
 
@@ -702,12 +645,8 @@ function ScannerPage() {
 
                       <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1 num text-xs sm:grid-cols-4">
                         <Metric
-                          label={
-                            liveOk && liveMap.has(cand.symbol.toUpperCase())
-                              ? "Price (Dhan live)"
-                              : "Price (sim)"
-                          }
-                          value={formatPrice(v.plan.entry)}
+                          label="Dhan price"
+                          value={formatPrice(liveMap.get(cand.symbol.toUpperCase())!)}
                         />
                         <Metric label="Scan close" value={formatPrice(cand.scanClose)} />
                         <Metric label="52w proximity" value={`${v.metrics.pctOf52wHigh}%`} />
@@ -788,8 +727,8 @@ function ScannerPage() {
                               LONG {v.plan.quantity} {cand.symbol} at {formatPrice(v.plan.entry)},
                               stop {formatPrice(v.plan.stopLoss)}, target{" "}
                               {formatPrice(v.plan.target1)}, risk {formatINR(v.plan.riskRupees)}.
-                              This is recorded in the journal on simulated data only — no order is
-                              sent to any broker and live execution stays disabled.
+                              This paper trade uses a freshly verified Dhan quote and is recorded in
+                              the journal.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

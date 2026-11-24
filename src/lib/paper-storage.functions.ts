@@ -109,8 +109,11 @@ export const approvePaperTrade = createServerFn({ method: "POST" })
         };
       entry = quote.lastPrice;
       sourceTimestamp = quote.sourceTimestamp;
-    } else if (data.dataSource !== "SIMULATED") {
-      return { ok: false as const, reason: "Unknown paper-trade data source." };
+    } else {
+      return {
+        ok: false as const,
+        reason: "Fresh Dhan market data is required for paper approval.",
+      };
     }
 
     const stopValid = data.side === "LONG" ? data.stopLoss < entry : data.stopLoss > entry;

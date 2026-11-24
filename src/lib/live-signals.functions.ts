@@ -1,3 +1,4 @@
+import { quoteHealth } from "./scanner/quote-health";
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "./auth-middleware";
 import { getDhanHistoricalCandles, getDhanQuote } from "./dhan.server";
@@ -38,26 +39,38 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       groups.set(item.exchangeSegment, ids);
     }
 
-    const quotes: Record<string, { ltp: number; close: number; netChange: number }> = {};
+    const quotes: Record<
+      string,
+      { ltp: number; close: number; netChange: number; timestamp: string }
+    > = {};
     for (const [segment, ids] of groups) {
       const q = await getDhanQuote({
         securityIds: ids,
         exchangeSegment: segment as "NSE_EQ" | "IDX_I",
       });
       if (!q.ok) return q;
-      for (const value of Object.values(q.data))
-        quotes[value.securityId] = {
+      for (const value of Object.values(q.data)) {
+        if (!value.sourceTimestamp || !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh)
+          continue;
+        quotes[segment + ":" + value.securityId] = {
+          timestamp: value.sourceTimestamp,
           ltp: value.lastPrice,
           close: value.close,
           netChange: value.netChange,
         };
+      }
     }
 
     const bySymbol = new Map(instruments.map((x) => [x.tradingSymbol, x]));
     const nifty = bySymbol.get("NIFTY");
     const bank = bySymbol.get("BANKNIFTY");
-    const niftyQuote = nifty ? quotes[nifty.securityId] : undefined;
-    const bankQuote = bank ? quotes[bank.securityId] : undefined;
+    const niftyQuote = nifty ? quotes["IDX_I:" + nifty.securityId] : undefined;
+    const bankQuote = bank ? quotes["IDX_I:" + bank.securityId] : undefined;
+    if (!niftyQuote || !bankQuote || !equity.some((i) => quotes["NSE_EQ:" + i.securityId]))
+      return {
+        ok: false as const,
+        error: "NOT_AVAILABLE · Fresh Dhan equity and index quotes are required.",
+      };
     const niftyBias = niftyQuote
       ? makeBias(niftyQuote.close ? (niftyQuote.netChange / niftyQuote.close) * 100 : 0)
       : "NEUTRAL";
@@ -67,7 +80,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
 
     const signals: Signal[] = [];
     for (const instrument of equity) {
-      const q = quotes[instrument.securityId];
+      const q = quotes["NSE_EQ:" + instrument.securityId];
       if (!q) continue;
       const candles = await getDhanHistoricalCandles({
         securityId: instrument.securityId,
@@ -78,7 +91,16 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
         interval: "5",
       });
       if (!candles.ok) return candles;
-      const indicators = calculateIndicators(candles.data);
+      const now = Date.now();
+      const completed = candles.data.filter((c) => c.timestamp * 1000 + 300000 <= now);
+      const last = completed.at(-1);
+      if (
+        !last ||
+        now - last.timestamp * 1000 > 600000 ||
+        !quoteHealth(q.ltp, q.timestamp, now).fresh
+      )
+        continue;
+      const indicators = calculateIndicators(completed);
       if (!indicators) {
         await sleep(220);
         continue;

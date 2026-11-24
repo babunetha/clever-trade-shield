@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell } from "@/components/trading/AppShell";
-import { getDhanMarketSnapshot } from "@/lib/market.functions";
+import { useDhanOverview } from "@/lib/market/use-dhan-overview";
 import { coachJournalSession } from "@/lib/ai-analysis.functions";
 import { useTrading } from "@/lib/trading/store";
 import {
@@ -41,70 +41,26 @@ export const Route = createFileRoute("/_authenticated/journal")({
 });
 
 function Journal() {
-  const { trades, closeTrade, updateNotes, quotes, log } = useTrading();
+  const { trades, closeTrade, updateNotes, log } = useTrading();
   const [exits, setExits] = useState<Record<string, string>>({});
-  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
-  const [liveMode, setLiveMode] = useState(false);
-  const [liveAsOf, setLiveAsOf] = useState<string | null>(null);
-  const [liveError, setLiveError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-
   const symbols = useMemo(
     () => [...new Set(trades.filter((t) => t.status === "OPEN").map((t) => t.symbol))],
     [trades],
   );
 
-  const refreshLive = useCallback(async () => {
-    if (!symbols.length) {
-      setLiveMode(false);
-      return;
-    }
-    setRefreshing(true);
-    try {
-      const result = await getDhanMarketSnapshot({ data: { symbols } });
-      if (!result.ok) {
-        setLiveMode(false);
-        setLiveError(result.error);
-        return;
-      }
-      const prices: Record<string, number> = {};
-      for (const [symbol, quote] of Object.entries(result.data.quotes)) prices[symbol] = quote.ltp;
-      if (Object.keys(prices).length) {
-        setLivePrices(prices);
-        setLiveMode(true);
-        setLiveError(null);
-        setLiveAsOf(result.data.asOf);
-      } else {
-        setLiveMode(false);
-        setLiveError("Dhan returned no live prices for the open paper positions.");
-      }
-    } catch (error) {
-      setLiveMode(false);
-      setLiveError(error instanceof Error ? error.message : "Dhan live-price request failed");
-    } finally {
-      setRefreshing(false);
-    }
-  }, [symbols]);
-
-  useEffect(() => {
-    void refreshLive();
-    const timer = window.setInterval(() => void refreshLive(), 5000);
-    return () => window.clearInterval(timer);
-  }, [refreshLive]);
-
+  const { feed, data, quotes, unavailable } = useDhanOverview(symbols);
+  const liveMode = quotes.length > 0;
+  const liveAsOf = data?.asOf;
+  const liveError =
+    feed.error?.message ??
+    (unavailable.length ? "NOT_AVAILABLE · " + unavailable.join(", ") : null);
+  const refreshing = feed.isFetching;
   const closed = trades.filter((t) => t.status === "CLOSED");
   const wins = closed.filter((t) => (t.pnl ?? 0) > 0).length;
   const totalPnl = closed.reduce((s, t) => s + (t.pnl ?? 0), 0);
   const avgR = closed.length
     ? Number((closed.reduce((s, t) => s + (t.rMultiple ?? 0), 0) / closed.length).toFixed(2))
     : 0;
-  const unrealisedPnl = trades
-    .filter((t) => t.status === "OPEN")
-    .reduce((sum, t) => {
-      const current =
-        livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
-      return sum + (current - t.entry) * t.quantity * (t.side === "LONG" ? 1 : -1);
-    }, 0);
   const grossProfit = closed.filter((t) => (t.pnl ?? 0) > 0).reduce((s, t) => s + (t.pnl ?? 0), 0);
   const grossLoss = Math.abs(
     closed.filter((t) => (t.pnl ?? 0) < 0).reduce((s, t) => s + (t.pnl ?? 0), 0),
@@ -183,7 +139,7 @@ function Journal() {
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Badge variant={liveMode ? "default" : "outline"}>
-          {liveMode ? "DHAN LIVE MARKING" : "SIMULATED FALLBACK"}
+          {liveMode ? "DHAN LIVE MARKING" : "NOT_AVAILABLE"}
         </Badge>
         {liveAsOf ? (
           <span className="num text-xs text-muted-foreground">
@@ -194,7 +150,7 @@ function Journal() {
           size="sm"
           variant="outline"
           className="ml-auto"
-          onClick={() => void refreshLive()}
+          onClick={() => void feed.refetch()}
           disabled={refreshing || !symbols.length}
         >
           <RefreshCw className={`mr-1 size-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh live
@@ -262,8 +218,7 @@ function Journal() {
 
       <div className="mt-4 space-y-3">
         {trades.map((t) => {
-          const live =
-            livePrices[t.symbol] ?? quotes.find((q) => q.symbol === t.symbol)?.ltp ?? t.entry;
+          const live = quotes.find((q) => q.symbol === t.symbol)?.ltp;
           return (
             <div key={t.id} className="panel p-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -285,7 +240,9 @@ function Journal() {
                 {t.quantity} qty · entry {formatPrice(t.entry)} · SL {formatPrice(t.stopLoss)} · T1{" "}
                 {formatPrice(t.target1)} · risk{" "}
                 {formatINR(Math.abs(t.entry - t.stopLoss) * t.quantity)}
-                {t.exit ? ` · exit ${formatPrice(t.exit)}` : ` · live mark ${formatPrice(live)}`}
+                {t.exit
+                  ? ` · exit ${formatPrice(t.exit)}`
+                  : ` · live mark ${live === undefined ? "NOT_AVAILABLE" : formatPrice(live)}`}
               </div>
 
               {t.status === "OPEN" ? (
@@ -293,7 +250,9 @@ function Journal() {
                   <Input
                     className="h-9 w-36"
                     inputMode="decimal"
-                    placeholder={`Exit ${formatPrice(live)}`}
+                    placeholder={
+                      live === undefined ? "Manual exit price" : `Exit ${formatPrice(live)}`
+                    }
                     value={exits[t.id] ?? ""}
                     onChange={(e) => setExits((p) => ({ ...p, [t.id]: e.target.value }))}
                   />
