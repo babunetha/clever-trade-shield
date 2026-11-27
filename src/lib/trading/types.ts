@@ -34,7 +34,7 @@ export interface Quote {
   changePct: number;
   dayHigh: number;
   dayLow: number;
-  volume: number;
+  volume: number | null;
 }
 
 export interface IndexQuote extends Quote {

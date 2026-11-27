@@ -82,7 +82,7 @@ export function stepQuotes(quotes: Quote[], seed: number): Quote[] {
       changePct: round((change / q.prevClose) * 100),
       dayHigh: round(Math.max(q.dayHigh, ltp)),
       dayLow: round(Math.min(q.dayLow, ltp)),
-      volume: q.volume + Math.round(rng() * 24000),
+      volume: (q.volume ?? 0) + Math.round(rng() * 24000),
     };
   });
 }

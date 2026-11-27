@@ -9,5 +9,7 @@ export const getAccessStatus = createServerFn({ method: "GET" })
       _user_id: context.userId,
       _role: "owner",
     });
-    return { authenticated: true as const, owner: !error && data === true };
+    if (error || typeof data !== "boolean")
+      throw new Error("Could not verify terminal access. Please retry.");
+    return { authenticated: true as const, owner: data };
   });

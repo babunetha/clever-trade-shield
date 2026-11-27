@@ -40,7 +40,11 @@ export function DhanConnection() {
     return () => window.clearInterval(timer);
   }, [retryAt]);
   const remaining = Math.max(0, Math.ceil((retryAt - now) / 1000));
-  const configured = Boolean(status.data?.clientIdConfigured && status.data?.accessTokenConfigured);
+  const known = status.isSuccess && Boolean(status.data);
+  const keyState = (present?: boolean) =>
+    status.isPending ? "checking…" : !known ? "unavailable" : present ? "configured" : "missing";
+  const configured =
+    known && Boolean(status.data?.clientIdConfigured && status.data?.accessTokenConfigured);
   const live = test.kind === "ok";
 
   const onTest = async () => {
@@ -95,7 +99,9 @@ export function DhanConnection() {
           <Badge variant="secondary" className="num">
             CHECKING…
           </Badge>
-        ) : live ? (
+        ) : !known ? (
+          <Badge variant="outline">NOT_AVAILABLE · Recheck secrets</Badge>
+        ) : live && configured ? (
           <Badge className="num bg-success text-success-foreground">
             PROFILE VERIFIED · READ-ONLY
           </Badge>
@@ -125,7 +131,7 @@ export function DhanConnection() {
           <dd
             className={status.data?.clientIdConfigured ? "text-success" : "text-muted-foreground"}
           >
-            {status.data?.clientIdConfigured ? "configured" : "missing"}
+            {keyState(status.data?.clientIdConfigured)}
           </dd>
         </div>
         <div className="flex items-center gap-2">
@@ -135,12 +141,12 @@ export function DhanConnection() {
               status.data?.accessTokenConfigured ? "text-success" : "text-muted-foreground"
             }
           >
-            {status.data?.accessTokenConfigured ? "configured" : "missing"}
+            {keyState(status.data?.accessTokenConfigured)}
           </dd>
         </div>
       </dl>
 
-      {!configured && !status.isLoading ? (
+      {known && !configured ? (
         <div className="mt-3 rounded-md border border-warn/40 bg-warn-muted p-3 text-xs text-warn">
           <p className="flex items-center gap-1.5 font-medium">
             <AlertTriangle className="size-3.5" /> Credentials must be added as backend secrets
@@ -190,7 +196,7 @@ export function DhanConnection() {
         </Button>
       </div>
 
-      {test.kind === "ok" ? (
+      {configured && test.kind === "ok" ? (
         <div className="mt-3 rounded-md border border-success/40 bg-success-muted p-3 text-xs text-success">
           <p className="flex items-center gap-1.5 font-medium">
             <CheckCircle2 className="size-3.5" /> Connected — read-only
@@ -211,7 +217,7 @@ export function DhanConnection() {
 
       {account ? (
         <div className="mt-3 space-y-2 text-xs">
-          <div className="label-caps text-success">LIVE DATA · fetched from Dhan</div>
+          <div className="label-caps text-success">Dhan account snapshot</div>
           {account.funds.ok ? (
             <div className="grid gap-2 sm:grid-cols-4">
               {[

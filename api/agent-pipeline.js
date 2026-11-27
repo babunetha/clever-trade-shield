@@ -4,6 +4,8 @@ import { enforceRateLimit } from "lib/rate-limit.js";
 export const access = "member";
 export const methods = ["POST"];
 
+import { parseDhanLastTradeTime } from "lib/dhan-time.js";
+
 const SYMBOL_RE = /^[A-Z0-9.&_-]{1,32}$/;
 const SECURITY_RE = /^\d{1,10}$/;
 const MAX_DATA = 18000;
@@ -158,7 +160,31 @@ export default async function (req, res) {
       lows = candles?.low || [],
       volumes = candles?.volume || [];
     if (!closes.length) return fail(res, 502, "No candle data returned by Dhan", "NO_MARKET_DATA");
-    const ltp = Number(item.last_price || closes.at(-1));
+    const ltp = item.last_price;
+    const sourceTimestamp = parseDhanLastTradeTime(item.last_trade_time);
+    const age = Date.now() - Date.parse(sourceTimestamp ?? "");
+    if (
+      typeof ltp !== "number" ||
+      !Number.isFinite(ltp) ||
+      ltp <= 0 ||
+      !Number.isFinite(age) ||
+      age < 0 ||
+      age > 20000
+    )
+      return fail(res, 503, "A fresh Dhan RELIANCE quote is required.", "NOT_AVAILABLE");
+    const series = [closes, highs, lows, volumes, candles.timestamp];
+    const candleAge = Date.now() - candles.timestamp?.at(-1) * 1000;
+    if (
+      closes.length < 30 ||
+      !series.every(
+        (values) =>
+          Array.isArray(values) && values.length === closes.length && values.every(Number.isFinite),
+      ) ||
+      !Number.isFinite(candleAge) ||
+      candleAge < 0 ||
+      candleAge > 600000
+    )
+      return fail(res, 503, "Recent, complete Dhan candles are required.", "NOT_AVAILABLE");
     const e10 = Number(b.ema10) || null,
       e30 = Number(b.ema30) || null;
     const marketRegime = clip(safeJson(b.marketRegime, MAX_DATA), MAX_DATA) || "DATA_MISSING";
@@ -282,7 +308,7 @@ export default async function (req, res) {
       rsiCalc <= 45,
     ].filter(Boolean).length;
     const side = bullishSignals >= 3 ? "BUY" : bearishSignals >= 3 ? "SELL" : null;
-    const riskBudget = Math.min(maxCapital * 0.005, maxOrder * 0.02);
+    const riskBudget = Math.min(500, maxCapital * 0.005, maxOrder * 0.02);
     const atr = Math.max(
       0.01,
       Math.abs(Number(closes.at(-1)) - Number(closes.at(-14) || closes.at(-1))),
@@ -336,6 +362,7 @@ export default async function (req, res) {
         ltp,
         netChange: item.net_change ?? null,
         volume: item.volume ?? null,
+        sourceTimestamp,
         serverTime: new Date().toISOString(),
       },
       agents: { bull, bear, news, fundamental },

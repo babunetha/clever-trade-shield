@@ -45,11 +45,19 @@ function MarketOverview() {
       : null;
 
   const gainers = useMemo(
-    () => [...quotes].sort((a, b) => b.changePct - a.changePct).slice(0, 3),
+    () =>
+      quotes
+        .filter((q) => q.changePct > 0)
+        .sort((a, b) => b.changePct - a.changePct)
+        .slice(0, 3),
     [quotes],
   );
   const losers = useMemo(
-    () => [...quotes].sort((a, b) => a.changePct - b.changePct).slice(0, 3),
+    () =>
+      quotes
+        .filter((q) => q.changePct < 0)
+        .sort((a, b) => a.changePct - b.changePct)
+        .slice(0, 3),
     [quotes],
   );
 
@@ -62,7 +70,8 @@ function MarketOverview() {
         <Badge variant={hasQuotes ? "default" : "outline"}>
           {hasQuotes ? (
             <>
-              <Wifi className="mr-1 size-3" /> DHAN LIVE
+              <Wifi className="mr-1 size-3" /> {unavailable.length ? "PARTIAL DATA" : "DHAN LIVE"} ·{" "}
+              {quotes.length} equities · {indices.length} indices
             </>
           ) : (
             <>
@@ -72,7 +81,8 @@ function MarketOverview() {
         </Badge>
         {data?.asOf ? (
           <span className="num text-xs text-muted-foreground">
-            Fetched {new Date(data.asOf).toLocaleTimeString()}
+            Fetched {new Date(data.asOf).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })}{" "}
+            IST
           </span>
         ) : null}
         <Button
@@ -143,6 +153,7 @@ function MarketOverview() {
           <TableHeader>
             <TableRow>
               <TableHead>Symbol</TableHead>
+              <TableHead>Last trade (IST)</TableHead>
               <TableHead className="text-right">LTP</TableHead>
               <TableHead className="text-right">Change</TableHead>
               <TableHead className="text-right">%</TableHead>
@@ -158,6 +169,13 @@ function MarketOverview() {
                   <div className="font-medium">{q.symbol}</div>
                   <div className="text-xs text-muted-foreground">{q.name}</div>
                 </TableCell>
+                <TableCell>
+                  {q.sourceTimestamp
+                    ? new Date(q.sourceTimestamp).toLocaleTimeString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                      })
+                    : "NOT_AVAILABLE"}
+                </TableCell>
                 <TableCell className="num text-right">{formatPrice(q.ltp)}</TableCell>
                 <TableCell className={`num text-right ${tone(q.change)}`}>
                   {formatPrice(q.change)}
@@ -167,7 +185,9 @@ function MarketOverview() {
                 </TableCell>
                 <TableCell className="num text-right">{formatPrice(q.dayLow)}</TableCell>
                 <TableCell className="num text-right">{formatPrice(q.dayHigh)}</TableCell>
-                <TableCell className="num text-right">{formatCompact(q.volume)}</TableCell>
+                <TableCell className="num text-right">
+                  {q.volume === null ? "NOT_AVAILABLE" : formatCompact(q.volume)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

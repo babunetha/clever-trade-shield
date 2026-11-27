@@ -31,6 +31,9 @@ databaseDescribe("server paper-approval migration", () => {
         "utf8",
       ),
     );
+    await db.unsafe(
+      readFileSync("supabase/migrations/20261127130000_require_dhan_paper_evidence.sql", "utf8"),
+    );
   });
 
   afterAll(async () => {
@@ -72,12 +75,25 @@ databaseDescribe("server paper-approval migration", () => {
     expect(row.result).toEqual({ ok: false, reason: "Unknown paper-trade data source." });
   });
 
+  test("rejects simulated, null and stale Dhan approval sources", async () => {
+    for (const source of ["SIMULATED", null, "DHAN_LIVE"]) {
+      const [row] =
+        await db`select public.approve_paper_trade('source-test', ${source}, now() - interval '21 seconds', '{}'::jsonb) as result`;
+      expect(row.result.ok).toBe(false);
+      expect(row.result.reason).toBe(
+        source === "DHAN_LIVE"
+          ? "Dhan source quote is missing or stale."
+          : "Unknown paper-trade data source.",
+      );
+    }
+  });
+
   test("recalculates risk and rejects risk above the server cap", async () => {
     const [row] = await db<{ result: { ok: boolean; reason: string } }[]>`
       select public.approve_paper_trade(
         'test-risk-cap',
-        'SIMULATED',
-        null,
+        'DHAN_LIVE',
+        now(),
         '{"symbol":"TEST","entry":100,"stopLoss":99,"target1":102,"quantity":501,"side":"LONG"}'::jsonb
       ) as result
     `;
@@ -92,8 +108,8 @@ databaseDescribe("server paper-approval migration", () => {
     const [row] = await db<{ result: { ok: boolean; reason: string } }[]>`
       select public.approve_paper_trade(
         'test-minimum-rr',
-        'SIMULATED',
-        null,
+        'DHAN_LIVE',
+        now(),
         '{"symbol":"TEST","entry":100,"stopLoss":99,"target1":101.49,"quantity":100,"side":"LONG"}'::jsonb
       ) as result
     `;

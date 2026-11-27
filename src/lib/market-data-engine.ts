@@ -12,8 +12,8 @@ export interface MarketDataPoint {
   changePct: number;
   dayHigh: number;
   dayLow: number;
-  volume: number;
-  averagePrice: number;
+  volume: number | null;
+  averagePrice: number | null;
   sourceTimestamp: string | null;
   fetchedAt: string;
 }
@@ -36,9 +36,18 @@ function normalizeSymbols(symbols: string[]): string[] {
   );
 }
 
-function toPoint(instrument: DhanInstrument, quote: DhanQuote): MarketDataPoint {
+function toPoint(instrument: DhanInstrument, quote: DhanQuote): MarketDataPoint | null {
   const prevClose = quote.close;
-  const change = quote.netChange || (prevClose ? quote.lastPrice - prevClose : 0);
+  if (
+    prevClose === null ||
+    prevClose <= 0 ||
+    quote.low === null ||
+    quote.low <= 0 ||
+    quote.high === null ||
+    quote.high < quote.low
+  )
+    return null;
+  const change = quote.netChange ?? quote.lastPrice - prevClose;
 
   return {
     symbol: instrument.tradingSymbol,
@@ -100,7 +109,8 @@ export class DhanMarketDataEngine {
       for (const instrument of segmentInstruments) {
         const quote = result.data[segment]?.[instrument.securityId];
         if (!quote) continue;
-        quotes[instrument.tradingSymbol] = toPoint(instrument, quote);
+        const point = toPoint(instrument, quote);
+        if (point) quotes[instrument.tradingSymbol] = point;
       }
     }
 

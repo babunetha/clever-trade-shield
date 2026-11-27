@@ -129,7 +129,7 @@ function LoginPage() {
             unconfirmed
               ? "Your email address is not confirmed yet. Check your inbox and Spam folder for the confirmation link, or request another below."
               : signInError.code === "invalid_credentials"
-                ? "Email or password is wrong. Your account is confirmed — use “Forgot password?” below to set a new one."
+                ? "Sign-in details were rejected. Check your email and password, or use “Forgot password?” below."
                 : signInError.message,
           );
           return;
