@@ -291,6 +291,8 @@ export function TradingProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const signal = signals.find((s) => s.id === id);
       if (!signal) return { ok: false, message: "Signal not found" };
+      if (!signal.securityId)
+        return { ok: false, message: "A verified Dhan instrument is required." };
       if (signal.status !== "PENDING") return { ok: false, message: "Signal already decided" };
       if (approvedIds.current.has(id)) return { ok: false, message: "Signal already approved" };
       try {
@@ -306,7 +308,7 @@ export function TradingProvider({ children }: { children: ReactNode }) {
             target1: signal.target1,
             quantity: signal.quantity,
             source: "SignalCard",
-            dataSource: signal.securityId ? "DHAN_LIVE" : "SIMULATED",
+            dataSource: "DHAN_LIVE",
           },
         });
         if (!result.ok) {

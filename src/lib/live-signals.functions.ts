@@ -11,7 +11,7 @@ const round = (v: number, dp = 2) => Number(v.toFixed(dp));
 
 function dateTime(daysAgo: number) {
   const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000 - daysAgo * 86_400_000);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")} 09:15:00`;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")} ${daysAgo ? "09:15:00" : d.toISOString().slice(11, 19)}`;
 }
 
 function makeBias(changePct: number): Bias {
@@ -25,7 +25,7 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       .map((s) => String(s).trim().toUpperCase())
       .filter(Boolean)
       .slice(0, 6),
-    maxRiskPerTrade: Math.max(1, Number(input?.maxRiskPerTrade ?? 500)),
+    maxRiskPerTrade: Math.min(500, Math.max(0, Number(input?.maxRiskPerTrade ?? 500))),
   }))
   .handler(async ({ data }) => {
     const symbols = data.symbols.length ? data.symbols : ["RELIANCE", "HDFCBANK", "INFY", "SBIN"];
@@ -47,13 +47,18 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
     if (!q.ok) return q;
     for (const [segment, values] of Object.entries(q.data)) {
       for (const value of Object.values(values)) {
-        if (!value.sourceTimestamp || !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh)
+        if (
+          value.close === null ||
+          value.close <= 0 ||
+          !value.sourceTimestamp ||
+          !quoteHealth(value.lastPrice, value.sourceTimestamp).fresh
+        )
           continue;
         quotes[segment + ":" + value.securityId] = {
           timestamp: value.sourceTimestamp,
           ltp: value.lastPrice,
           close: value.close,
-          netChange: value.netChange,
+          netChange: value.netChange ?? value.lastPrice - value.close,
         };
       }
     }
@@ -131,7 +136,10 @@ export const getDhanLiveSignals = createServerFn({ method: "POST" })
       const stopLoss = side === "LONG" ? q.ltp - riskPerShare : q.ltp + riskPerShare;
       const target1 = side === "LONG" ? q.ltp + riskPerShare * 1.8 : q.ltp - riskPerShare * 1.8;
       const target2 = side === "LONG" ? q.ltp + riskPerShare * 2.6 : q.ltp - riskPerShare * 2.6;
-      const quantity = Math.max(0, Math.floor(data.maxRiskPerTrade / riskPerShare));
+      const quantity = Math.max(
+        0,
+        Math.min(Math.floor(100000 / q.ltp), Math.floor(data.maxRiskPerTrade / riskPerShare)),
+      );
       if (!quantity) {
         await sleep(220);
         continue;

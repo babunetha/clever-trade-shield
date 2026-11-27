@@ -226,6 +226,9 @@ export async function getLiveDhanOrderByCorrelationId(correlationId: string) {
   };
 }
 export async function cancelLiveDhanOrder(orderId: string) {
+  const gate = liveExecutionGate();
+  if (!gate.enabled)
+    return { ok: false as const, code: "DISABLED" as const, error: gate.reasons.join(" ") };
   if (!/^\d{5,30}$/.test(orderId)) return { ok: false as const, error: "Invalid Dhan order ID." };
   return dhanOrderRequest<Record<string, unknown>>("/orders/" + encodeURIComponent(orderId), {
     method: "DELETE",

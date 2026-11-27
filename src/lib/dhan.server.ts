@@ -431,43 +431,17 @@ export interface DhanQuote {
   /** Exchange/provider last-trade time; null means freshness cannot be established. */
   sourceTimestamp: string | null;
   lastPrice: number;
-  open: number;
-  close: number;
-  high: number;
-  low: number;
-  volume: number;
-  averagePrice: number;
-  netChange: number;
+  open: number | null;
+  close: number | null;
+  high: number | null;
+  low: number | null;
+  volume: number | null;
+  averagePrice: number | null;
+  netChange: number | null;
 }
 
-/** Parse Dhan's DD/MM/YYYY HH:mm:ss market timestamp as Asia/Kolkata time. */
-export function parseDhanLastTradeTime(value: unknown): string | null {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const raw = value.trim();
-  const local = raw.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
-  if (local) {
-    const [, dayText, monthText, yearText, hourText, minuteText, secondText] = local;
-    const day = Number(dayText),
-      month = Number(monthText),
-      year = Number(yearText);
-    const hour = Number(hourText),
-      minute = Number(minuteText),
-      second = Number(secondText);
-    if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59)
-      return null;
-    const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-    if (
-      localDate.getUTCFullYear() !== year ||
-      localDate.getUTCMonth() !== month - 1 ||
-      localDate.getUTCDate() !== day
-    )
-      return null;
-    const utc = localDate.getTime() - (5 * 60 + 30) * 60_000;
-    return new Date(utc).toISOString();
-  }
-  const timestamp = Date.parse(raw);
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
-}
+export { parseDhanLastTradeTime } from "../../lib/dhan-time.js";
+import { parseDhanLastTradeTime } from "../../lib/dhan-time.js";
 
 export async function getDhanQuote(
   request: DhanLtpRequest,
@@ -475,6 +449,10 @@ export async function getDhanQuote(
   const segmentName = request.exchangeSegment ?? "NSE_EQ";
   const result = await getDhanQuoteGroups({ [segmentName]: request.securityIds });
   return result.ok ? { ok: true, data: result.data[segmentName] ?? {} } : result;
+}
+
+function quoteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export async function getDhanQuoteGroups(
@@ -506,19 +484,19 @@ export async function getDhanQuoteGroups(
         if (!value || typeof value !== "object") continue;
         const v = value as Record<string, unknown>;
         const o = (v["ohlc"] ?? {}) as Record<string, unknown>;
-        const lastPrice = Number(v["last_price"]);
-        if (!Number.isFinite(lastPrice)) continue;
+        const lastPrice = quoteNumber(v["last_price"]);
+        if (lastPrice === null || lastPrice <= 0) continue;
         map[id] = {
           securityId: id,
           sourceTimestamp: parseDhanLastTradeTime(v["last_trade_time"]),
           lastPrice,
-          open: Number(o["open"] ?? 0),
-          close: Number(o["close"] ?? 0),
-          high: Number(o["high"] ?? 0),
-          low: Number(o["low"] ?? 0),
-          volume: Number(v["volume"] ?? 0),
-          averagePrice: Number(v["average_price"] ?? 0),
-          netChange: Number(v["net_change"] ?? 0),
+          open: quoteNumber(o["open"]),
+          close: quoteNumber(o["close"]),
+          high: quoteNumber(o["high"]),
+          low: quoteNumber(o["low"]),
+          volume: quoteNumber(v["volume"]),
+          averagePrice: quoteNumber(v["average_price"]),
+          netChange: quoteNumber(v["net_change"]),
         };
       }
     }
@@ -550,8 +528,8 @@ export async function getDhanLtp(
   if (segment && typeof segment === "object") {
     for (const [id, value] of Object.entries(segment as Record<string, unknown>)) {
       if (value && typeof value === "object" && "last_price" in value) {
-        const price = Number((value as { last_price?: unknown }).last_price);
-        if (Number.isFinite(price)) map[id] = price;
+        const price = quoteNumber((value as { last_price?: unknown }).last_price);
+        if (price !== null && price > 0) map[id] = price;
       }
     }
   }
